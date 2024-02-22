@@ -42,7 +42,7 @@ private:
     float m_move_speed;         // Speed at which the camera moves, in units per second.
     float m_turn_speed;         // Speed at which the camera turns, in radians per second.
 
-    KeysPressed m_key_pressed;
+    KeysPressed m_keys_pressed;
 
 };
 

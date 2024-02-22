@@ -1,4 +1,13 @@
-
+//*********************************************************
+//
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the MIT License (MIT).
+// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+//
+//*********************************************************
 
 static float softeningSquared = 0.0012500000f * 0.0012500000f;
 static float g_fG = 6.67300e-11f * 10000.0f;
@@ -13,17 +22,17 @@ groupshared float4 sharedPos[blocksize];
 //
 //void bodyBodyInteraction(inout float3 ai, float4 bj, float4 bi, float mass, int particles)
 //{
-//    float3 r = bj.xyz - bi.xyz;
+//	float3 r = bj.xyz - bi.xyz;
 
-//    float distSqr = dot(r, r);
-//    distSqr += softeningSquared;
+//	float distSqr = dot(r, r);
+//	distSqr += softeningSquared;
 
-//    float invDist = 1.0f / sqrt(distSqr);
-//    float invDistCube = invDist * invDist * invDist;
+//	float invDist = 1.0f / sqrt(distSqr);
+//	float invDistCube = invDist * invDist * invDist;
 
-//    float s = mass * invDistCube * particles;
+//	float s = mass * invDistCube * particles;
 
-//    ai += r * s;
+//	ai += r * s;
 //}
 
 void bodyBodyInteraction(inout float3 ai, float4 bj, float4 bi, float mass, int particles)
@@ -35,13 +44,14 @@ void bodyBodyInteraction(inout float3 ai, float4 bj, float4 bi, float mass, int 
     ai += r * s;
 }
 
+
 cbuffer cbCS : register(b0)
 {
-    uint4 g_param;      // param[0] = MAX_PARTICLES;
+    uint4 g_param; // param[0] = MAX_PARTICLES;
 						// param[1] = dimx;
-    float4 g_paramf;    // paramf[0] = 0.1f;
+    float4 g_paramf; // paramf[0] = 0.1f;
 						// paramf[1] = 1; 
-}
+};
 
 struct PosVelo
 {
@@ -61,8 +71,8 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     float3 accel = 0;
     float mass = g_fParticleMass;
 
- 	// Update current particle using all other particles.
-    [loop]
+	// Update current particle using all other particles.
+	[loop]
     for (uint tile = 0; tile < g_param.y; tile++)
     {
 		// Cache a tile of particles unto shared memory to increase IO efficiency.
@@ -117,3 +127,4 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
         newPosVelo[DTid.x].velo = float4(vel.xyz, length(accel));
     }
 }
+

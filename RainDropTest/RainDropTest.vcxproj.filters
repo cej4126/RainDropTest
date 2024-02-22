@@ -73,11 +73,11 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="ParticleDraw.hlsl">
+    <CustomBuild Include="nBodyGravityCS.hlsl">
       <Filter>Assets\Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="nBodyGravityCS.hlsl">
+    </CustomBuild>
+    <CustomBuild Include="ParticleDraw.hlsl">
       <Filter>Assets\Shaders</Filter>
-    </FxCompile>
+    </CustomBuild>
   </ItemGroup>
 </Project>

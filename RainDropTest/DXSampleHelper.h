@@ -99,7 +99,7 @@ inline void GetAssetsPath(_Out_writes_(pathSize) WCHAR* path, UINT pathSize)
 
     if (last_slash)
     {
-        *(last_slash + 1) == L'0';
+        *(last_slash + 1) = L'\0';
     }
 }
 

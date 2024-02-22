@@ -26,7 +26,7 @@ private:
     static const UINT Thread_Count = 1;
 
     static const float Particle_Spread;
-    static const UINT Particle_Count = 5000;
+    static const UINT Particle_Count = 10000;
 
     // "Vertex" definition for particles. Triangle vertices are generated 
     // by the geometry shader. Color data will be assigned to those 

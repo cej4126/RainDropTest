@@ -7,13 +7,13 @@ DXSample::DXSample(UINT width, UINT height, std::wstring name) :
     m_width(width),
     m_height(height),
     m_title(name),
-    m_useWarpDevice(false)    
+    m_use_warp_device(false)    
 {
     WCHAR assetsPath[512];
     GetAssetsPath(assetsPath, _countof(assetsPath));
     m_assetsPath = assetsPath;
 
-    m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+    m_aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
 }
 
 DXSample::~DXSample()
@@ -67,7 +67,7 @@ void DXSample::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
         if (_wcsnicmp(argv[i], L"-warp", wcslen(argv[i])) == 0 ||
             _wcsnicmp(argv[i], L"/warp", wcslen(argv[i])) == 0)
         {
-            m_useWarpDevice = true;
+            m_use_warp_device = true;
             m_title = m_title + L" (WARP)";
         }
     }

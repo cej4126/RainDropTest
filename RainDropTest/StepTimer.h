@@ -159,9 +159,9 @@ private:
     UINT64 m_left_over_ticks;
 
     // Members for tracking the framerate.
-    UINT64 m_frame_count;
-    UINT64 m_frames_per_second;
-    UINT64 m_frames_this_second;
+    UINT32 m_frame_count;
+    UINT32 m_frames_per_second;
+    UINT32 m_frames_this_second;
     UINT64 m_qpc_second_counter;
 
     // Members for configuring fixed timestep mode.
