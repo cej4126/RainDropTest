@@ -139,7 +139,7 @@ private:
         Root_Parameter_SRV,
         Root_Parameter_UAV,
 
-        Root_Parameter_Count
+        Root_Parameters_Count
     };
 
     enum Descriptor_Heap_Index : UINT32

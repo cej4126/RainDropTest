@@ -18,6 +18,7 @@ SimpleCamera::SimpleCamera() :
 void SimpleCamera::Init(XMFLOAT3 position)
 {
     m_initial_position = position;
+    Reset();
 }
 
 void SimpleCamera::SetMoveSpeed(float units_per_second)

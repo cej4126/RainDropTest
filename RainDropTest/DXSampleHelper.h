@@ -19,7 +19,7 @@ constexpr struct {
 } heap_properties;
 
 constexpr struct {
-    const D3D12_RASTERIZER_DESC not_sure_face_cull{
+    const D3D12_RASTERIZER_DESC face_cull{
         D3D12_FILL_MODE_SOLID,                          //  D3D12_FILL_MODE FillMode;
         D3D12_CULL_MODE_BACK,                           //  D3D12_CULL_MODE CullMode;
         FALSE,                                          //  BOOL FrontCounterClockwise;
@@ -42,14 +42,24 @@ constexpr struct {
         FALSE,                                          // BOOL StencilEnable;
         D3D12_DEFAULT_STENCIL_READ_MASK,                // UINT8 StencilReadMask;
         D3D12_DEFAULT_STENCIL_WRITE_MASK,               // UINT8 StencilWriteMask;
-        {},                                             // FrontFace
-        {}                                              // BackFace
+        {                                               // FrontFace
+            D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilFailOp;
+            D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilDepthFailOp;
+            D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilPassOp;
+            D3D12_COMPARISON_FUNC_ALWAYS,                   // D3D12_COMPARISON_FUNC StencilFunc;
+        },
+        {                                               // BackFace
+            D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilFailOp;
+            D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilDepthFailOp;
+            D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilPassOp;
+            D3D12_COMPARISON_FUNC_ALWAYS,                   // D3D12_COMPARISON_FUNC StencilFunc;
+        }
     };
 } depth_desc_state;
 
 
 constexpr struct {
-    const D3D12_BLEND_DESC blend_desc {
+    const D3D12_BLEND_DESC blend_desc{
         FALSE,                                          // BOOL AlphaToCoverageEnable;
         FALSE,                                          // BOOL IndependentBlendEnable;
         {
