@@ -1,6 +1,9 @@
 
 #include "stdafx.h"
 #include "Win32Application.h"
+#include "StepTimer.h"
+
+time_it timer{};
 
 HWND Win32Application::m_hwnd = nullptr;
 
@@ -20,12 +23,12 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
     window_class.hInstance = hInstance;      // HINSTANCE   hInstance;
     window_class.hCursor = LoadCursor(NULL, IDC_ARROW);        // HCURSOR     hCursor;
     window_class.lpszClassName = L"Rain Test";  // LPCWSTR     lpszClassName;
-    //window_class.cbClsExtra = 0;     // int         cbClsExtra;
-    //window_class.cbWndExtra = 0;     // int         cbWndExtra;
-    //window_class.hIcon = 0;          // HICON       hIcon;
-    //window_class.hbrBackground = 0;  // HBRUSH      hbrBackground;
-    //window_class.lpszMenuName = 0;   // LPCWSTR     lpszMenuName;
-    //window_class.hIconSm = 0;        // HICON       hIconSm;
+    window_class.cbClsExtra = 0;     // int         cbClsExtra;
+    window_class.cbWndExtra = 0;     // int         cbWndExtra;
+    window_class.hIcon = 0;          // HICON       hIcon;
+    window_class.hbrBackground = 0;  // HBRUSH      hbrBackground;
+    window_class.lpszMenuName = 0;   // LPCWSTR     lpszMenuName;
+    window_class.hIconSm = 0;        // HICON       hIconSm;
     RegisterClassEx(&window_class);
 
     RECT window_rect = { 0, 0, static_cast<LONG>(pSample->GetWidth()), static_cast<LONG>(pSample->GetHeight()) };
@@ -66,6 +69,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
 
 LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+
     DXSample* pSample = reinterpret_cast<DXSample*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
     switch (message)
@@ -93,11 +97,14 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         return 0;
 
     case WM_PAINT:
+        timer.begin();
         if (pSample)
         {
-            pSample->OnUpdate();
+            float dt{ timer.dt_avg() };
+            pSample->OnUpdate(dt);
             pSample->OnRender();
         }
+        timer.end();
         return 0;
 
     case WM_DESTROY:

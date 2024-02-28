@@ -11,7 +11,8 @@
 
 static float softeningSquared = 0.0012500000f * 0.0012500000f;
 static float g_fG = 6.67300e-11f * 10000.0f;
-static float g_fParticleMass = g_fG * 10000.0f * 10000.0f;
+//static float g_fParticleMass = g_fG * 10000.0f * 10000.0f;
+static float g_fParticleMass = g_fG * 10.0f * 10000.0f;
 
 #define blocksize 128
 groupshared float4 sharedPos[blocksize];
@@ -41,15 +42,15 @@ void bodyBodyInteraction(inout float3 ai, float4 bj, float4 bi, float mass, int 
     
     float s = mass * particles / pow(sqrt(dot(r, r) + softeningSquared), 3);
 
-    ai += r * s;
+    ai += r * s; 
 }
 
 
 cbuffer cbCS : register(b0)
 {
-    uint4 g_param; // param[0] = MAX_PARTICLES;
+    uint4 g_param;      // param[0] = MAX_PARTICLES;
 						// param[1] = dimx;
-    float4 g_paramf; // paramf[0] = 0.1f;
+    float4 g_paramf;    // paramf[0] = 0.1f;
 						// paramf[1] = 1; 
 };
 

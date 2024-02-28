@@ -70,104 +70,104 @@ void D3D12RainDrop::LoadPipeline()
         }
     }
 #endif
-
-ComPtr<IDXGIFactory4> factory;
-ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
-
-if (m_use_warp_device)
-{
-    // Wrap device
-    ComPtr<IDXGIAdapter> warp_adapter;
-    ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp_adapter)));
-    ThrowIfFailed(D3D12CreateDevice(warp_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
-}
-else
-{
-    ComPtr<IDXGIAdapter1> hardware_adapter;
-    GetHardwareAdapter(factory.Get(), &hardware_adapter);
-
-    ThrowIfFailed(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
-}
-
-// Command Queue
-D3D12_COMMAND_QUEUE_DESC queue_desc{};
-queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;          // D3D12_COMMAND_LIST_TYPE Type;
-queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; // INT Priority;
-queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;          // D3D12_COMMAND_QUEUE_FLAGS Flags;
-queue_desc.NodeMask = 0;                                   // UINT NodeMask;
-
-ThrowIfFailed(m_device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_command_queue)));
-NAME_D3D12_OBJECT(m_command_queue);
-
-// Swap Chain
-DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
-swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
-swap_chain_desc.Width = m_width;                                                  // UINT Width;
-swap_chain_desc.Height = m_height;                                                // UINT Height;
-swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;                              // DXGI_FORMAT Format;
-swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
-swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
-swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
-swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
-
-swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
-swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
-swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
-
-ComPtr<IDXGISwapChain1> swap_chain;
-// Swap chain needs the queue so that it can force a flush on it.
-ThrowIfFailed(factory->CreateSwapChainForHwnd(m_command_queue.Get(), Win32Application::GetHwnd(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
-
-// This sample does not support full screen transitions.
-ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
-
-ThrowIfFailed(swap_chain.As(&m_swap_chain));
-m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
-
-// descriptor heap
-{
-    // render target view (RTV) descriptor heap.
-    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-    rtv_heap_desc.NumDescriptors = Frame_Count;                  // UINT NumDescriptors;
-    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
-    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
-
-    rtv_heap_desc.NodeMask = 0;                        // UINT NodeMask;
-    ThrowIfFailed(m_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap)));
-    NAME_D3D12_OBJECT(m_rtv_heap);
-
-    m_rtv_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-    // Describe and create a shader resource view (SRV) and unordered
-    // access view (UAV) descriptor heap.
-    D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
-    srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
-    srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
-    srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
-    srv_uav_heap_desc.NodeMask = 0;                        // UINT NodeMask;
-    ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_uav_heap_desc, IID_PPV_ARGS(&m_srv_uav_heap)));
-    NAME_D3D12_OBJECT(m_srv_uav_heap);
-
-    m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-}
-
-// Create frame resources.
-{
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_rtv_heap->GetCPUDescriptorHandleForHeapStart() };
-
-    // Create a RTV and a command allocator for each frame
-    for (UINT n = 0; n < Frame_Count; ++n)
+    
+    ComPtr<IDXGIFactory4> factory;
+    ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
+    
+    if (m_use_warp_device)
     {
-        ThrowIfFailed(m_swap_chain->GetBuffer(n, IID_PPV_ARGS(&m_render_targets[n])));
-        m_device->CreateRenderTargetView(m_render_targets[n].Get(), nullptr, rtv_handle);
-        NAME_D3D12_OBJECT_INDEXED(m_render_targets, n);
-
-        rtv_handle.ptr += (SIZE_T)m_rtv_descriptor_size;
-
-        ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocators[n])));
+        // Wrap device
+        ComPtr<IDXGIAdapter> warp_adapter;
+        ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp_adapter)));
+        ThrowIfFailed(D3D12CreateDevice(warp_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
     }
-}
+    else
+    {
+        ComPtr<IDXGIAdapter1> hardware_adapter;
+        GetHardwareAdapter(factory.Get(), &hardware_adapter);
+    
+        ThrowIfFailed(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
+    }
+    
+    // Command Queue
+    D3D12_COMMAND_QUEUE_DESC queue_desc{};
+    queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;          // D3D12_COMMAND_LIST_TYPE Type;
+    queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; // INT Priority;
+    queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;          // D3D12_COMMAND_QUEUE_FLAGS Flags;
+    queue_desc.NodeMask = 0;                                   // UINT NodeMask;
+    
+    ThrowIfFailed(m_device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_command_queue)));
+    NAME_D3D12_OBJECT(m_command_queue);
+    
+    // Swap Chain
+    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+    swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
+    swap_chain_desc.Width = m_width;                                                  // UINT Width;
+    swap_chain_desc.Height = m_height;                                                // UINT Height;
+    swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;                              // DXGI_FORMAT Format;
+    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
+    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
+    swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
+    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
+    
+    swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
+    swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
+    swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
+    
+    ComPtr<IDXGISwapChain1> swap_chain;
+    // Swap chain needs the queue so that it can force a flush on it.
+    ThrowIfFailed(factory->CreateSwapChainForHwnd(m_command_queue.Get(), Win32Application::GetHwnd(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
+    
+    // This sample does not support full screen transitions.
+    ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
+    
+    ThrowIfFailed(swap_chain.As(&m_swap_chain));
+    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+    m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
+    
+    // descriptor heap
+    {
+        // render target view (RTV) descriptor heap.
+        D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
+        rtv_heap_desc.NumDescriptors = Frame_Count;                  // UINT NumDescriptors;
+        rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+        rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+    
+        rtv_heap_desc.NodeMask = 0;                        // UINT NodeMask;
+        ThrowIfFailed(m_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap)));
+        NAME_D3D12_OBJECT(m_rtv_heap);
+    
+        m_rtv_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    
+        // Describe and create a shader resource view (SRV) and unordered
+        // access view (UAV) descriptor heap.
+        D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
+        srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
+        srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+        srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+        srv_uav_heap_desc.NodeMask = 0;                        // UINT NodeMask;
+        ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_uav_heap_desc, IID_PPV_ARGS(&m_srv_uav_heap)));
+        NAME_D3D12_OBJECT(m_srv_uav_heap);
+    
+        m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+    
+    // Create frame resources.
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_rtv_heap->GetCPUDescriptorHandleForHeapStart() };
+    
+        // Create a RTV and a command allocator for each frame
+        for (UINT n = 0; n < Frame_Count; ++n)
+        {
+            ThrowIfFailed(m_swap_chain->GetBuffer(n, IID_PPV_ARGS(&m_render_targets[n])));
+            m_device->CreateRenderTargetView(m_render_targets[n].Get(), nullptr, rtv_handle);
+            NAME_D3D12_OBJECT_INDEXED(m_render_targets, n);
+    
+            rtv_handle.ptr += (SIZE_T)m_rtv_descriptor_size;
+    
+            ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocators[n])));
+        }
+    }
 }
 
 void D3D12RainDrop::LoadAssets()
@@ -563,26 +563,29 @@ float D3D12RainDrop::RandomPercent()
     return ret / 5000.0f;
 }
 
-void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_paricles)
+void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles)
 {
     for (UINT i = 0; i < number_of_paricles; ++i)
     {
         XMFLOAT3 delta(spread, spread, spread);
-
-        // Find min length
-        while (XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&delta))) > spread * spread)
-        {
+    
+        //// Find min length
+        //while (XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&delta))) > spread * spread)
+        //{
             delta.x = RandomPercent() * spread;
             delta.y = RandomPercent() * spread;
             delta.z = RandomPercent() * spread;
-        }
+        //}
 
         p_particles[i].position.x = center.x + delta.x;
         p_particles[i].position.y = center.y + delta.y;
         p_particles[i].position.z = center.z + delta.z;
-        p_particles[i].position.w = 10000.0f * 10000.0f;
+        //p_particles[i].position.w = 10000.0f * 10000.0f;
 
-        p_particles[i].velocity = velocity;
+        //p_particles[i].velocity = velocity;
+        p_particles[i].velocity.x = RandomPercent() * velocity;
+        p_particles[i].velocity.y = RandomPercent() * velocity;
+        p_particles[i].velocity.z = RandomPercent() * velocity;
     }
 }
 
@@ -596,8 +599,15 @@ void D3D12RainDrop::CreateParticleBuffers()
 
     // Split the particles into two groups.
     float center_spread = Particle_Spread * 0.5f;
-    LoadParticles(&data[0], XMFLOAT3(center_spread, 0, 0), XMFLOAT4(0, 0, -20, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
-    LoadParticles(&data[Particle_Count / 2], XMFLOAT3(-center_spread, 0, 0), XMFLOAT4(0, 0, 20, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
+    //float speed = 20.0f;
+    float speed = 0.0002f;
+    // Org
+    //LoadParticles(&data[0], XMFLOAT3(center_spread, 0, 0), XMFLOAT4(0, 0, -speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
+    //LoadParticles(&data[Particle_Count / 2], XMFLOAT3(-center_spread, 0, 0), XMFLOAT4(0, 0, speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
+
+                                           // center            vel                          spread
+    LoadParticles(&data[0],                  XMFLOAT3(0, 0, 0), speed, 50, Particle_Count);
+
 
     // Get the D3D12_HEAP_PROPERTIES defaultHeapProperties and uploadHeapProperties from helper
     D3D12_RESOURCE_DESC buffer_desc = {};
@@ -740,13 +750,14 @@ void D3D12RainDrop::CreateAsyncContexts()
 }
 
 // Update frame-based values.
-void D3D12RainDrop::OnUpdate()
+void D3D12RainDrop::OnUpdate(float dt)
 {
     // Wait for the previous Present to complete.
     WaitForSingleObjectEx(m_swap_chain_event, 100, FALSE);
 
-    m_timer.Tick(NULL);
-    m_camera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
+    //m_timer.Tick(NULL);
+    //m_camera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
+    m_camera.Update(dt);
 
     Constant_Buffer_GS constant_buffer_gs = {};
     XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, XMMatrixMultiply(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspect_ratio, 1.0f, 5000.0f)));

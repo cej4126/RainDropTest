@@ -15,7 +15,7 @@ public:
     D3D12RainDrop(UINT width, UINT height, std::wstring name);
 
     virtual void OnInit();
-    virtual void OnUpdate();
+    virtual void OnUpdate(float dt);
     virtual void OnRender();
     virtual void OnDestory();
     virtual void OnKeyDown(UINT8 key);
@@ -26,7 +26,8 @@ private:
     static const UINT Thread_Count = 1;
 
     static const float Particle_Spread;
-    static const UINT Particle_Count = 10000;
+//    static const UINT Particle_Count = 10000;
+    static const UINT Particle_Count = 5000;
 
     // "Vertex" definition for particles. Triangle vertices are generated 
     // by the geometry shader. Color data will be assigned to those 
@@ -101,7 +102,7 @@ private:
     ComPtr<ID3D12Resource> m_constant_buffer_cs;
 
     SimpleCamera m_camera;
-    StepTimer m_timer;
+    //StepTimer m_timer;
 
     // Compute objects.
     ComPtr<ID3D12CommandQueue> m_compute_command_queue[Thread_Count];
@@ -157,7 +158,8 @@ private:
     void CreateVertexBuffer();
     void CreateAsyncContexts();
     float RandomPercent();
-    void LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_paricles);
+    //void LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_paricles);
+    void LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles);
     void CreateParticleBuffers();
     void PopulateCommandList();
 

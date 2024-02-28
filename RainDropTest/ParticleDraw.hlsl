@@ -83,13 +83,13 @@ VSParticleDrawOut VSParticleDraw(VSParticleIn input)
     output.pos = g_bufPosVelo[input.id].pos.xyz;
 
 	// org
-    float mag = g_bufPosVelo[input.id].velo.w / 2.0f;
-    output.color = lerp(float4(0.1f, 0.1f, 0.1f, 1.0f), input.color, mag);
+    //float mag = g_bufPosVelo[input.id].velo.w / 2.0f;
+    //output.color = lerp(float4(0.1f, 0.1f, 0.1f, 1.0f), input.color, mag);
 
 	//float mag = g_bufPosVelo[input.id].velo.w / 9;
 	//output.color = lerp(float4(1.0f, 0.1f, 0.1f, 1.0f), input.color, mag);
 
-    // output.color = input.color;
+    output.color = input.color;
 
     return output;
 }
