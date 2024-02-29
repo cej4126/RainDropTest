@@ -17,7 +17,7 @@ public:
     virtual void OnInit();
     virtual void OnUpdate(float dt);
     virtual void OnRender();
-    virtual void OnDestory();
+    virtual void OnDestroy();
     virtual void OnKeyDown(UINT8 key);
     virtual void OnKeyUp(UINT8 key);
 
@@ -54,14 +54,14 @@ private:
         XMFLOAT4X4 inverse_view;
 
         // Constant buffers are 256-byte aligned in GPU memory. Padding is added
-        // for convenience when computing the struct's size.
+        // for convenience when computing the structure's size.
         float padding[32];
     };
 
     struct Constant_Buffer_CS
     {
         UINT param[4];
-        float paramf[4];
+        float param_float[4];
     };
 
     // Pipeline objects
@@ -80,7 +80,7 @@ private:
     UINT m_rtv_descriptor_size;
     UINT m_srv_uav_descriptor_size;
 
-    UINT8* m_pConstantBufferGSData;
+    //UINT8* m_pConstantBufferGSData;
 
     UINT m_srv_index[Thread_Count];		// Denotes which of the particle buffer resource views is the SRV (0 or 1). The UAV is 1 - srvIndex.
     UINT m_height_instances;
@@ -98,7 +98,7 @@ private:
     ComPtr<ID3D12Resource> m_particle_buffer_upload_0[Thread_Count];
     ComPtr<ID3D12Resource> m_particle_buffer_upload_1[Thread_Count];
     ComPtr<ID3D12Resource> m_constant_buffer_gs;
-    UINT8* m_p_constant_buffer_gs_data;
+    UINT8* m_p_constant_buffer_gs_data{ nullptr };
     ComPtr<ID3D12Resource> m_constant_buffer_cs;
 
     SimpleCamera m_camera;
@@ -110,19 +110,19 @@ private:
     ComPtr<ID3D12GraphicsCommandList> m_compute_command_list[Thread_Count];
 
     // Synchronization objects.
-    HANDLE m_swap_chain_event;
+    HANDLE m_swap_chain_event{ nullptr };
     ComPtr<ID3D12Fence> m_render_context_fence;
-    UINT64 m_render_context_fence_value;
-    HANDLE m_render_context_fence_event;
+    UINT64 m_render_context_fence_value{ 0 };
+    HANDLE m_render_context_fence_event{ nullptr };
     UINT64 m_frame_fence_values[Frame_Count];
 
     ComPtr<ID3D12Fence> m_thread_fences[Thread_Count];
-    volatile HANDLE m_thread_fence_events[Thread_Count];
+    volatile HANDLE m_thread_fence_events[Thread_Count]{};
 
     // Thread state.
-    LONG volatile m_terminating;
-    UINT64 volatile m_render_context_fence_values[Thread_Count];
-    UINT64 volatile m_thread_fence_values[Thread_Count];
+    LONG volatile m_terminating{ 0 };
+    UINT64 volatile m_render_context_fence_values[Thread_Count]{ 0 };
+    UINT64 volatile m_thread_fence_values[Thread_Count]{ 0 };
 
     struct ThreadData
     {
@@ -130,7 +130,7 @@ private:
         UINT thread_index;
     };
     ThreadData m_thread_data[Thread_Count];
-    HANDLE m_thread_handles[Thread_Count];
+    HANDLE m_thread_handles[Thread_Count]{ nullptr };
 
 
     // Indices of shader resources in the descriptor heap.
@@ -158,7 +158,7 @@ private:
     void CreateVertexBuffer();
     void CreateAsyncContexts();
     float RandomPercent();
-    //void LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_paricles);
+    //void LoadParticles(_Out_writes_(number_of_particles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_particles);
     void LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles);
     void CreateParticleBuffers();
     void PopulateCommandList();

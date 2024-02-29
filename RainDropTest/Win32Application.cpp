@@ -5,7 +5,7 @@
 
 time_it timer{};
 
-HWND Win32Application::m_hwnd = nullptr;
+HWND Win32Application::m_hander_window = nullptr;
 
 int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show)
 {
@@ -17,24 +17,24 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
 
     // Initialize the window class
     WNDCLASSEX window_class = { 0 };
-    window_class.cbSize = sizeof(WNDCLASSEX);         // UINT        cbSize;
-    window_class.style = CS_HREDRAW | CS_VREDRAW;          // UINT        style;
-    window_class.lpfnWndProc = WindowProc;    // WNDPROC     lpfnWndProc;
-    window_class.hInstance = hInstance;      // HINSTANCE   hInstance;
-    window_class.hCursor = LoadCursor(NULL, IDC_ARROW);        // HCURSOR     hCursor;
-    window_class.lpszClassName = L"Rain Test";  // LPCWSTR     lpszClassName;
-    window_class.cbClsExtra = 0;     // int         cbClsExtra;
-    window_class.cbWndExtra = 0;     // int         cbWndExtra;
-    window_class.hIcon = 0;          // HICON       hIcon;
-    window_class.hbrBackground = 0;  // HBRUSH      hbrBackground;
-    window_class.lpszMenuName = 0;   // LPCWSTR     lpszMenuName;
-    window_class.hIconSm = 0;        // HICON       hIconSm;
+    window_class.cbSize = sizeof(WNDCLASSEX);           // UINT        cbSize;
+    window_class.style = CS_HREDRAW | CS_VREDRAW;       // UINT        style;
+    window_class.lpfnWndProc = WindowProc;              // WNDPROC     lpfnWndProc;
+    window_class.hInstance = hInstance;                 // HINSTANCE   hInstance;
+    window_class.hCursor = LoadCursor(NULL, IDC_ARROW); // HCURSOR     hCursor;
+    window_class.lpszClassName = L"Rain Test";          // LPCWSTR     lpszClassName;
+    window_class.cbClsExtra = 0;                        // int         cbClsExtra;
+    window_class.cbWndExtra = 0;                        // int         cbWndExtra;
+    window_class.hIcon = 0;                             // HICON       hIcon;
+    window_class.hbrBackground = 0;                     // HBRUSH      hbrBackground;
+    window_class.lpszMenuName = 0;                      // LPCWSTR     lpszMenuName;
+    window_class.hIconSm = 0;                           // HICON       hIconSm;
     RegisterClassEx(&window_class);
 
     RECT window_rect = { 0, 0, static_cast<LONG>(pSample->GetWidth()), static_cast<LONG>(pSample->GetHeight()) };
 
     // CreateWindowW(lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-    m_hwnd = CreateWindow(window_class.lpszClassName, pSample->GetTitle(),
+    m_hander_window = CreateWindow(window_class.lpszClassName, pSample->GetTitle(),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -47,7 +47,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
     // Initialize the sample. OnInit is defined in each child-implementation of DXSample.
     pSample->OnInit();
 
-    ShowWindow(m_hwnd, m_cmd_show);
+    ShowWindow(m_hander_window, m_cmd_show);
 
     // Main sample loop.
 
@@ -62,7 +62,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
         }
     }
 
-    pSample->OnDestory();
+    pSample->OnDestroy();
 
     return static_cast<char>(msg.wParam);
 }

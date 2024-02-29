@@ -12,7 +12,7 @@ public:
     virtual void OnInit() = 0;
     virtual void OnUpdate(float dt = 17.6f) = 0;
     virtual void OnRender() = 0;
-    virtual void OnDestory() = 0;
+    virtual void OnDestroy() = 0;
 
     virtual void OnKeyDown(UINT8) {}
     virtual void OnKeyUp(UINT8) {}

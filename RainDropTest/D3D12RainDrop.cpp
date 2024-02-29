@@ -1,12 +1,14 @@
 #include "stdafx.h"
 #include "D3D12RainDrop.h"
 
+
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
 // change and 0 will be returned.
 #define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
 
-const float D3D12RainDrop::Particle_Spread = 400.0f;
+//const float D3D12RainDrop::Particle_Spread = 400.0f;
+const float D3D12RainDrop::Particle_Spread = 500.0f;
 
 D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -15,7 +17,7 @@ D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
     m_scissor_rect(),
     m_rtv_descriptor_size(0),
     m_srv_uav_descriptor_size(0),
-    m_pConstantBufferGSData(nullptr),
+    //m_pConstantBufferGSData(nullptr),
     m_render_context_fence_value(0),
     m_terminating(0)
 {
@@ -116,10 +118,10 @@ void D3D12RainDrop::LoadPipeline()
     
     ComPtr<IDXGISwapChain1> swap_chain;
     // Swap chain needs the queue so that it can force a flush on it.
-    ThrowIfFailed(factory->CreateSwapChainForHwnd(m_command_queue.Get(), Win32Application::GetHwnd(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
+    ThrowIfFailed(factory->CreateSwapChainForHwnd(m_command_queue.Get(), Win32Application::GetHandleWindow(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
     
     // This sample does not support full screen transitions.
-    ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
+    ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHandleWindow(), DXGI_MWA_NO_ALT_ENTER));
     
     ThrowIfFailed(swap_chain.As(&m_swap_chain));
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
@@ -174,7 +176,7 @@ void D3D12RainDrop::LoadAssets()
 {
     // Create the root signatures.
     {
-        D3D12_DESCRIPTOR_RANGE ranges[2];
+        D3D12_DESCRIPTOR_RANGE ranges[2]{};
         ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
         ranges[0].NumDescriptors = 1;                          // UINT NumDescriptors;
         ranges[0].BaseShaderRegister = 0;                      // UINT BaseShaderRegister;
@@ -187,7 +189,7 @@ void D3D12RainDrop::LoadAssets()
         ranges[1].RegisterSpace = 0;                           // UINT RegisterSpace;
         ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;       // UINT OffsetInDescriptorsFromTableStart;
 
-        D3D12_ROOT_PARAMETER root_parameters[Root_Parameters_Count];
+        D3D12_ROOT_PARAMETER root_parameters[Root_Parameters_Count]{};
         // Constant Buffer
         root_parameters[Root_Parameter_CB].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         root_parameters[Root_Parameter_CB].Constants.ShaderRegister = 0;
@@ -247,12 +249,50 @@ void D3D12RainDrop::LoadAssets()
 #else
         UINT computeFlags = 0;
 #endif
+        ComPtr<ID3DBlob> pErrorMsgs{ nullptr };
 
-        // Load and compile shaders.
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "VSParticleDraw", "vs_5_0", compile_flags, 0, &vertex_shader, nullptr));
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "GSParticleDraw", "gs_5_0", compile_flags, 0, &geometry_shader, nullptr));
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "PSParticleDraw", "ps_5_0", compile_flags, 0, &pixel_shader, nullptr));
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"NBodyGravityCS.hlsl").c_str(), nullptr, nullptr, "CSMain", "cs_5_0", compile_flags, 0, &compute_shader, nullptr));
+
+        struct shader_file_info
+        {
+            const std::wstring file_name;
+            const std::string function;
+            const std::string compiler;
+            ComPtr<ID3DBlob> shaders;
+        }; 
+        shader_file_info shader_file_infos[]
+        {
+           { L"ParticleDraw.hlsl",   "VSParticleDraw", "vs_5_0" },
+           { L"ParticleDraw.hlsl",   "GSParticleDraw", "gs_5_0" },
+           { L"ParticleDraw.hlsl",   "PSParticleDraw", "ps_5_0" },
+           { L"NBodyGravityCS.hlsl", "CSMain",         "cs_5_0" }
+        };
+
+        //ComPtr<ID3DBlob> shaders[4];
+
+        for (UINT i = 0; i < _countof(shader_file_infos); ++i)
+        {
+            if (FAILED(D3DCompileFromFile(GetAssetFullPath(shader_file_infos[i].file_name.c_str()).c_str(), nullptr, nullptr, shader_file_infos[i].function.c_str(),
+                shader_file_infos[i].compiler.c_str(), compile_flags, 0, &shader_file_infos[i].shaders, &pErrorMsgs)))
+            {
+                const char* error_msg{ pErrorMsgs ? (const char*)pErrorMsgs->GetBufferPointer() : ""};
+                OutputDebugStringA(error_msg);
+            }
+        }
+        vertex_shader =   shader_file_infos[0].shaders;
+        geometry_shader = shader_file_infos[1].shaders;
+        pixel_shader =    shader_file_infos[2].shaders;
+        compute_shader =  shader_file_infos[3].shaders;
+
+        //// Load and compile shaders.
+        //ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "VSParticleDraw", "vs_5_0", compile_flags, 0, &vertex_shader, &pErrorMsgs));
+        //ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "GSParticleDraw", "gs_5_0", compile_flags, 0, &geometry_shader, &pErrorMsgs));
+        //ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "PSParticleDraw", "ps_5_0", compile_flags, 0, &pixel_shader, &pErrorMsgs));
+        ////ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"NBodyGravityCS.hlsl").c_str(), nullptr, nullptr, "CSMain", "cs_5_0", compile_flags, 0, &compute_shader, &pErrorMsgs));
+        //if (FAILED(D3DCompileFromFile(GetAssetFullPath(L"NBodyGravityCS.hlsl").c_str(), nullptr, nullptr, "CSMain", "cs_5_0", compile_flags, 0, &compute_shader, &pErrorMsgs)))
+        //{
+        //    const char* error_msg{ pErrorMsgs ? (const char*)pErrorMsgs->GetBufferPointer() : ""};
+        //    OutputDebugStringA(error_msg);
+        //}
 
         // D3D12_INPUT_ELEMENT_DESC
         //    LPCSTR SemanticName;
@@ -262,7 +302,7 @@ void D3D12RainDrop::LoadAssets()
         //    UINT AlignedByteOffset;
         //    D3D12_INPUT_CLASSIFICATION InputSlotClass;
         //    UINT InstanceDataStepRate;
-        D3D12_INPUT_ELEMENT_DESC input_element_descs[] =
+        D3D12_INPUT_ELEMENT_DESC input_element_descriptors[] =
         {
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
@@ -280,7 +320,7 @@ void D3D12RainDrop::LoadAssets()
         pso_desc.SampleMask = UINT_MAX;                                                          // UINT SampleMask;
         pso_desc.RasterizerState = rasterizer_state.face_cull;                                   // D3D12_RASTERIZER_DESC RasterizerState;
         pso_desc.DepthStencilState = depth_desc_state.disable;                                   // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
-        pso_desc.InputLayout = { input_element_descs, _countof(input_element_descs) };           // D3D12_INPUT_LAYOUT_DESC InputLayout;
+        pso_desc.InputLayout = { input_element_descriptors, _countof(input_element_descriptors) }; // D3D12_INPUT_LAYOUT_DESC InputLayout;
         pso_desc.IBStripCutValue = {};                                                           // D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
         pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;                    // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
         pso_desc.NumRenderTargets = 1;                                                           // UINT NumRenderTargets;
@@ -313,7 +353,7 @@ void D3D12RainDrop::LoadAssets()
     CreateVertexBuffer();
     CreateParticleBuffers();
 
-    // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
+    // Note: Common_Pointer's are CPU objects but this resource needs to stay in scope until
     // the command list that references it has finished executing on the GPU.
     // We will flush the GPU at the end of this method to ensure the resource is not
     // prematurely destroyed.
@@ -348,8 +388,8 @@ void D3D12RainDrop::LoadAssets()
         Constant_Buffer_CS constant_buffer_cs = {};
         constant_buffer_cs.param[0] = Particle_Count;
         constant_buffer_cs.param[1] = int(ceil(Particle_Count / 128.0f));
-        constant_buffer_cs.paramf[0] = 0.1f;
-        constant_buffer_cs.paramf[1] = 1.0f;
+        constant_buffer_cs.param_float[0] = 0.1f;
+        constant_buffer_cs.param_float[1] = 1.0f;
 
         D3D12_SUBRESOURCE_DATA compute_cb_data = {};
         compute_cb_data.pData = reinterpret_cast<UINT8*>(&constant_buffer_cs);
@@ -455,7 +495,7 @@ UINT64 D3D12RainDrop::Update_Subresource(ID3D12Resource* p_destination_resource,
         throw;
     }
 
-    BYTE* p_intermediate_data;
+    BYTE* p_intermediate_data{ nullptr };
     ThrowIfFailed(p_intermediate_resource->Map(0, NULL, reinterpret_cast<void**>(&p_intermediate_data)));
 
     D3D12_MEMCPY_DEST dest_data = { p_intermediate_data + layouts.Offset, layouts.Footprint.RowPitch, layouts.Footprint.RowPitch * number_of_rows };
@@ -563,23 +603,29 @@ float D3D12RainDrop::RandomPercent()
     return ret / 5000.0f;
 }
 
-void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles)
+void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_particles)
 {
-    for (UINT i = 0; i < number_of_paricles; ++i)
+    const float pi_2 = 3.141592654f;
+
+    for (UINT i = 0; i < number_of_particles; ++i)
     {
         XMFLOAT3 delta(spread, spread, spread);
     
         //// Find min length
         //while (XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&delta))) > spread * spread)
         //{
-            delta.x = RandomPercent() * spread;
-            delta.y = RandomPercent() * spread;
-            delta.z = RandomPercent() * spread;
+        //    delta.x = RandomPercent() * spread;
+        //    delta.y = RandomPercent() * spread;
+        //    delta.z = RandomPercent() * spread;
         //}
 
-        p_particles[i].position.x = center.x + delta.x;
-        p_particles[i].position.y = center.y + delta.y;
-        p_particles[i].position.z = center.z + delta.z;
+        float r = RandomPercent() * spread;
+        float a = RandomPercent() * pi_2;
+        float b = RandomPercent() * pi_2;
+
+        p_particles[i].position.x = center.x + r * cosf(a);
+        p_particles[i].position.y = center.y + r * sinf(a);
+        p_particles[i].position.z = center.z + r * sinf(b);
         //p_particles[i].position.w = 10000.0f * 10000.0f;
 
         //p_particles[i].velocity = velocity;
@@ -598,15 +644,21 @@ void D3D12RainDrop::CreateParticleBuffers()
     const UINT data_size = Particle_Count * sizeof(Particle);
 
     // Split the particles into two groups.
-    float center_spread = Particle_Spread * 0.5f;
+    float center_spread = 200.0f;
     //float speed = 20.0f;
-    float speed = 0.0002f;
+    float speed = 0.0000f;
     // Org
     //LoadParticles(&data[0], XMFLOAT3(center_spread, 0, 0), XMFLOAT4(0, 0, -speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
     //LoadParticles(&data[Particle_Count / 2], XMFLOAT3(-center_spread, 0, 0), XMFLOAT4(0, 0, speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
 
                                            // center            vel                          spread
-    LoadParticles(&data[0],                  XMFLOAT3(0, 0, 0), speed, 50, Particle_Count);
+    LoadParticles(&data[0],                  XMFLOAT3(0, 0, 0), speed, center_spread, Particle_Count-5);
+
+    speed = 1.0f;
+    center_spread = 1000.f;
+    const UINT number_of_objects = 5;
+    const UINT start_index = Particle_Count - number_of_objects;
+    LoadParticles(&data[start_index], XMFLOAT3(0, 0, 0), speed, center_spread, number_of_objects);
 
 
     // Get the D3D12_HEAP_PROPERTIES defaultHeapProperties and uploadHeapProperties from helper
@@ -707,9 +759,9 @@ void D3D12RainDrop::CreateParticleBuffers()
         uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;                          // D3D12_BUFFER_SRV_FLAGS Flags;
 
         D3D12_CPU_DESCRIPTOR_HANDLE uav_handle_0 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-        uav_handle_0.ptr += (Uav_Particle_Pos_Vel_0 + index) * m_srv_uav_descriptor_size;
+        uav_handle_0.ptr += (SIZE_T)((Uav_Particle_Pos_Vel_0 + index) * m_srv_uav_descriptor_size);
         D3D12_CPU_DESCRIPTOR_HANDLE uav_handle_1 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-        uav_handle_1.ptr += (Uav_Particle_Pos_Vel_1 + index) * m_srv_uav_descriptor_size;
+        uav_handle_1.ptr += (SIZE_T)((Uav_Particle_Pos_Vel_1 + index) * m_srv_uav_descriptor_size);
 
         m_device->CreateUnorderedAccessView(m_particle_buffer_0[index].Get(), nullptr, &uav_desc, uav_handle_0);
         m_device->CreateUnorderedAccessView(m_particle_buffer_1[index].Get(), nullptr, &uav_desc, uav_handle_1);
@@ -860,7 +912,7 @@ void D3D12RainDrop::PopulateCommandList()
 
         D3D12_VIEWPORT viewport = {};
         viewport.TopLeftX = (n % m_width_instances) * viewport_width;
-        viewport.TopLeftY = (n / m_width_instances) * viewport_height;
+        viewport.TopLeftY = ((float)n / m_width_instances) * viewport_height;
         viewport.Width = viewport_width;
         viewport.Height = viewport_height;
         viewport.MinDepth = D3D12_MIN_DEPTH;
@@ -889,7 +941,7 @@ void D3D12RainDrop::PopulateCommandList()
 
 DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
 {
-    // Get the globle resource to local resource
+    // Get the global resource to local resource
     ID3D12CommandQueue* p_command_queue = m_compute_command_queue[thread_index].Get();
     ID3D12CommandAllocator* p_command_allocator = m_compute_command_allocator[thread_index].Get();
     ID3D12GraphicsCommandList* p_command_list = m_compute_command_list[thread_index].Get();
@@ -988,7 +1040,7 @@ void D3D12RainDrop::Simulate(UINT thread_index)
     p_command_list->ResourceBarrier(1, &barrier);
 }
 
-void D3D12RainDrop::OnDestory()
+void D3D12RainDrop::OnDestroy()
 {
     // Notify the compute threads that the app is shutting down.
     InterlockedExchange(&m_terminating, 1);
