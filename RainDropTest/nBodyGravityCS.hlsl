@@ -17,25 +17,6 @@ static float g_fParticleMass = g_fG * 100.0f * 10000.0f;
 #define blocksize 128
 groupshared float4 sharedPos[blocksize];
 
-//
-// Body to body interaction, acceleration of the particle at position 
-// bi is updated.
-//
-//void bodyBodyInteraction(inout float3 ai, float4 bj, float4 bi, float mass, int particles)
-//{
-//	float3 r = bj.xyz - bi.xyz;
-
-//	float distSqr = dot(r, r);
-//	distSqr += softeningSquared;
-
-//	float invDist = 1.0f / sqrt(distSqr);
-//	float invDistCube = invDist * invDist * invDist;
-
-//	float s = mass * invDistCube * particles;
-
-//	ai += r * s;
-//}
-
 void bodyBodyInteraction(inout float3 ai, float4 bj, float4 bi, float mass, int particles)
 {
     float3 r = bj.xyz - bi.xyz;
@@ -72,66 +53,57 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     float3 accel = 0;
     float mass = g_fParticleMass;
 
-	// Update current particle using all other particles.
-    [loop]
-    for (uint tile = 0; tile < g_param.y; tile++)
-    {
-		// Cache a tile of particles unto shared memory to increase IO efficiency.
-        sharedPos[GI] = oldPosVelo[tile * blocksize + GI].pos;
+	//// Update current particle using all other particles.
+ //   [loop]
+ //   for (uint tile = 0; tile < g_param.y; tile++)
+ //   {
+	//	// Cache a tile of particles unto shared memory to increase IO efficiency.
+ //       sharedPos[GI] = oldPosVelo[tile * blocksize + GI].pos;
 
-        GroupMemoryBarrierWithGroupSync();
-        if (abs(vel.x) > 0.001f || abs(vel.y) > 0.001f || abs(vel.z) > 0.001f)
-        {
-		[unroll]
-            for (uint counter = 0; counter < blocksize; counter += 8)
-            {
-            //bodyBodyInteraction1(accel, sharedPos[counter], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 1], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 2], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 3], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 4], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 5], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 6], pos, mass, 1);
-            //bodyBodyInteraction1(accel, sharedPos[counter + 7], pos, mass, 1);
+ //       GroupMemoryBarrierWithGroupSync();
+ //       if (abs(vel.x) > 0.001f || abs(vel.y) > 0.001f || abs(vel.z) > 0.001f)
+ //       {
+	//	[unroll]
+ //           for (uint counter = 0; counter < blocksize; counter += 8)
+ //           {
+ //               bodyBodyInteraction(accel, sharedPos[counter], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 1], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 2], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 3], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 4], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 5], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 6], pos, mass, 1);
+ //               bodyBodyInteraction(accel, sharedPos[counter + 7], pos, mass, 1);
+ //           }
+ //       }
+ //       GroupMemoryBarrierWithGroupSync();
+ //   }
 
+ //   if (abs(vel.x) > 0.001f || abs(vel.y) > 0.001f || abs(vel.z) > 0.001f)
+ //   {
+	//    // g_param.x is the number of our particles, however this number might not 
+	//    // be an exact multiple of the tile size. In such cases, out of bound reads 
+	//    // occur in the process above, which means there will be tooManyParticles 
+	//    // "phantom" particles generating false gravity at position (0, 0, 0), so 
+	//    // we have to subtract them here. NOTE, out of bound reads always return 0 in CS.
+ //       const int tooManyParticles = g_param.y * blocksize - g_param.x;
+ //       bodyBodyInteraction(accel, float4(0, 0, 0, 0), pos, mass, -tooManyParticles);
 
-                bodyBodyInteraction(accel, sharedPos[counter], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 1], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 2], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 3], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 4], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 5], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 6], pos, mass, 1);
-                bodyBodyInteraction(accel, sharedPos[counter + 7], pos, mass, 1);
-            }
-        }
-        GroupMemoryBarrierWithGroupSync();
-    }
-
-    if (abs(vel.x) > 0.001f || abs(vel.y) > 0.001f || abs(vel.z) > 0.001f)
-    {
-
-	// g_param.x is the number of our particles, however this number might not 
-	// be an exact multiple of the tile size. In such cases, out of bound reads 
-	// occur in the process above, which means there will be tooManyParticles 
-	// "phantom" particles generating false gravity at position (0, 0, 0), so 
-	// we have to subtract them here. NOTE, out of bound reads always return 0 in CS.
-        const int tooManyParticles = g_param.y * blocksize - g_param.x;
-	//bodyBodyInteraction1(accel, float4(0, 0, 0, 0), pos, mass, -tooManyParticles);
-        bodyBodyInteraction(accel, float4(0, 0, 0, 0), pos, mass, -tooManyParticles);
-
-	// Update the velocity and position of current particle using the 
-	// acceleration computed above.
-    //if (abs(vel.x) > 0.001f || abs(vel.y) > 0.001f || abs(vel.z) > 0.001f)
-    //{
-        vel.xyz += accel.xyz * g_param_float.x; //deltaTime;
-        vel.xyz *= g_param_float.y; //damping;
-        pos.xyz += vel.xyz * g_param_float.x; //deltaTime;
-    }
+ //   	// Update the velocity and position of current particle using the 
+ //   	// acceleration computed above.
+ //       vel.xyz += accel.xyz * g_param_float.x; //deltaTime;
+ //       vel.xyz *= g_param_float.y; //damping;
+ //       pos.xyz += vel.xyz * g_param_float.x; //deltaTime;
+ //   }
 
     if (DTid.x < g_param.x)
     {
-        newPosVelo[DTid.x].pos = pos;
+        newPosVelo[DTid.x].pos = pos + vel;
+        if (newPosVelo[DTid.x].pos.y < -newPosVelo[DTid.x].pos.w)
+        {
+            newPosVelo[DTid.x].pos.y = newPosVelo[DTid.x].pos.w;
+
+        }
         newPosVelo[DTid.x].velo = float4(vel.xyz, length(accel));
     }
 }

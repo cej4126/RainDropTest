@@ -37,7 +37,7 @@ constexpr struct {
 constexpr struct {
     const D3D12_DEPTH_STENCIL_DESC enable{
         TRUE,                                          // BOOL DepthEnable;
-        D3D12_DEPTH_WRITE_MASK_ZERO,                    // D3D12_DEPTH_WRITE_MASK DepthWriteMask;
+        D3D12_DEPTH_WRITE_MASK_ALL,                    // D3D12_DEPTH_WRITE_MASK DepthWriteMask;
         D3D12_COMPARISON_FUNC_LESS,                     // D3D12_COMPARISON_FUNC DepthFunc;
         FALSE,                                          // BOOL StencilEnable;
         D3D12_DEFAULT_STENCIL_READ_MASK,                // UINT8 StencilReadMask;

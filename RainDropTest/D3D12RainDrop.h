@@ -27,7 +27,7 @@ private:
 
     static const float Particle_Spread;
 //    static const UINT Particle_Count = 10000;
-    static const UINT Particle_Count = 5000;
+    static const UINT Particle_Count = 1000;
 
     // "Vertex" definition for particles. Triangle vertices are generated 
     // by the geometry shader. Color data will be assigned to those 
@@ -70,12 +70,14 @@ private:
     ComPtr<IDXGISwapChain3> m_swap_chain;
     ComPtr<ID3D12Device> m_device;
     ComPtr<ID3D12Resource> m_render_targets[Frame_Count];
+    ComPtr<ID3D12Resource> m_depth_stencil;
     ComPtr<ID3D12CommandQueue> m_command_queue;
     ComPtr<ID3D12RootSignature> m_root_signature;
     ComPtr<ID3D12RootSignature> m_compute_root_signature;
     UINT m_frame_index;
     ComPtr<ID3D12CommandAllocator> m_command_allocators[Frame_Count];
     ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
+    ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
     ComPtr<ID3D12DescriptorHeap> m_srv_uav_heap;
     UINT m_rtv_descriptor_size;
     UINT m_srv_uav_descriptor_size;

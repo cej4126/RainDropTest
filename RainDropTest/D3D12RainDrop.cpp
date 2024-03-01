@@ -141,6 +141,15 @@ void D3D12RainDrop::LoadPipeline()
     
         m_rtv_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     
+        // Describe and create a depth stencil view (DSV) descriptor heap.
+        D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
+        dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;   // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+        dsv_heap_desc.NumDescriptors = 1;                      // UINT NumDescriptors;
+        dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+        dsv_heap_desc.NodeMask = 0;                            // UINT NodeMask;
+        ThrowIfFailed(m_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&m_dsv_heap)));
+
+
         // Describe and create a shader resource view (SRV) and unordered
         // access view (UAV) descriptor heap.
         D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
@@ -319,13 +328,13 @@ void D3D12RainDrop::LoadAssets()
         pso_desc.BlendState = blend_state.blend_desc;                                            // D3D12_BLEND_DESC BlendState;
         pso_desc.SampleMask = UINT_MAX;                                                          // UINT SampleMask;
         pso_desc.RasterizerState = rasterizer_state.face_cull;                                   // D3D12_RASTERIZER_DESC RasterizerState;
-        pso_desc.DepthStencilState = depth_desc_state.disable;                                   // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+        pso_desc.DepthStencilState = depth_desc_state.enable;                                   // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
         pso_desc.InputLayout = { input_element_descriptors, _countof(input_element_descriptors) }; // D3D12_INPUT_LAYOUT_DESC InputLayout;
         pso_desc.IBStripCutValue = {};                                                           // D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
         pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;                    // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
         pso_desc.NumRenderTargets = 1;                                                           // UINT NumRenderTargets;
         pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;                                     // DXGI_FORMAT RTVFormats[8];
-        pso_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;                                      // DXGI_FORMAT DSVFormat;
+        pso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;                                              // DXGI_FORMAT DSVFormat;
         pso_desc.SampleDesc = { 1, 0 };                                                          // DXGI_SAMPLE_DESC SampleDesc;
         pso_desc.NodeMask = 0;                                                                   // UINT NodeMask;
         pso_desc.CachedPSO = {};                                                                 // D3D12_CACHED_PIPELINE_STATE CachedPSO;
@@ -433,6 +442,40 @@ void D3D12RainDrop::LoadAssets()
         read_range.End = 0;
         ThrowIfFailed(m_constant_buffer_gs->Map(0, &read_range, reinterpret_cast<void**>(&m_p_constant_buffer_gs_data)));
         ZeroMemory(m_p_constant_buffer_gs_data, constant_buffer_gs_size);
+    }
+
+    // Create the depth stencil view.
+    {
+
+        D3D12_CLEAR_VALUE depth_optimizied_clear_value = {};
+        depth_optimizied_clear_value.Format = DXGI_FORMAT_D32_FLOAT;
+        depth_optimizied_clear_value.DepthStencil.Depth = 1.0f;
+        depth_optimizied_clear_value.DepthStencil.Stencil = 0;
+
+        //        &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, m_width, m_height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+        D3D12_RESOURCE_DESC buffer_desc = {};
+        buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D; // D3D12_RESOURCE_DIMENSION Dimension;
+        buffer_desc.Alignment = 0;                                  // UINT64 Alignment;
+        buffer_desc.Width = m_width;                                // UINT64 Width;
+        buffer_desc.Height = m_height;                              // UINT Height;
+        buffer_desc.DepthOrArraySize = 1;                           // UINT16 DepthOrArraySize;
+        buffer_desc.MipLevels = 0;                                  // UINT16 MipLevels;
+        buffer_desc.Format = DXGI_FORMAT_D32_FLOAT;                 // DXGI_FORMAT Format;
+        buffer_desc.SampleDesc = { 1, 0 };                          // DXGI_SAMPLE_DESC SampleDesc;
+        buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;        // D3D12_TEXTURE_LAYOUT Layout;
+        buffer_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;               // D3D12_RESOURCE_FLAGS Flags;
+
+        ThrowIfFailed(m_device->CreateCommittedResource(
+            &heap_properties.default_heap, D3D12_HEAP_FLAG_NONE,
+            &buffer_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimizied_clear_value, IID_PPV_ARGS(&m_depth_stencil)));
+        NAME_D3D12_OBJECT(m_depth_stencil);
+
+        D3D12_DEPTH_STENCIL_VIEW_DESC depth_scencil_desc = {};
+        depth_scencil_desc.Format = DXGI_FORMAT_D32_FLOAT;                                    //   DXGI_FORMAT Format;
+        depth_scencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;                     //   D3D12_DSV_DIMENSION ViewDimension;
+        depth_scencil_desc.Flags = D3D12_DSV_FLAG_NONE;                                 //   D3D12_DSV_FLAGS Flags;
+
+        m_device->CreateDepthStencilView(m_depth_stencil.Get(), &depth_scencil_desc, m_dsv_heap->GetCPUDescriptorHandleForHeapStart());
     }
 
     // Close the command list and execute it to begin the initial GPU setup and uploads.
@@ -619,19 +662,24 @@ void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_p
         //    delta.z = RandomPercent() * spread;
         //}
 
-        float r = RandomPercent() * spread;
-        float a = RandomPercent() * pi_2;
-        float b = RandomPercent() * pi_2;
+        //float r = RandomPercent() * spread;
+        //float a = RandomPercent() * pi_2;
+        //float b = RandomPercent() * pi_2;
 
-        p_particles[i].position.x = center.x + r * cosf(a);
-        p_particles[i].position.y = center.y + r * sinf(a);
-        p_particles[i].position.z = center.z + r * sinf(b);
+        //p_particles[i].position.x = center.x + r * cosf(a);
+        //p_particles[i].position.y = center.y + r * sinf(a);
+        //p_particles[i].position.z = center.z + r * sinf(b);
         //p_particles[i].position.w = 10000.0f * 10000.0f;
+        
+        p_particles[i].position.x = center.x + RandomPercent() * spread;
+        p_particles[i].position.y = 100.0f + (RandomPercent()) * 500.f;
+        p_particles[i].position.z = center.z + RandomPercent() * spread;
+        p_particles[i].position.w = p_particles[i].position.y;
 
         //p_particles[i].velocity = velocity;
-        p_particles[i].velocity.x = RandomPercent() * velocity;
-        p_particles[i].velocity.y = RandomPercent() * velocity;
-        p_particles[i].velocity.z = RandomPercent() * velocity;
+        p_particles[i].velocity.x = 0.0f;
+        p_particles[i].velocity.y = velocity;
+        p_particles[i].velocity.z = 0.0f;
     }
 }
 
@@ -644,9 +692,9 @@ void D3D12RainDrop::CreateParticleBuffers()
     const UINT data_size = Particle_Count * sizeof(Particle);
 
     // Split the particles into two groups.
-    float center_spread = 200.0f;
+    float center_spread = 1000.0f;
     //float speed = 20.0f;
-    float speed = 0.0000f;
+    float speed = -0.01f;
     // Org
     //LoadParticles(&data[0], XMFLOAT3(center_spread, 0, 0), XMFLOAT4(0, 0, -speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
     //LoadParticles(&data[Particle_Count / 2], XMFLOAT3(-center_spread, 0, 0), XMFLOAT4(0, 0, speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
@@ -896,11 +944,13 @@ void D3D12RainDrop::PopulateCommandList()
     // Indicate that the back buffer will be used as a render target.
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_rtv_heap->GetCPUDescriptorHandleForHeapStart();
     rtv_handle.ptr += (SIZE_T)(m_frame_index * m_rtv_descriptor_size);
-    m_command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+    m_command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
     // Record commands.
     const float clearColor[] = { 0.0f, 0.0f, 0.1f, 0.0f };
     m_command_list->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
+    m_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     // Render the particles.
 
