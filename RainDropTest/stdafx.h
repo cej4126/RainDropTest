@@ -17,3 +17,7 @@
 #include <shellapi.h>
 
 #include <string>
+
+constexpr UINT Frame_Count{ 3 };
+using id3d12_device = ID3D12Device9;
+using id3d12_graphics_command_list = ID3D12GraphicsCommandList6;

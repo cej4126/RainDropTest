@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "D3D12RainDrop.h"
+#include "D3D12Command.h"
 
 
 // InterlockedCompareExchange returns the object's value if the 
@@ -9,6 +10,12 @@
 
 //const float D3D12RainDrop::Particle_Spread = 400.0f;
 const float D3D12RainDrop::Particle_Spread = 500.0f;
+
+namespace {
+
+    D3D12Command gfx_command;
+
+} // anonymous namespace
 
 D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -72,113 +79,120 @@ void D3D12RainDrop::LoadPipeline()
         }
     }
 #endif
-    
-    ComPtr<IDXGIFactory4> factory;
-    ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
-    
-    if (m_use_warp_device)
-    {
-        // Wrap device
-        ComPtr<IDXGIAdapter> warp_adapter;
-        ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp_adapter)));
-        ThrowIfFailed(D3D12CreateDevice(warp_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
-    }
-    else
-    {
-        ComPtr<IDXGIAdapter1> hardware_adapter;
-        GetHardwareAdapter(factory.Get(), &hardware_adapter);
-    
-        ThrowIfFailed(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
-    }
-    
-    // Command Queue
-    D3D12_COMMAND_QUEUE_DESC queue_desc{};
-    queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;          // D3D12_COMMAND_LIST_TYPE Type;
-    queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; // INT Priority;
-    queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;          // D3D12_COMMAND_QUEUE_FLAGS Flags;
-    queue_desc.NodeMask = 0;                                   // UINT NodeMask;
-    
-    ThrowIfFailed(m_device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_command_queue)));
-    NAME_D3D12_OBJECT(m_command_queue);
-    
-    // Swap Chain
-    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
-    swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
-    swap_chain_desc.Width = m_width;                                                  // UINT Width;
-    swap_chain_desc.Height = m_height;                                                // UINT Height;
-    swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;                              // DXGI_FORMAT Format;
-    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
-    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
-    swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
-    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
-    
-    swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
-    swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
-    swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
-    
-    ComPtr<IDXGISwapChain1> swap_chain;
-    // Swap chain needs the queue so that it can force a flush on it.
-    ThrowIfFailed(factory->CreateSwapChainForHwnd(m_command_queue.Get(), Win32Application::GetHandleWindow(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
-    
-    // This sample does not support full screen transitions.
-    ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHandleWindow(), DXGI_MWA_NO_ALT_ENTER));
-    
-    ThrowIfFailed(swap_chain.As(&m_swap_chain));
-    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-    m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
-    
-    // descriptor heap
-    {
-        // render target view (RTV) descriptor heap.
-        D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-        rtv_heap_desc.NumDescriptors = Frame_Count;                  // UINT NumDescriptors;
-        rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
-        rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
-    
-        rtv_heap_desc.NodeMask = 0;                        // UINT NodeMask;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap)));
-        NAME_D3D12_OBJECT(m_rtv_heap);
-    
-        m_rtv_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    
-        // Describe and create a depth stencil view (DSV) descriptor heap.
-        D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
-        dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;   // D3D12_DESCRIPTOR_HEAP_TYPE Type;
-        dsv_heap_desc.NumDescriptors = 1;                      // UINT NumDescriptors;
-        dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
-        dsv_heap_desc.NodeMask = 0;                            // UINT NodeMask;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&m_dsv_heap)));
+
+ComPtr<IDXGIFactory4> factory;
+ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
+
+if (m_use_warp_device)
+{
+    // Wrap device
+    ComPtr<IDXGIAdapter> warp_adapter;
+    ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp_adapter)));
+    ThrowIfFailed(D3D12CreateDevice(warp_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
+}
+else
+{
+    ComPtr<IDXGIAdapter1> hardware_adapter;
+    GetHardwareAdapter(factory.Get(), &hardware_adapter);
+
+    ThrowIfFailed(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
+}
+
+new (&gfx_command) D3D12Command(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+if (!gfx_command.command_queue())
+{
+    throw;
+}
+
+// Command Queue
+//D3D12_COMMAND_QUEUE_DESC queue_desc{};
+//queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;          // D3D12_COMMAND_LIST_TYPE Type;
+//queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; // INT Priority;
+//queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;          // D3D12_COMMAND_QUEUE_FLAGS Flags;
+//queue_desc.NodeMask = 0;                                   // UINT NodeMask;
+//
+//ThrowIfFailed(m_device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_command_queue)));
+//NAME_D3D12_OBJECT(m_command_queue);
+
+// Swap Chain
+DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
+swap_chain_desc.Width = m_width;                                                  // UINT Width;
+swap_chain_desc.Height = m_height;                                                // UINT Height;
+swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;                              // DXGI_FORMAT Format;
+swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
+swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
+swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
+swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
+
+swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
+swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
+swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
+
+ComPtr<IDXGISwapChain1> swap_chain;
+// Swap chain needs the queue so that it can force a flush on it.
+ThrowIfFailed(factory->CreateSwapChainForHwnd(gfx_command.command_queue(), Win32Application::GetHandleWindow(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
+
+// This sample does not support full screen transitions.
+ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHandleWindow(), DXGI_MWA_NO_ALT_ENTER));
+
+//ThrowIfFailed(swap_chain.As(&m_swap_chain));
+ThrowIfFailed(swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain)));
+m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
+
+// descriptor heap
+{
+    // render target view (RTV) descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
+    rtv_heap_desc.NumDescriptors = Frame_Count;                  // UINT NumDescriptors;
+    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+
+    rtv_heap_desc.NodeMask = 0;                        // UINT NodeMask;
+    ThrowIfFailed(m_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap)));
+    NAME_D3D12_OBJECT(m_rtv_heap);
+
+    m_rtv_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    // Describe and create a depth stencil view (DSV) descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
+    dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;   // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+    dsv_heap_desc.NumDescriptors = 1;                      // UINT NumDescriptors;
+    dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+    dsv_heap_desc.NodeMask = 0;                            // UINT NodeMask;
+    ThrowIfFailed(m_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&m_dsv_heap)));
 
 
-        // Describe and create a shader resource view (SRV) and unordered
-        // access view (UAV) descriptor heap.
-        D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
-        srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
-        srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
-        srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
-        srv_uav_heap_desc.NodeMask = 0;                        // UINT NodeMask;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_uav_heap_desc, IID_PPV_ARGS(&m_srv_uav_heap)));
-        NAME_D3D12_OBJECT(m_srv_uav_heap);
-    
-        m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    }
-    
-    // Create frame resources.
+    // Describe and create a shader resource view (SRV) and unordered
+    // access view (UAV) descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
+    srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
+    srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+    srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+    srv_uav_heap_desc.NodeMask = 0;                        // UINT NodeMask;
+    ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_uav_heap_desc, IID_PPV_ARGS(&m_srv_uav_heap)));
+    NAME_D3D12_OBJECT(m_srv_uav_heap);
+
+    m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+}
+
+// Create frame resources.
+{
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_rtv_heap->GetCPUDescriptorHandleForHeapStart() };
+
+    // Create a RTV and a command allocator for each frame
+    for (UINT n = 0; n < Frame_Count; ++n)
     {
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_rtv_heap->GetCPUDescriptorHandleForHeapStart() };
-    
-        // Create a RTV and a command allocator for each frame
-        for (UINT n = 0; n < Frame_Count; ++n)
-        {
-            ThrowIfFailed(m_swap_chain->GetBuffer(n, IID_PPV_ARGS(&m_render_targets[n])));
-            m_device->CreateRenderTargetView(m_render_targets[n].Get(), nullptr, rtv_handle);
-            NAME_D3D12_OBJECT_INDEXED(m_render_targets, n);
-    
-            rtv_handle.ptr += (SIZE_T)m_rtv_descriptor_size;
-    
-            ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocators[n])));
-        }
+        ThrowIfFailed(m_swap_chain->GetBuffer(n, IID_PPV_ARGS(&m_render_targets[n])));
+        m_device->CreateRenderTargetView(m_render_targets[n].Get(), nullptr, rtv_handle);
+        NAME_D3D12_OBJECT_INDEXED(m_render_targets, n);
+
+        rtv_handle.ptr += (SIZE_T)m_rtv_descriptor_size;
+
+        ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocators[n])));
     }
+}
 }
 
 void D3D12RainDrop::LoadAssets()
@@ -267,7 +281,7 @@ void D3D12RainDrop::LoadAssets()
             const std::string function;
             const std::string compiler;
             ComPtr<ID3DBlob> shaders;
-        }; 
+        };
         shader_file_info shader_file_infos[]
         {
            { L"ParticleDraw.hlsl",   "VSParticleDraw", "vs_5_0" },
@@ -283,14 +297,14 @@ void D3D12RainDrop::LoadAssets()
             if (FAILED(D3DCompileFromFile(GetAssetFullPath(shader_file_infos[i].file_name.c_str()).c_str(), nullptr, nullptr, shader_file_infos[i].function.c_str(),
                 shader_file_infos[i].compiler.c_str(), compile_flags, 0, &shader_file_infos[i].shaders, &pErrorMsgs)))
             {
-                const char* error_msg{ pErrorMsgs ? (const char*)pErrorMsgs->GetBufferPointer() : ""};
+                const char* error_msg{ pErrorMsgs ? (const char*)pErrorMsgs->GetBufferPointer() : "" };
                 OutputDebugStringA(error_msg);
             }
         }
-        vertex_shader =   shader_file_infos[0].shaders;
+        vertex_shader = shader_file_infos[0].shaders;
         geometry_shader = shader_file_infos[1].shaders;
-        pixel_shader =    shader_file_infos[2].shaders;
-        compute_shader =  shader_file_infos[3].shaders;
+        pixel_shader = shader_file_infos[2].shaders;
+        compute_shader = shader_file_infos[3].shaders;
 
         //// Load and compile shaders.
         //ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"ParticleDraw.hlsl").c_str(), nullptr, nullptr, "VSParticleDraw", "vs_5_0", compile_flags, 0, &vertex_shader, &pErrorMsgs));
@@ -356,8 +370,8 @@ void D3D12RainDrop::LoadAssets()
     }
 
     // Create the command list.
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_allocators[m_frame_index].Get(), m_pipeline_state.Get(), IID_PPV_ARGS(&m_command_list)));
-    NAME_D3D12_OBJECT(m_command_list);
+    //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_allocators[m_frame_index].Get(), m_pipeline_state.Get(), IID_PPV_ARGS(&gfx_command.command_list()));
+    //NAME_D3D12_OBJECT(gfx_command.command_lis());
 
     CreateVertexBuffer();
     CreateParticleBuffers();
@@ -414,7 +428,7 @@ void D3D12RainDrop::LoadAssets()
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        m_command_list->ResourceBarrier(1, &barrier);
+        gfx_command.command_list()->ResourceBarrier(1, &barrier);
     }
 
     // Create the geometry shader's constant buffer.
@@ -447,10 +461,10 @@ void D3D12RainDrop::LoadAssets()
     // Create the depth stencil view.
     {
 
-        D3D12_CLEAR_VALUE depth_optimizied_clear_value = {};
-        depth_optimizied_clear_value.Format = DXGI_FORMAT_D32_FLOAT;
-        depth_optimizied_clear_value.DepthStencil.Depth = 1.0f;
-        depth_optimizied_clear_value.DepthStencil.Stencil = 0;
+        D3D12_CLEAR_VALUE depth_optimized_clear_value = {};
+        depth_optimized_clear_value.Format = DXGI_FORMAT_D32_FLOAT;
+        depth_optimized_clear_value.DepthStencil.Depth = 1.0f;
+        depth_optimized_clear_value.DepthStencil.Stencil = 0;
 
         //        &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, m_width, m_height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
         D3D12_RESOURCE_DESC buffer_desc = {};
@@ -467,7 +481,7 @@ void D3D12RainDrop::LoadAssets()
 
         ThrowIfFailed(m_device->CreateCommittedResource(
             &heap_properties.default_heap, D3D12_HEAP_FLAG_NONE,
-            &buffer_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimizied_clear_value, IID_PPV_ARGS(&m_depth_stencil)));
+            &buffer_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value, IID_PPV_ARGS(&m_depth_stencil)));
         NAME_D3D12_OBJECT(m_depth_stencil);
 
         D3D12_DEPTH_STENCIL_VIEW_DESC depth_scencil_desc = {};
@@ -479,9 +493,9 @@ void D3D12RainDrop::LoadAssets()
     }
 
     // Close the command list and execute it to begin the initial GPU setup and uploads.
-    ThrowIfFailed(m_command_list->Close());
-    ID3D12CommandList* pp_command_lists[] = { m_command_list.Get() };
-    m_command_queue->ExecuteCommandLists(_countof(pp_command_lists), pp_command_lists);
+    ThrowIfFailed(gfx_command.command_list()->Close());
+    ID3D12CommandList* pp_command_lists[] = { gfx_command.command_list() };
+    gfx_command.command_queue()->ExecuteCommandLists(_countof(pp_command_lists), pp_command_lists);
 
     // Create synchronization objects and wait until assets have been uploaded to the GPU.
     {
@@ -570,7 +584,7 @@ UINT64 D3D12RainDrop::Update_Subresource(ID3D12Resource* p_destination_resource,
     //src_box.bottom = 1;
     //src_box.back = 1;
 
-    m_command_list->CopyBufferRegion(p_destination_resource, 0, p_intermediate_resource, (UINT)layouts.Offset, layouts.Footprint.Width);
+    gfx_command.command_list()->CopyBufferRegion(p_destination_resource, 0, p_intermediate_resource, (UINT)layouts.Offset, layouts.Footprint.Width);
 
     return required_size;
 }
@@ -632,7 +646,7 @@ void D3D12RainDrop::CreateVertexBuffer()
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    m_command_list->ResourceBarrier(1, &barrier);
+    gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
     m_vertex_buffer_view.BufferLocation = m_vertex_buffer->GetGPUVirtualAddress();
     m_vertex_buffer_view.SizeInBytes = static_cast<UINT>(buffer_size);
@@ -642,18 +656,19 @@ void D3D12RainDrop::CreateVertexBuffer()
 // Random percent value, from -1 to 1.
 float D3D12RainDrop::RandomPercent()
 {
-    float ret = static_cast<float>((rand() % 10000) - 5000);
+    int r = rand();
+    float ret = static_cast<float>((r % 10000) - 5000);
     return ret / 5000.0f;
 }
 
-void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_particles)
+void D3D12RainDrop::LoadParticles(Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_particles)
 {
     const float pi_2 = 3.141592654f;
 
     for (UINT i = 0; i < number_of_particles; ++i)
     {
         XMFLOAT3 delta(spread, spread, spread);
-    
+
         //// Find min length
         //while (XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&delta))) > spread * spread)
         //{
@@ -670,16 +685,16 @@ void D3D12RainDrop::LoadParticles(_Out_writes_(number_of_paricles) Particle* p_p
         //p_particles[i].position.y = center.y + r * sinf(a);
         //p_particles[i].position.z = center.z + r * sinf(b);
         //p_particles[i].position.w = 10000.0f * 10000.0f;
-        
+
         p_particles[i].position.x = center.x + RandomPercent() * spread;
-        p_particles[i].position.y = 100.0f + (RandomPercent()) * 500.f;
+        p_particles[i].position.y = 1000.0f + (RandomPercent()) * 500.f;
         p_particles[i].position.z = center.z + RandomPercent() * spread;
         p_particles[i].position.w = p_particles[i].position.y;
 
         //p_particles[i].velocity = velocity;
-        p_particles[i].velocity.x = 0.0f;
-        p_particles[i].velocity.y = velocity;
-        p_particles[i].velocity.z = 0.0f;
+        p_particles[i].velocity.x = RandomPercent() * 0.0005f;
+        p_particles[i].velocity.y = -0.01f + RandomPercent() * 0.005f;
+        p_particles[i].velocity.z = RandomPercent() * 0.0005f;
     }
 }
 
@@ -694,17 +709,17 @@ void D3D12RainDrop::CreateParticleBuffers()
     // Split the particles into two groups.
     float center_spread = 1000.0f;
     //float speed = 20.0f;
-    float speed = -0.01f;
+    float speed = 0.01f;
     // Org
     //LoadParticles(&data[0], XMFLOAT3(center_spread, 0, 0), XMFLOAT4(0, 0, -speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
     //LoadParticles(&data[Particle_Count / 2], XMFLOAT3(-center_spread, 0, 0), XMFLOAT4(0, 0, speed, 1 / 100000000.0f), Particle_Spread, Particle_Count / 2);
 
-                                           // center            vel                          spread
-    LoadParticles(&data[0],                  XMFLOAT3(0, 0, 0), speed, center_spread, Particle_Count-5);
+    const UINT number_of_objects = 5;
+    // center             vel                   spread
+    LoadParticles(&data[0], XMFLOAT3(0, 0, 0), speed, center_spread, Particle_Count - number_of_objects);
 
     speed = 1.0f;
     center_spread = 1000.f;
-    const UINT number_of_objects = 5;
     const UINT start_index = Particle_Count - number_of_objects;
     LoadParticles(&data[start_index], XMFLOAT3(0, 0, 0), speed, center_spread, number_of_objects);
 
@@ -771,11 +786,11 @@ void D3D12RainDrop::CreateParticleBuffers()
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
-        m_command_list->ResourceBarrier(1, &barrier);
+        gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
         barrier.Transition.pResource = m_particle_buffer_1[index].Get();
 
-        m_command_list->ResourceBarrier(1, &barrier);
+        gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
         // Create the resource heap view for the srv
         D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
@@ -885,23 +900,30 @@ void D3D12RainDrop::OnRender()
         {
             // Instruct the rendering command queue to wait for the current 
             // compute work to complete.
-            ThrowIfFailed(m_command_queue->Wait(m_thread_fences[n].Get(), thread_fence_value));
+            ThrowIfFailed(gfx_command.command_queue()->Wait(m_thread_fences[n].Get(), thread_fence_value));
         }
     }
 
-    PIXBeginEvent(m_command_queue.Get(), 0, L"Render");
+    //PIXBeginEvent(gfx_command.command_queue(), 0, L"Render");
+    gfx_command.BeginFrame();
 
     // Record all the commands we need to render the scene into the command list.
     PopulateCommandList();
 
-    // Execute the command list.
-    ID3D12CommandList* ppCommandLists[] = { m_command_list.Get() };
-    m_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    gfx_command.EndFrame1(m_swap_chain.Get());
 
-    PIXEndEvent(m_command_queue.Get());
+    //ThrowIfFailed(gfx_command.command_list()->Close());
+
+    //gfx_command.EndFrame(m_swap_chain.Get());
+
+    // Execute the command list.
+    //ID3D12CommandList* ppCommandLists[] = { gfx_command.command_list() };
+    //gfx_command.command_queue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+    //PIXEndEvent(gfx_command.command_queue());
 
     // Present the frame.
-    ThrowIfFailed(m_swap_chain->Present(1, 0));
+    //ThrowIfFailed(m_swap_chain->Present(1, 0));
 
     MoveToNextFrame();
 }
@@ -912,25 +934,27 @@ void D3D12RainDrop::PopulateCommandList()
     // Command list allocators can only be reset when the associated
     // command lists have finished execution on the GPU; apps should use
     // fences to determine GPU execution progress.
-    ThrowIfFailed(m_command_allocators[m_frame_index]->Reset());
 
-    // However, when ExecuteCommandList() is called on a particular command
-    // list, that command list can then be reset at any time and must be before
-    // re-recording.
-    ThrowIfFailed(m_command_list->Reset(m_command_allocators[m_frame_index].Get(), m_pipeline_state.Get()));
+    //ThrowIfFailed(m_command_allocators[m_frame_index]->Reset());
+    //
+    //// However, when ExecuteCommandList() is called on a particular command
+    //// list, that command list can then be reset at any time and must be before
+    //// re-recording.
+    ////ThrowIfFailed(gfx_command.command_list()->Reset(m_command_allocators[m_frame_index].Get(), m_pipeline_state.Get()));
+    //ThrowIfFailed(gfx_command.command_list()->Reset(m_command_allocators[m_frame_index].Get(), nullptr));
 
     // Set necessary state.
-    m_command_list->SetPipelineState(m_pipeline_state.Get());
-    m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
+    gfx_command.command_list()->SetPipelineState(m_pipeline_state.Get());
+    gfx_command.command_list()->SetGraphicsRootSignature(m_root_signature.Get());
 
-    m_command_list->SetGraphicsRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_gs->GetGPUVirtualAddress() + m_frame_index * sizeof(Constant_Buffer_GS));
+    gfx_command.command_list()->SetGraphicsRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_gs->GetGPUVirtualAddress() + m_frame_index * sizeof(Constant_Buffer_GS));
 
     ID3D12DescriptorHeap* p_p_heaps[] = { m_srv_uav_heap.Get() };
-    m_command_list->SetDescriptorHeaps(_countof(p_p_heaps), p_p_heaps);
+    gfx_command.command_list()->SetDescriptorHeaps(_countof(p_p_heaps), p_p_heaps);
 
-    m_command_list->IASetVertexBuffers(0, 1, &m_vertex_buffer_view);
-    m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-    m_command_list->RSSetScissorRects(1, &m_scissor_rect);
+    gfx_command.command_list()->IASetVertexBuffers(0, 1, &m_vertex_buffer_view);
+    gfx_command.command_list()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+    gfx_command.command_list()->RSSetScissorRects(1, &m_scissor_rect);
 
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -939,18 +963,18 @@ void D3D12RainDrop::PopulateCommandList()
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_command_list->ResourceBarrier(1, &barrier);
+    gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
     // Indicate that the back buffer will be used as a render target.
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_rtv_heap->GetCPUDescriptorHandleForHeapStart();
     rtv_handle.ptr += (SIZE_T)(m_frame_index * m_rtv_descriptor_size);
     D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
-    m_command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
+    gfx_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
     // Record commands.
     const float clearColor[] = { 0.0f, 0.0f, 0.1f, 0.0f };
-    m_command_list->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
-    m_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+    gfx_command.command_list()->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
+    gfx_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     // Render the particles.
 
@@ -967,26 +991,25 @@ void D3D12RainDrop::PopulateCommandList()
         viewport.Height = viewport_height;
         viewport.MinDepth = D3D12_MIN_DEPTH;
         viewport.MaxDepth = D3D12_MAX_DEPTH;
-        m_command_list->RSSetViewports(1, &viewport);
+        gfx_command.command_list()->RSSetViewports(1, &viewport);
 
         D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
         srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
-        m_command_list->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
+        gfx_command.command_list()->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
 
-        PIXBeginEvent(m_command_list.Get(), 0, L"Draw particles for thread %u", n);
-        m_command_list->DrawInstanced(Particle_Count, 1, 0, 0);
-        PIXEndEvent(m_command_list.Get());
+        PIXBeginEvent(gfx_command.command_list(), 0, L"Draw particles for thread %u", n);
+        gfx_command.command_list()->DrawInstanced(Particle_Count, 1, 0, 0);
+        PIXEndEvent(gfx_command.command_list());
     }
 
-    m_command_list->RSSetViewports(1, &m_viewport);
+    gfx_command.command_list()->RSSetViewports(1, &m_viewport);
 
     // Indicate that the back buffer will now be used to present.
     barrier.Transition.pResource = m_render_targets[m_frame_index].Get();
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    m_command_list->ResourceBarrier(1, &barrier);
+    gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
-    ThrowIfFailed(m_command_list->Close());
 }
 
 DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
@@ -1122,7 +1145,7 @@ void D3D12RainDrop::OnKeyUp(UINT8 key)
 void D3D12RainDrop::WaitForRenderContext()
 {
     // Add a signal command to the queue.
-    ThrowIfFailed(m_command_queue->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
+    ThrowIfFailed(gfx_command.command_queue()->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
 
     // Instruct the fence to set the event object when the signal command completes.
     ThrowIfFailed(m_render_context_fence->SetEventOnCompletion(m_render_context_fence_value, m_render_context_fence_event));
@@ -1142,7 +1165,7 @@ void D3D12RainDrop::MoveToNextFrame()
     m_frame_fence_values[m_frame_index] = m_render_context_fence_value;
 
     // Signal and increment the fence value.
-    ThrowIfFailed(m_command_queue->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
+    ThrowIfFailed(gfx_command.command_queue()->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
     m_render_context_fence_value++;
 
     // Update the frame index.

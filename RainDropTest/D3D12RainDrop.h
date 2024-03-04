@@ -22,7 +22,6 @@ public:
     virtual void OnKeyUp(UINT8 key);
 
 private:
-    static const UINT Frame_Count = 2;
     static const UINT Thread_Count = 1;
 
     static const float Particle_Spread;
@@ -67,8 +66,9 @@ private:
     // Pipeline objects
     D3D12_VIEWPORT m_viewport;
     D3D12_RECT m_scissor_rect;
-    ComPtr<IDXGISwapChain3> m_swap_chain;
-    ComPtr<ID3D12Device> m_device;
+    //ComPtr<IDXGISwapChain3> m_swap_chain;
+    ComPtr<IDXGISwapChain4> m_swap_chain;
+    ComPtr<id3d12_device> m_device;
     ComPtr<ID3D12Resource> m_render_targets[Frame_Count];
     ComPtr<ID3D12Resource> m_depth_stencil;
     ComPtr<ID3D12CommandQueue> m_command_queue;
@@ -91,7 +91,7 @@ private:
     // Asset objects.
     ComPtr<ID3D12PipelineState> m_pipeline_state;
     ComPtr<ID3D12PipelineState> m_compute_state;
-    ComPtr<ID3D12GraphicsCommandList> m_command_list;
+    //ComPtr<ID3D12GraphicsCommandList> m_command_list;
     ComPtr<ID3D12Resource> m_vertex_buffer;
     ComPtr<ID3D12Resource> m_vertex_buffer_upload;
     D3D12_VERTEX_BUFFER_VIEW m_vertex_buffer_view;
@@ -161,7 +161,7 @@ private:
     void CreateAsyncContexts();
     float RandomPercent();
     //void LoadParticles(_Out_writes_(number_of_particles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_particles);
-    void LoadParticles(_Out_writes_(number_of_paricles) Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles);
+    void LoadParticles(Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles);
     void CreateParticleBuffers();
     void PopulateCommandList();
 

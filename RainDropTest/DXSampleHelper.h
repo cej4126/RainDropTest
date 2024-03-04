@@ -85,7 +85,7 @@ constexpr struct {
         FALSE,                                          // BOOL IndependentBlendEnable;
         {
             {
-                TRUE,                                   // BOOL BlendEnable;
+                FALSE,                                  // BOOL BlendEnable;
                 FALSE,                                  // BOOL LogicOpEnable;
                 D3D12_BLEND_SRC_ALPHA,                  // D3D12_BLEND SrcBlend;
                 D3D12_BLEND_ONE,                        // D3D12_BLEND DestBlend;

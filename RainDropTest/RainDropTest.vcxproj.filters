@@ -45,6 +45,9 @@
     <ClCompile Include="Win32Application.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
+    <ClCompile Include="D3D12Command.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -52,9 +55,6 @@
     </ClInclude>
     <ClInclude Include="D3D12RainDrop.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="d3dx12.h">
-      <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="DXSample.h">
       <Filter>Header Files\Util</Filter>
@@ -70,6 +70,9 @@
     </ClInclude>
     <ClInclude Include="DXSampleHelper.h">
       <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Command.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
