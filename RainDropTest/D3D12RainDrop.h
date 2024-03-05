@@ -22,10 +22,8 @@ public:
     virtual void OnKeyUp(UINT8 key);
 
 private:
-    static const UINT Thread_Count = 1;
-
     static const float Particle_Spread;
-//    static const UINT Particle_Count = 10000;
+    //static const UINT Particle_Count = 10000;
     static const UINT Particle_Count = 1000;
 
     // "Vertex" definition for particles. Triangle vertices are generated 
@@ -84,9 +82,7 @@ private:
 
     //UINT8* m_pConstantBufferGSData;
 
-    UINT m_srv_index[Thread_Count];		// Denotes which of the particle buffer resource views is the SRV (0 or 1). The UAV is 1 - srvIndex.
-    UINT m_height_instances;
-    UINT m_width_instances;
+    UINT m_srv_index;  // Denotes which of the particle buffer resource views is the SRV(0 or 1).The UAV is 1 - srvIndex.
 
     // Asset objects.
     ComPtr<ID3D12PipelineState> m_pipeline_state;
@@ -95,10 +91,10 @@ private:
     ComPtr<ID3D12Resource> m_vertex_buffer;
     ComPtr<ID3D12Resource> m_vertex_buffer_upload;
     D3D12_VERTEX_BUFFER_VIEW m_vertex_buffer_view;
-    ComPtr<ID3D12Resource> m_particle_buffer_0[Thread_Count];
-    ComPtr<ID3D12Resource> m_particle_buffer_1[Thread_Count];
-    ComPtr<ID3D12Resource> m_particle_buffer_upload_0[Thread_Count];
-    ComPtr<ID3D12Resource> m_particle_buffer_upload_1[Thread_Count];
+    ComPtr<ID3D12Resource> m_particle_buffer_0;
+    ComPtr<ID3D12Resource> m_particle_buffer_1;
+    ComPtr<ID3D12Resource> m_particle_buffer_upload_0;
+    ComPtr<ID3D12Resource> m_particle_buffer_upload_1;
     ComPtr<ID3D12Resource> m_constant_buffer_gs;
     UINT8* m_p_constant_buffer_gs_data{ nullptr };
     ComPtr<ID3D12Resource> m_constant_buffer_cs;
@@ -107,9 +103,9 @@ private:
     //StepTimer m_timer;
 
     // Compute objects.
-    ComPtr<ID3D12CommandQueue> m_compute_command_queue[Thread_Count];
-    ComPtr<ID3D12CommandAllocator> m_compute_command_allocator[Thread_Count];
-    ComPtr<ID3D12GraphicsCommandList> m_compute_command_list[Thread_Count];
+    ComPtr<ID3D12CommandQueue> m_compute_command_queue;
+    ComPtr<ID3D12CommandAllocator> m_compute_command_allocator;
+    ComPtr<ID3D12GraphicsCommandList> m_compute_command_list;
 
     // Synchronization objects.
     HANDLE m_swap_chain_event{ nullptr };
@@ -118,21 +114,21 @@ private:
     HANDLE m_render_context_fence_event{ nullptr };
     UINT64 m_frame_fence_values[Frame_Count];
 
-    ComPtr<ID3D12Fence> m_thread_fences[Thread_Count];
-    volatile HANDLE m_thread_fence_events[Thread_Count]{};
+    ComPtr<ID3D12Fence> m_thread_fence;
+    volatile HANDLE m_thread_fence_event{};
 
     // Thread state.
     LONG volatile m_terminating{ 0 };
-    UINT64 volatile m_render_context_fence_values[Thread_Count]{ 0 };
-    UINT64 volatile m_thread_fence_values[Thread_Count]{ 0 };
+    UINT64 volatile m_render_context_fence_value1{ 0 };
+    UINT64 volatile m_thread_fence_value{ 0 };
 
     struct ThreadData
     {
         D3D12RainDrop* p_context;
         UINT thread_index;
     };
-    ThreadData m_thread_data[Thread_Count];
-    HANDLE m_thread_handles[Thread_Count]{ nullptr };
+    ThreadData m_thread_data;
+    HANDLE m_thread_handle{ nullptr };
 
 
     // Indices of shader resources in the descriptor heap.
@@ -148,10 +144,11 @@ private:
     enum Descriptor_Heap_Index : UINT32
     {
         Uav_Particle_Pos_Vel_0 = 0,
-        Uav_Particle_Pos_Vel_1 = Uav_Particle_Pos_Vel_0 + Thread_Count,
-        Srv_Particle_Pos_Vel_0 = Uav_Particle_Pos_Vel_1 + Thread_Count,
-        Srv_Particle_Pos_Vel_1 = Srv_Particle_Pos_Vel_0 + Thread_Count,
-        Descriptor_Count = Srv_Particle_Pos_Vel_1 + Thread_Count
+        Uav_Particle_Pos_Vel_1 = Uav_Particle_Pos_Vel_0 + 1,
+        Srv_Particle_Pos_Vel_0 = Uav_Particle_Pos_Vel_1 + 1,
+        Srv_Particle_Pos_Vel_1 = Srv_Particle_Pos_Vel_0 + 1,
+
+        Descriptor_Count = Srv_Particle_Pos_Vel_1 + 1
     };
 
     void LoadPipeline();
@@ -171,7 +168,7 @@ private:
     }
 
     DWORD AsyncComputeThreadProc(int thread_index);
-    void Simulate(UINT thread_index);
+    void Simulate();
 
     void WaitForRenderContext();
     void MoveToNextFrame();

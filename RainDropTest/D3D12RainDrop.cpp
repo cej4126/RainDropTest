@@ -11,11 +11,7 @@
 //const float D3D12RainDrop::Particle_Spread = 400.0f;
 const float D3D12RainDrop::Particle_Spread = 500.0f;
 
-namespace {
-
-    D3D12Command gfx_command;
-
-} // anonymous namespace
+D3D12Command gfx_command;
 
 D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -30,14 +26,11 @@ D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
 {
     srand(0);
 
-    ZeroMemory(m_srv_index, sizeof(m_srv_index));
+    m_srv_index = 0;
     ZeroMemory(m_frame_fence_values, sizeof(m_frame_fence_values));
 
-    for (int n = 0; n < Thread_Count; n++)
-    {
-        m_render_context_fence_values[n] = 0;
-        m_thread_fence_values[n] = 0;
-    }
+    m_render_context_fence_value1 = 0;
+    m_thread_fence_value = 0;
 
     m_viewport.Width = static_cast<float>(width);
     m_viewport.Height = static_cast<float>(height);
@@ -46,14 +39,14 @@ D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
     m_scissor_rect.right = static_cast<LONG>(width);
     m_scissor_rect.bottom = static_cast<LONG>(height);
 
-    float sqRootNumAsyncContexts = (float)sqrt(static_cast<float>(Thread_Count));
-    m_height_instances = static_cast<UINT>(ceil(sqRootNumAsyncContexts));
-    m_width_instances = static_cast<UINT>(ceil(sqRootNumAsyncContexts));
-
-    if (m_width_instances * (m_height_instances - 1) >= Thread_Count)
-    {
-        --m_height_instances;
-    }
+    //float sqRootNumAsyncContexts = (float)sqrt(static_cast<float>(Thread_Count));
+    //m_height_instances = static_cast<UINT>(ceil(sqRootNumAsyncContexts));
+    //m_width_instances = static_cast<UINT>(ceil(sqRootNumAsyncContexts));
+    //
+    //if (m_width_instances * (m_height_instances - 1) >= Thread_Count)
+    //{
+    //    --m_height_instances;
+    //}
 }
 
 void D3D12RainDrop::OnInit()
@@ -493,6 +486,7 @@ void D3D12RainDrop::LoadAssets()
     }
 
     // Close the command list and execute it to begin the initial GPU setup and uploads.
+
     ThrowIfFailed(gfx_command.command_list()->Close());
     ID3D12CommandList* pp_command_lists[] = { gfx_command.command_list() };
     gfx_command.command_queue()->ExecuteCommandLists(_countof(pp_command_lists), pp_command_lists);
@@ -734,134 +728,123 @@ void D3D12RainDrop::CreateParticleBuffers()
     buffer_desc.MipLevels = 1;                                      // UINT16 MipLevels;
     buffer_desc.Format = DXGI_FORMAT_UNKNOWN;                       // DXGI_FORMAT Format;
     buffer_desc.SampleDesc = { 1, 0 };                              // DXGI_SAMPLE_DESC SampleDesc;
-    buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;              // D3D12_TEXTURE_LAYOUT Layout;
+    buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;            // D3D12_TEXTURE_LAYOUT Layout;
     buffer_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // D3D12_RESOURCE_FLAGS Flags;
 
     D3D12_RESOURCE_DESC upload_buffer_desc = {};
-    upload_buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;        // D3D12_RESOURCE_DIMENSION Dimension;
-    upload_buffer_desc.Alignment = 0;                                      // UINT64 Alignment;
-    upload_buffer_desc.Width = data_size;                                  // UINT64 Width;
-    upload_buffer_desc.Height = 1;                                         // UINT Height;
-    upload_buffer_desc.DepthOrArraySize = 1;                               // UINT16 DepthOrArraySize;
-    upload_buffer_desc.MipLevels = 1;                                      // UINT16 MipLevels;
-    upload_buffer_desc.Format = DXGI_FORMAT_UNKNOWN;                       // DXGI_FORMAT Format;
-    upload_buffer_desc.SampleDesc = { 1, 0 };                              // DXGI_SAMPLE_DESC SampleDesc;
-    upload_buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;              // D3D12_TEXTURE_LAYOUT Layout;
-    upload_buffer_desc.Flags = D3D12_RESOURCE_FLAG_NONE;                   // D3D12_RESOURCE_FLAGS Flags;
+    upload_buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; // D3D12_RESOURCE_DIMENSION Dimension;
+    upload_buffer_desc.Alignment = 0;                               // UINT64 Alignment;
+    upload_buffer_desc.Width = data_size;                           // UINT64 Width;
+    upload_buffer_desc.Height = 1;                                  // UINT Height;
+    upload_buffer_desc.DepthOrArraySize = 1;                        // UINT16 DepthOrArraySize;
+    upload_buffer_desc.MipLevels = 1;                               // UINT16 MipLevels;
+    upload_buffer_desc.Format = DXGI_FORMAT_UNKNOWN;                // DXGI_FORMAT Format;
+    upload_buffer_desc.SampleDesc = { 1, 0 };                       // DXGI_SAMPLE_DESC SampleDesc;
+    upload_buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;     // D3D12_TEXTURE_LAYOUT Layout;
+    upload_buffer_desc.Flags = D3D12_RESOURCE_FLAG_NONE;            // D3D12_RESOURCE_FLAGS Flags;
 
-    for (UINT index = 0; index < Thread_Count; ++index)
-    {
-        // Create two buffers in the GPU, each with a copy of the particles data.
-        // The compute shader will update one of them while the rendering thread 
-        // renders the other. When rendering completes, the threads will swap 
-        // which buffer they work on.
+    // Create two buffers in the GPU, each with a copy of the particles data.
+    // The compute shader will update one of them while the rendering thread 
+    // renders the other. When rendering completes, the threads will swap 
+    // which buffer they work on.
+    ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &buffer_desc,
+        D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_particle_buffer_0)));
+    ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &buffer_desc,
+        D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_particle_buffer_1)));
+    NAME_D3D12_OBJECT(m_particle_buffer_0);
+    NAME_D3D12_OBJECT(m_particle_buffer_1);
 
-        ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &buffer_desc,
-            D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_particle_buffer_0[index])));
-        ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &buffer_desc,
-            D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_particle_buffer_1[index])));
-        NAME_D3D12_OBJECT_INDEXED(m_particle_buffer_0, index);
-        NAME_D3D12_OBJECT_INDEXED(m_particle_buffer_1, index);
+    ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.upload_heap, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_particle_buffer_upload_0)));
+    ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.upload_heap, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_particle_buffer_upload_1)));
+    NAME_D3D12_OBJECT(m_particle_buffer_upload_0);
+    NAME_D3D12_OBJECT(m_particle_buffer_upload_1);
 
-        ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.upload_heap, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_particle_buffer_upload_0[index])));
-        ThrowIfFailed(m_device->CreateCommittedResource(&heap_properties.upload_heap, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_particle_buffer_upload_1[index])));
-        NAME_D3D12_OBJECT_INDEXED(m_particle_buffer_upload_0, index);
-        NAME_D3D12_OBJECT_INDEXED(m_particle_buffer_upload_1, index);
+    D3D12_SUBRESOURCE_DATA particle_data = {};
+    particle_data.pData = reinterpret_cast<UINT8*>(&data[0]);
+    particle_data.RowPitch = data_size;
+    particle_data.SlicePitch = data_size;
 
-        D3D12_SUBRESOURCE_DATA particle_data = {};
-        particle_data.pData = reinterpret_cast<UINT8*>(&data[0]);
-        particle_data.RowPitch = data_size;
-        particle_data.SlicePitch = data_size;
+    Update_Subresource(m_particle_buffer_0.Get(), m_particle_buffer_upload_0.Get(), &particle_data);
+    Update_Subresource(m_particle_buffer_1.Get(), m_particle_buffer_upload_1.Get(), &particle_data);
 
-        Update_Subresource(m_particle_buffer_0[index].Get(), m_particle_buffer_upload_0[index].Get(), &particle_data);
-        Update_Subresource(m_particle_buffer_1[index].Get(), m_particle_buffer_upload_1[index].Get(), &particle_data);
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource = m_particle_buffer_0.Get();
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = m_particle_buffer_0[index].Get();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
-        gfx_command.command_list()->ResourceBarrier(1, &barrier);
+    barrier.Transition.pResource = m_particle_buffer_1.Get();
 
-        barrier.Transition.pResource = m_particle_buffer_1[index].Get();
+    gfx_command.command_list()->ResourceBarrier(1, &barrier);
 
-        gfx_command.command_list()->ResourceBarrier(1, &barrier);
+    // Create the resource heap view for the srv
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // UINT Shader4ComponentMapping;
+    srv_desc.Format = DXGI_FORMAT_UNKNOWN;                                       // DXGI_FORMAT Format;                  
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;                         // D3D12_SRV_DIMENSION ViewDimension;
+    srv_desc.Buffer.FirstElement = 0;                                            // UINT64 FirstElement;
+    srv_desc.Buffer.NumElements = Particle_Count;                                // UINT NumElements;
+    srv_desc.Buffer.StructureByteStride = sizeof(Particle);                      // UINT StructureByteStride;
+    srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;                          // D3D12_BUFFER_SRV_FLAGS Flags;
 
-        // Create the resource heap view for the srv
-        D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-        srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // UINT Shader4ComponentMapping;
-        srv_desc.Format = DXGI_FORMAT_UNKNOWN;                                       // DXGI_FORMAT Format;                  
-        srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;                         // D3D12_SRV_DIMENSION ViewDimension;
-        srv_desc.Buffer.FirstElement = 0;                                            // UINT64 FirstElement;
-        srv_desc.Buffer.NumElements = Particle_Count;                                // UINT NumElements;
-        srv_desc.Buffer.StructureByteStride = sizeof(Particle);                      // UINT StructureByteStride;
-        srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;                          // D3D12_BUFFER_SRV_FLAGS Flags;
+    D3D12_CPU_DESCRIPTOR_HANDLE srv_handle_0 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    srv_handle_0.ptr += (SIZE_T)((Srv_Particle_Pos_Vel_0)*m_srv_uav_descriptor_size);
+    D3D12_CPU_DESCRIPTOR_HANDLE srv_handle_1 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    srv_handle_1.ptr += (SIZE_T)((Srv_Particle_Pos_Vel_1)*m_srv_uav_descriptor_size);
 
-        D3D12_CPU_DESCRIPTOR_HANDLE srv_handle_0 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-        srv_handle_0.ptr += (SIZE_T)((Srv_Particle_Pos_Vel_0 + index) * m_srv_uav_descriptor_size);
-        D3D12_CPU_DESCRIPTOR_HANDLE srv_handle_1 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-        srv_handle_1.ptr += (SIZE_T)((Srv_Particle_Pos_Vel_1 + index) * m_srv_uav_descriptor_size);
+    m_device->CreateShaderResourceView(m_particle_buffer_0.Get(), &srv_desc, srv_handle_0);
+    m_device->CreateShaderResourceView(m_particle_buffer_1.Get(), &srv_desc, srv_handle_1);
 
-        m_device->CreateShaderResourceView(m_particle_buffer_0[index].Get(), &srv_desc, srv_handle_0);
-        m_device->CreateShaderResourceView(m_particle_buffer_1[index].Get(), &srv_desc, srv_handle_1);
+    // Create the resource heap view for the uav
 
-        // Create the resource heap view for the uav
+    // Create the resource heap view for the srv
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+    uav_desc.Format = DXGI_FORMAT_UNKNOWN;                                       // DXGI_FORMAT Format;                  
+    uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;                         // D3D12_SRV_DIMENSION ViewDimension;
+    uav_desc.Buffer.FirstElement = 0;                                            // UINT64 FirstElement;
+    uav_desc.Buffer.NumElements = Particle_Count;                                // UINT NumElements;
+    uav_desc.Buffer.StructureByteStride = sizeof(Particle);                      // UINT StructureByteStride;
+    uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;                          // D3D12_BUFFER_SRV_FLAGS Flags;
 
-        // Create the resource heap view for the srv
-        D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
-        uav_desc.Format = DXGI_FORMAT_UNKNOWN;                                       // DXGI_FORMAT Format;                  
-        uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;                         // D3D12_SRV_DIMENSION ViewDimension;
-        uav_desc.Buffer.FirstElement = 0;                                            // UINT64 FirstElement;
-        uav_desc.Buffer.NumElements = Particle_Count;                                // UINT NumElements;
-        uav_desc.Buffer.StructureByteStride = sizeof(Particle);                      // UINT StructureByteStride;
-        uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;                          // D3D12_BUFFER_SRV_FLAGS Flags;
+    D3D12_CPU_DESCRIPTOR_HANDLE uav_handle_0 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    uav_handle_0.ptr += (SIZE_T)((Uav_Particle_Pos_Vel_0)*m_srv_uav_descriptor_size);
+    D3D12_CPU_DESCRIPTOR_HANDLE uav_handle_1 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    uav_handle_1.ptr += (SIZE_T)((Uav_Particle_Pos_Vel_1)*m_srv_uav_descriptor_size);
 
-        D3D12_CPU_DESCRIPTOR_HANDLE uav_handle_0 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-        uav_handle_0.ptr += (SIZE_T)((Uav_Particle_Pos_Vel_0 + index) * m_srv_uav_descriptor_size);
-        D3D12_CPU_DESCRIPTOR_HANDLE uav_handle_1 = m_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-        uav_handle_1.ptr += (SIZE_T)((Uav_Particle_Pos_Vel_1 + index) * m_srv_uav_descriptor_size);
-
-        m_device->CreateUnorderedAccessView(m_particle_buffer_0[index].Get(), nullptr, &uav_desc, uav_handle_0);
-        m_device->CreateUnorderedAccessView(m_particle_buffer_1[index].Get(), nullptr, &uav_desc, uav_handle_1);
-    }
+    m_device->CreateUnorderedAccessView(m_particle_buffer_0.Get(), nullptr, &uav_desc, uav_handle_0);
+    m_device->CreateUnorderedAccessView(m_particle_buffer_1.Get(), nullptr, &uav_desc, uav_handle_1);
 }
 
 void D3D12RainDrop::CreateAsyncContexts()
 {
-    for (UINT thread_index = 0; thread_index < Thread_Count; ++thread_index)
+    // Create the compute resources.
+    D3D12_COMMAND_QUEUE_DESC queue_desc = { D3D12_COMMAND_LIST_TYPE_COMPUTE, 0, D3D12_COMMAND_QUEUE_FLAG_NONE, 0 };
+    ThrowIfFailed(m_device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_compute_command_queue)));
+    ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&m_compute_command_allocator)));
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, m_compute_command_allocator.Get(), nullptr, IID_PPV_ARGS(&m_compute_command_list)));
+    ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(&m_thread_fence)));
+
+    m_thread_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    if (m_thread_fence_event == nullptr)
     {
-        // Create the compute resources.
-        // D3D12_COMMAND_LIST_TYPE Type;
-        // INT Priority;
-        // D3D12_COMMAND_QUEUE_FLAGS Flags;
-        // UINT NodeMask;
-        D3D12_COMMAND_QUEUE_DESC queue_desc = { D3D12_COMMAND_LIST_TYPE_COMPUTE, 0, D3D12_COMMAND_QUEUE_FLAG_NONE, 0 };
-        ThrowIfFailed(m_device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_compute_command_queue[thread_index])));
-        ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&m_compute_command_allocator[thread_index])));
-        ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, m_compute_command_allocator[thread_index].Get(), nullptr, IID_PPV_ARGS(&m_compute_command_list[thread_index])));
-        ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(&m_thread_fences[thread_index])));
-
-        m_thread_fence_events[thread_index] = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (m_thread_fence_events[thread_index] == nullptr)
-        {
-            ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-        }
-
-        m_thread_data[thread_index].p_context = this;
-        m_thread_data[thread_index].thread_index = thread_index;
-
-        m_thread_handles[thread_index] = CreateThread(nullptr, 0,
-            reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadProc),
-            reinterpret_cast<void*>(&m_thread_data[thread_index]),
-            CREATE_SUSPENDED, nullptr);
-
-        ResumeThread(m_thread_handles[thread_index]);
+        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
     }
+
+    m_thread_data.p_context = this;
+    m_thread_data.thread_index = 0;
+
+    m_thread_handle = CreateThread(nullptr, 0,
+        reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadProc),
+        reinterpret_cast<void*>(&m_thread_data),
+        CREATE_SUSPENDED, nullptr);
+
+    ResumeThread(m_thread_handle);
 }
 
 // Update frame-based values.
@@ -870,8 +853,6 @@ void D3D12RainDrop::OnUpdate(float dt)
     // Wait for the previous Present to complete.
     WaitForSingleObjectEx(m_swap_chain_event, 100, FALSE);
 
-    //m_timer.Tick(NULL);
-    //m_camera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
     m_camera.Update(dt);
 
     Constant_Buffer_GS constant_buffer_gs = {};
@@ -886,22 +867,16 @@ void D3D12RainDrop::OnUpdate(float dt)
 void D3D12RainDrop::OnRender()
 {
     // Let the compute thread know that a new frame is being rendered.
-    for (int n = 0; n < Thread_Count; ++n)
-    {
-        InterlockedExchange(&m_render_context_fence_values[n], m_render_context_fence_value);
-    }
+    InterlockedExchange(&m_render_context_fence_value1, m_render_context_fence_value);
 
     // Compute work must be completed before the frame can render or else the SRV 
     // will be in the wrong state.
-    for (int n = 0; n < Thread_Count; ++n)
+    UINT64 thread_fence_value = InterlockedGetValue(&m_thread_fence_value);
+    if (m_thread_fence->GetCompletedValue() < thread_fence_value)
     {
-        UINT64 thread_fence_value = InterlockedGetValue(&m_thread_fence_values[n]);
-        if (m_thread_fences[n]->GetCompletedValue() < thread_fence_value)
-        {
-            // Instruct the rendering command queue to wait for the current 
-            // compute work to complete.
-            ThrowIfFailed(gfx_command.command_queue()->Wait(m_thread_fences[n].Get(), thread_fence_value));
-        }
+        // Instruct the rendering command queue to wait for the current 
+        // compute work to complete.
+        ThrowIfFailed(gfx_command.command_queue()->Wait(m_thread_fence.Get(), thread_fence_value));
     }
 
     //PIXBeginEvent(gfx_command.command_queue(), 0, L"Render");
@@ -978,30 +953,26 @@ void D3D12RainDrop::PopulateCommandList()
 
     // Render the particles.
 
-    float viewport_height = static_cast<float>(static_cast<UINT>(m_viewport.Height) / m_height_instances);
-    float viewport_width = static_cast<float>(static_cast<UINT>(m_viewport.Width) / m_width_instances);
-    for (UINT n = 0; n < Thread_Count; ++n)
-    {
-        const UINT srv_index = n + (m_srv_index[n] == 0 ? Srv_Particle_Pos_Vel_0 : Srv_Particle_Pos_Vel_1);
+    float viewport_height = m_viewport.Height;
+    float viewport_width = m_viewport.Width;
+    const UINT srv_index = (m_srv_index == 0 ? Srv_Particle_Pos_Vel_0 : Srv_Particle_Pos_Vel_1);
 
-        D3D12_VIEWPORT viewport = {};
-        viewport.TopLeftX = (n % m_width_instances) * viewport_width;
-        viewport.TopLeftY = ((float)n / m_width_instances) * viewport_height;
-        viewport.Width = viewport_width;
-        viewport.Height = viewport_height;
-        viewport.MinDepth = D3D12_MIN_DEPTH;
-        viewport.MaxDepth = D3D12_MAX_DEPTH;
-        gfx_command.command_list()->RSSetViewports(1, &viewport);
+    D3D12_VIEWPORT viewport = {};
+    viewport.TopLeftX = 0;
+    viewport.TopLeftY = 0;
+    viewport.Width = viewport_width;
+    viewport.Height = viewport_height;
+    viewport.MinDepth = D3D12_MIN_DEPTH;
+    viewport.MaxDepth = D3D12_MAX_DEPTH;
+    gfx_command.command_list()->RSSetViewports(1, &viewport);
 
-        D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
-        srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
-        gfx_command.command_list()->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
+    D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
+    srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
+    gfx_command.command_list()->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
 
-        PIXBeginEvent(gfx_command.command_list(), 0, L"Draw particles for thread %u", n);
-        gfx_command.command_list()->DrawInstanced(Particle_Count, 1, 0, 0);
-        PIXEndEvent(gfx_command.command_list());
-    }
-
+    PIXBeginEvent(gfx_command.command_list(), 0, L"Draw particles for thread");
+    gfx_command.command_list()->DrawInstanced(Particle_Count, 1, 0, 0);
+    PIXEndEvent(gfx_command.command_list());
     gfx_command.command_list()->RSSetViewports(1, &m_viewport);
 
     // Indicate that the back buffer will now be used to present.
@@ -1015,15 +986,15 @@ void D3D12RainDrop::PopulateCommandList()
 DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
 {
     // Get the global resource to local resource
-    ID3D12CommandQueue* p_command_queue = m_compute_command_queue[thread_index].Get();
-    ID3D12CommandAllocator* p_command_allocator = m_compute_command_allocator[thread_index].Get();
-    ID3D12GraphicsCommandList* p_command_list = m_compute_command_list[thread_index].Get();
-    ID3D12Fence* p_fence = m_thread_fences[thread_index].Get();
+    ID3D12CommandQueue* p_command_queue = m_compute_command_queue.Get();
+    ID3D12CommandAllocator* p_command_allocator = m_compute_command_allocator.Get();
+    ID3D12GraphicsCommandList* p_command_list = m_compute_command_list.Get();
+    ID3D12Fence* p_fence = m_thread_fence.Get();
 
     while (0 == InterlockedGetValue(&m_terminating))
     {
         // Run the particle simulation.
-        Simulate(thread_index);
+        Simulate();
 
         // Close and execute the command list.
         ThrowIfFailed(p_command_list->Close());
@@ -1034,22 +1005,22 @@ DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
         PIXEndEvent(p_command_queue);
 
         // Wait for the compute shader to complete the simulation.
-        UINT64 thread_fence_value = _InterlockedIncrement(&m_thread_fence_values[thread_index]);
+        UINT64 thread_fence_value = _InterlockedIncrement(&m_thread_fence_value);
         ThrowIfFailed(p_command_queue->Signal(p_fence, thread_fence_value));
-        ThrowIfFailed(p_fence->SetEventOnCompletion(thread_fence_value, m_thread_fence_events[thread_index]));
-        WaitForSingleObject(m_thread_fence_events[thread_index], INFINITE);
+        ThrowIfFailed(p_fence->SetEventOnCompletion(thread_fence_value, m_thread_fence_event));
+        WaitForSingleObject(m_thread_fence_event, INFINITE);
 
         // Wait for the render thread to be done with the SRV so that
         // the next frame in the simulation can run.
-        UINT64 render_context_fence_value = InterlockedGetValue(&m_render_context_fence_values[thread_index]);
+        UINT64 render_context_fence_value = InterlockedGetValue(&m_render_context_fence_value1);
         if (m_render_context_fence->GetCompletedValue() < render_context_fence_value)
         {
             ThrowIfFailed(p_command_queue->Wait(m_render_context_fence.Get(), render_context_fence_value));
-            InterlockedExchange(&m_render_context_fence_values[thread_index], 0);
+            InterlockedExchange(&m_render_context_fence_value1, 0);
         }
 
         // Swap the indices to the SRV and UAV.
-        m_srv_index[thread_index] = 1 - m_srv_index[thread_index];
+        m_srv_index = 1 - m_srv_index;
 
         // Prepare for the next frame.
         ThrowIfFailed(p_command_allocator->Reset());
@@ -1060,26 +1031,26 @@ DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
 }
 
 // Run the particle simulation using the compute shader.
-void D3D12RainDrop::Simulate(UINT thread_index)
+void D3D12RainDrop::Simulate()
 {
-    ID3D12GraphicsCommandList* p_command_list = m_compute_command_list[thread_index].Get();
+    ID3D12GraphicsCommandList* p_command_list = m_compute_command_list.Get();
 
     UINT srv_index;
     UINT uav_index;
     ID3D12Resource* p_uav_resource;
 
     // Flip the buffers
-    if (m_srv_index[thread_index])
+    if (m_srv_index)
     {
         srv_index = Srv_Particle_Pos_Vel_0;
         uav_index = Uav_Particle_Pos_Vel_1;
-        p_uav_resource = m_particle_buffer_1[thread_index].Get();
+        p_uav_resource = m_particle_buffer_1.Get();
     }
     else
     {
         srv_index = Srv_Particle_Pos_Vel_1;
         uav_index = Uav_Particle_Pos_Vel_0;
-        p_uav_resource = m_particle_buffer_0[thread_index].Get();
+        p_uav_resource = m_particle_buffer_0.Get();
     }
 
     D3D12_RESOURCE_BARRIER barrier = {};
@@ -1098,9 +1069,9 @@ void D3D12RainDrop::Simulate(UINT thread_index)
     p_command_list->SetDescriptorHeaps(_countof(p_p_heap), p_p_heap);
 
     D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
-    srv_handle.ptr += (SIZE_T)((srv_index + thread_index) * m_srv_uav_descriptor_size);
+    srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
     D3D12_GPU_DESCRIPTOR_HANDLE uav_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
-    uav_handle.ptr += (SIZE_T)((uav_index + thread_index) * m_srv_uav_descriptor_size);
+    uav_handle.ptr += (SIZE_T)(uav_index * m_srv_uav_descriptor_size);
 
     p_command_list->SetComputeRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_cs->GetGPUVirtualAddress());
     p_command_list->SetComputeRootDescriptorTable(Root_Parameter_SRV, srv_handle);
@@ -1117,7 +1088,7 @@ void D3D12RainDrop::OnDestroy()
 {
     // Notify the compute threads that the app is shutting down.
     InterlockedExchange(&m_terminating, 1);
-    WaitForMultipleObjects(Thread_Count, m_thread_handles, TRUE, INFINITE);
+    WaitForMultipleObjects(1, &m_thread_handle, TRUE, INFINITE);
 
     // Ensure that the GPU is no longer referencing resources that are about to be
     // cleaned up by the destructor.
@@ -1125,11 +1096,8 @@ void D3D12RainDrop::OnDestroy()
 
     // Close handles to fence events and threads.
     CloseHandle(m_render_context_fence_event);
-    for (int n = 0; n < Thread_Count; n++)
-    {
-        CloseHandle(m_thread_handles[n]);
-        CloseHandle(m_thread_fence_events[n]);
-    }
+    CloseHandle(m_thread_handle);
+    CloseHandle(m_thread_fence_event);
 }
 
 void D3D12RainDrop::OnKeyDown(UINT8 key)

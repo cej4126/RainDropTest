@@ -49,13 +49,13 @@ void D3D12Command::EndFrame(IDXGISwapChain4* swap_chain)
     // Presenting swap chain buffers happens in lockstep with frame buffers.
     swap_chain->Present(1, 0);
 
-    UINT64& fence_value{ m_fence_value };
-    ++fence_value;
-    command_frame& frame{ m_command_frame[m_frame_index] };
-    frame.fence_value = fence_value;
-    m_command_queue->Signal(m_fence.Get(), fence_value);
+    //UINT64& fence_value{ m_fence_value };
+    //++fence_value;
+    //command_frame& frame{ m_command_frame[m_frame_index] };
+    //frame.fence_value = fence_value;
+    //m_command_queue->Signal(m_fence.Get(), fence_value);
 
-    m_frame_index = (m_frame_index + 1) % Frame_Count;
+    //m_frame_index = (m_frame_index + 1) % Frame_Count;
 }
 
 
@@ -68,13 +68,13 @@ void D3D12Command::EndFrame1(IDXGISwapChain4* swap_chain)
     // Presenting swap chain buffers happens in lockstep with frame buffers.
     swap_chain->Present(1, 0);
 
-    //UINT64& fence_value{ m_fence_value };
-    //++fence_value;
-    //command_frame& frame{ m_command_frame[m_frame_index] };
-    //frame.fence_value = fence_value;
-    //m_command_queue->Signal(m_fence.Get(), fence_value);
-    //
-    //m_frame_index = (m_frame_index + 1) % Frame_Count;
+    UINT64& fence_value{ m_fence_value };
+    ++fence_value;
+    command_frame& frame{ m_command_frame[m_frame_index] };
+    frame.fence_value = fence_value;
+    m_command_queue->Signal(m_fence.Get(), fence_value);
+    
+    m_frame_index = (m_frame_index + 1) % Frame_Count;
 }
 
 
