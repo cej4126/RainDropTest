@@ -2,9 +2,6 @@
 #include "stdafx.h"
 #include "DXSample.h"
 
-using namespace DirectX;
-using Microsoft::WRL::ComPtr;
-
 class D3D12Command
 {
 public:

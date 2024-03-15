@@ -4,6 +4,7 @@
 #include "DXSample.h"
 #include "SimpleCamera.h"
 #include "StepTimer.h"
+#include "D3D12Resources.h"
 
 using namespace DirectX;
 
@@ -20,6 +21,22 @@ public:
     virtual void OnDestroy();
     virtual void OnKeyDown(UINT8 key);
     virtual void OnKeyUp(UINT8 key);
+
+    id3d12_device* const device() const { return m_device.Get(); }
+    UINT const current_frame_index() const { return m_frame_index; }
+    void set_deferred_releases_flag() { deferred_releases_flag[m_frame_index] = true; }
+
+    D3D12DescriptorHeap& rtv_heap() { return rtv_desc_heap; }
+
+    template<typename T>
+    constexpr void deferred_release_item(T*& resource)
+    {
+        if (resource)
+        {
+            deferred_release(resource);
+            resource = nullptr;
+        }
+    }
 
 private:
     static const float Particle_Spread;
@@ -64,12 +81,10 @@ private:
     // Pipeline objects
     D3D12_VIEWPORT m_viewport;
     D3D12_RECT m_scissor_rect;
-    //ComPtr<IDXGISwapChain3> m_swap_chain;
     ComPtr<IDXGISwapChain4> m_swap_chain;
     ComPtr<id3d12_device> m_device;
     ComPtr<ID3D12Resource> m_render_targets[Frame_Count];
     ComPtr<ID3D12Resource> m_depth_stencil;
-    ComPtr<ID3D12CommandQueue> m_command_queue;
     ComPtr<ID3D12RootSignature> m_root_signature;
     ComPtr<ID3D12RootSignature> m_compute_root_signature;
     UINT m_frame_index;
@@ -87,7 +102,6 @@ private:
     // Asset objects.
     ComPtr<ID3D12PipelineState> m_pipeline_state;
     ComPtr<ID3D12PipelineState> m_compute_state;
-    //ComPtr<ID3D12GraphicsCommandList> m_command_list;
     ComPtr<ID3D12Resource> m_vertex_buffer;
     ComPtr<ID3D12Resource> m_vertex_buffer_upload;
     D3D12_VERTEX_BUFFER_VIEW m_vertex_buffer_view;
@@ -100,7 +114,6 @@ private:
     ComPtr<ID3D12Resource> m_constant_buffer_cs;
 
     SimpleCamera m_camera;
-    //StepTimer m_timer;
 
     // Compute objects.
     ComPtr<ID3D12CommandQueue> m_compute_command_queue;
@@ -130,6 +143,15 @@ private:
     ThreadData m_thread_data;
     HANDLE m_thread_handle{ nullptr };
 
+    bool deferred_releases_flag[Frame_Count]{ FALSE };
+    std::mutex deferred_releases_mutex{};
+    std::vector<IUnknown*> deferred_releases[Frame_Count]{};
+
+    //D3D12DescriptorHeap x;
+    D3D12DescriptorHeap rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };
+    D3D12DescriptorHeap dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
+    D3D12DescriptorHeap srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+    D3D12DescriptorHeap uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
 
     // Indices of shader resources in the descriptor heap.
     enum Root_Parameters : UINT32
@@ -162,6 +184,9 @@ private:
     void CreateParticleBuffers();
     void PopulateCommandList();
 
+    void deferred_release(IUnknown* resource);
+    void __declspec(noinline) process_deferred_releases(UINT frame_index);
+
     static DWORD WINAPI ThreadProc(ThreadData* p_data)
     {
         return p_data->p_context->AsyncComputeThreadProc(p_data->thread_index);
@@ -173,4 +198,3 @@ private:
     void WaitForRenderContext();
     void MoveToNextFrame();
 };
-

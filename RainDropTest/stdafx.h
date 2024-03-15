@@ -15,9 +15,15 @@
 #include <wrl.h>
 #include <vector>
 #include <shellapi.h>
+#include <memory>
+#include <mutex>
 
 #include <string>
 
 constexpr UINT Frame_Count{ 3 };
+constexpr UINT Invalid_Index{ 0xffffffff };
 using id3d12_device = ID3D12Device9;
 using id3d12_graphics_command_list = ID3D12GraphicsCommandList6;
+
+using namespace DirectX;
+using Microsoft::WRL::ComPtr;

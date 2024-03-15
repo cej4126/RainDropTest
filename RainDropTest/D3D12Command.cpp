@@ -5,21 +5,21 @@ D3D12Command::D3D12Command(id3d12_device* device, D3D12_COMMAND_LIST_TYPE type)
 {
     D3D12_COMMAND_QUEUE_DESC desc{};
     ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_command_queue)));
-    NAME_D3D12_OBJECT(m_command_queue);
+    NAME_D3D12_COMPTR_OBJECT(m_command_queue);
 
     for (UINT i{ 0 }; i < Frame_Count; ++i)
     {
         command_frame& frame{ m_command_frame[i] };
         ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&frame.command_allocator)));
-        NAME_D3D12_OBJECT(frame.command_allocator);
+        NAME_D3D12_COMPTR_OBJECT(frame.command_allocator);
     }
 
     ThrowIfFailed(device->CreateCommandList(0, type, m_command_frame[0].command_allocator.Get(), nullptr, IID_PPV_ARGS(&m_command_list)));
-    NAME_D3D12_OBJECT(m_command_list);
+    NAME_D3D12_COMPTR_OBJECT(m_command_list);
     //m_command_list->Close();
 
     ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-    NAME_D3D12_OBJECT(m_fence);
+    NAME_D3D12_COMPTR_OBJECT(m_fence);
 
     m_fence_event = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
     if (!m_fence_event)
