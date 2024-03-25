@@ -32,7 +32,7 @@ void D3D12Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue*
 
     for (UINT i{ 0 }; i < buffer_count; ++i)
     {
-        m_render_targets[i].rtv = core::rtv_heap().allocator();
+        m_render_targets[i].rtv = core::rtv_heap().allocate();
     }
 }
 

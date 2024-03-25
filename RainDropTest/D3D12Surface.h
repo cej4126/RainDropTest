@@ -53,6 +53,13 @@ public:
     void present() const;
     void resize();
 
+    [[nodiscard]] constexpr UINT width() const { return m_width; }
+    [[nodiscard]] constexpr UINT height() const { return m_height; }
+    [[nodiscard]] constexpr ID3D12Resource* const back_buffer() const { return m_render_targets[m_current_bb_index].resource; }
+    [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv() const { return m_render_targets[m_current_bb_index].rtv.cpu; }
+    [[nodiscard]] constexpr D3D12_VIEWPORT viewport() const { return m_viewport; }
+    [[nodiscard]] constexpr D3D12_RECT scissor_rect() const { return m_scissor_rectangle; }
+
 private:
     void finalize();
     void release();
@@ -111,6 +118,5 @@ private:
     UINT m_present_flag{ 0 };
     D3D12_VIEWPORT m_viewport{};
     D3D12_RECT m_scissor_rectangle{};
-
 };
 

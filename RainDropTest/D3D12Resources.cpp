@@ -1,6 +1,7 @@
+#include "Main.h"
 #include "D3D12Resources.h"
 
-bool D3D12DescriptorHeap::initialize(UINT capacity, bool is_shader_visible)
+bool Descriptor_Heap::initialize(UINT capacity, bool is_shader_visible)
 {
     std::lock_guard lock{ m_mutex };
 
@@ -39,14 +40,14 @@ bool D3D12DescriptorHeap::initialize(UINT capacity, bool is_shader_visible)
 
 }
 
-void D3D12DescriptorHeap::release()
+void Descriptor_Heap::release()
 {
     assert(!m_size);
 
     //deferred_release(_heap.Get());
 }
 
-void D3D12DescriptorHeap::process_deferred_free(UINT frame_idx)
+void Descriptor_Heap::process_deferred_free(UINT frame_idx)
 {
     std::lock_guard lock{ m_mutex };
     assert(frame_idx < Frame_Count);
@@ -63,7 +64,7 @@ void D3D12DescriptorHeap::process_deferred_free(UINT frame_idx)
     }
 }
 
-Descriptor_Handle D3D12DescriptorHeap::allocator()
+Descriptor_Handle Descriptor_Heap::allocate()
 {
     std::lock_guard lock{ m_mutex };
     assert(m_heap);
@@ -84,7 +85,7 @@ Descriptor_Handle D3D12DescriptorHeap::allocator()
     return descriptor_handle;
 }
 
-void D3D12DescriptorHeap::free(Descriptor_Handle& handle)
+void Descriptor_Heap::free(Descriptor_Handle& handle)
 {
     if (!handle.is_valid()) return;
     std::lock_guard lock{ m_mutex };
@@ -102,3 +103,80 @@ void D3D12DescriptorHeap::free(Descriptor_Handle& handle)
     handle = {};
 }
 
+
+// --- render texture ----------------------------------------------
+Render_Target::Render_Target(D3D12_RESOURCE_DESC desc)
+{
+    //heap 0
+    //resource 0
+    //srv_desc 0
+    // desc fill in
+    // allocation_info fill in
+    // D3D12_RESOURCE_STATES  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+    // D3D12_CLEAR_VALUE
+    
+    //D3D12_RESOURCE_DESC desc{};
+    //desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    //desc.Alignment = 0; // NOTE: 0 is the same as 64KB (or 4MB for MSAA)       
+    //desc.Width = size.x;
+    //desc.Height = size.y;
+    //desc.DepthOrArraySize = 1;
+    //desc.MipLevels = 0; // make space for all mip levels     
+    //desc.Format = main_buffer_format;
+    //desc.SampleDesc = { 1, 0 };
+    //desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    //desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    //d3d12_texture_init_info info{};
+    //info.desc = &desc;
+    //info.initial_state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    //info.clear_value.Format = desc.Format;
+    //memcpy(&info.clear_value.Color, &clear_value[0], sizeof(clear_value));
+
+    constexpr float default_clear_value[4]{ 0.5f, 0.5f, 0.5f, 1.f };
+
+
+    // d3d12_texture
+    id3d12_device* const device{ core::device() };
+    assert(device);
+
+    D3D12_CLEAR_VALUE clear_value{};
+    clear_value.Format = desc.Format;
+    memcpy(&clear_value.Color, &default_clear_value[0], sizeof(default_clear_value));
+
+    ThrowIfFailed(device->CreateCommittedResource(&heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &desc,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clear_value, IID_PPV_ARGS(&m_resource)));
+    assert(m_resource);
+
+    m_srv = core::srv_heap().allocate();
+    device->CreateShaderResourceView(m_resource, nullptr, m_srv.cpu);
+
+
+    // render texture
+    m_mip_count = m_resource->GetDesc().MipLevels;
+    assert(m_mip_count && m_mip_count <= max_mips);
+
+    Descriptor_Heap& rtv_heap{ core::rtv_heap() };
+    D3D12_RENDER_TARGET_VIEW_DESC render_desc{};
+    render_desc.Format = desc.Format;                          // DXGI_FORMAT Format;
+    render_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D; // D3D12_RTV_DIMENSION ViewDimension;
+    render_desc.Texture2D.MipSlice = 0;                        // D3D12_TEX2D_RTV Texture2D;
+
+    for (UINT i{ 0 }; i < m_mip_count; ++i)
+    {
+        m_rtv[i] = rtv_heap.allocate();
+        device->CreateRenderTargetView(m_resource, &render_desc, m_rtv[i].cpu);
+        ++render_desc.Texture2D.MipSlice;
+    }
+}
+
+void Render_Target::release()
+{
+    for (UINT i{ 0 }; i < m_mip_count; ++i)
+    {
+        core::rtv_heap().free(m_rtv[i]);
+    }
+    core::srv_heap().free(m_srv);
+    core::deferred_release_item(m_resource);
+
+}

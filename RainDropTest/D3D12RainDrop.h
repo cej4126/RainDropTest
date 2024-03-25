@@ -5,6 +5,8 @@
 #include "SimpleCamera.h"
 #include "StepTimer.h"
 #include "D3D12Resources.h"
+#include "D3D12Surface.h"
+#include "D3D12Command.h"
 
 using namespace DirectX;
 
@@ -22,21 +24,18 @@ public:
     virtual void OnKeyDown(UINT8 key);
     virtual void OnKeyUp(UINT8 key);
 
+    virtual void create_surface(HWND hwnd, UINT width, UINT height);
+
     id3d12_device* const device() const { return m_device.Get(); }
     UINT const current_frame_index() const { return m_frame_index; }
     void set_deferred_releases_flag() { deferred_releases_flag[m_frame_index] = true; }
+    void deferred_release(IUnknown* resource);
 
-    D3D12DescriptorHeap& rtv_heap() { return rtv_desc_heap; }
+    Descriptor_Heap& rtv_heap() { return m_rtv_desc_heap; }
+    Descriptor_Heap& dsv_heap() { return m_dsv_desc_heap; }
+    Descriptor_Heap& srv_heap() { return m_srv_desc_heap; }
+    Descriptor_Heap& uav_heap() { return m_uav_desc_heap; }
 
-    template<typename T>
-    constexpr void deferred_release_item(T*& resource)
-    {
-        if (resource)
-        {
-            deferred_release(resource);
-            resource = nullptr;
-        }
-    }
 
 private:
     static const float Particle_Spread;
@@ -95,6 +94,11 @@ private:
     UINT m_rtv_descriptor_size;
     UINT m_srv_uav_descriptor_size;
 
+    D3D12Command m_command;
+    D3D12Surface m_surface;
+    ComPtr<IDXGIFactory7> m_factory;
+    Render_Target render_target;
+
     //UINT8* m_pConstantBufferGSData;
 
     UINT m_srv_index;  // Denotes which of the particle buffer resource views is the SRV(0 or 1).The UAV is 1 - srvIndex.
@@ -148,10 +152,10 @@ private:
     std::vector<IUnknown*> deferred_releases[Frame_Count]{};
 
     //D3D12DescriptorHeap x;
-    D3D12DescriptorHeap rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };
-    D3D12DescriptorHeap dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
-    D3D12DescriptorHeap srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
-    D3D12DescriptorHeap uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+    Descriptor_Heap m_rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };
+    Descriptor_Heap m_dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
+    Descriptor_Heap m_srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+    Descriptor_Heap m_uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
 
     // Indices of shader resources in the descriptor heap.
     enum Root_Parameters : UINT32
@@ -184,7 +188,6 @@ private:
     void CreateParticleBuffers();
     void PopulateCommandList();
 
-    void deferred_release(IUnknown* resource);
     void __declspec(noinline) process_deferred_releases(UINT frame_index);
 
     static DWORD WINAPI ThreadProc(ThreadData* p_data)
