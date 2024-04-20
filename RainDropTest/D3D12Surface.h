@@ -6,7 +6,8 @@ class D3D12Surface
 {
 public:
     D3D12Surface() {}
-    constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
+    //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
+    constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
     constexpr static UINT buffer_count{ 3 };
 
     constexpr explicit D3D12Surface(HWND handle, UINT width, UINT height)

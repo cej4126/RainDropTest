@@ -21,11 +21,11 @@ namespace core {
     void main_deferred_release(IUnknown* resource);
 
     template<typename T>
-    constexpr void deferred_release_item(T*& resource)
+    constexpr void deferred_release(T*& resource)
     {
         if (resource)
         {
-            deferred_release_item(resource);
+            main_deferred_release(resource);
             resource = nullptr;
         }
     }

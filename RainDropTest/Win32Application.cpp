@@ -5,7 +5,7 @@
 
 time_it timer{};
 
-HWND Win32Application::m_hander_window = nullptr;
+HWND Win32Application::g_handler_window = nullptr;
 
 int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show)
 {
@@ -34,7 +34,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
     RECT window_rect = { 0, 0, static_cast<LONG>(pSample->GetWidth()), static_cast<LONG>(pSample->GetHeight()) };
 
     // CreateWindowW(lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-    m_hander_window = CreateWindow(window_class.lpszClassName, pSample->GetTitle(),
+    g_handler_window = CreateWindow(window_class.lpszClassName, pSample->GetTitle(),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -49,7 +49,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
 
     //pSample->create_surface(m_hander_window, pSample->GetWidth(), pSample->GetHeight());
 
-    ShowWindow(m_hander_window, m_cmd_show);
+    ShowWindow(g_handler_window, m_cmd_show);
 
     // Main sample loop.
 

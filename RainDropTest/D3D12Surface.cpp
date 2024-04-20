@@ -34,6 +34,8 @@ void D3D12Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue*
     {
         m_render_targets[i].rtv = core::rtv_heap().allocate();
     }
+
+    finalize();
 }
 
 void D3D12Surface::present() const

@@ -177,6 +177,6 @@ void Render_Target::release()
         core::rtv_heap().free(m_rtv[i]);
     }
     core::srv_heap().free(m_srv);
-    core::deferred_release_item(m_resource);
+    core::deferred_release(m_resource);
 
 }

@@ -88,6 +88,7 @@ public:
     [[nodiscard]] constexpr UINT mip_count() const { return m_mip_count; }
     [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv(UINT mip_index) const { assert(mip_index < m_mip_count); return m_rtv[mip_index].cpu; }
     [[nodiscard]] constexpr Descriptor_Handle srv() const { return m_srv; }
+    [[nodiscard]] constexpr ID3D12Resource* const resource() const { return m_resource; }
 
 private:
     constexpr void move(Render_Target& o)

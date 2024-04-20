@@ -3,6 +3,8 @@
 #include "D3D12Command.h"
 #include "Main.h"
 
+//#define USE_RENDER
+
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
 // change and 0 will be returned.
@@ -94,33 +96,6 @@ void D3D12RainDrop::LoadPipeline()
         throw;
     }
 
-    // Swap Chain
-    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
-    swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
-    swap_chain_desc.Width = m_width;                                                  // UINT Width;
-    swap_chain_desc.Height = m_height;                                                // UINT Height;
-    swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;                              // DXGI_FORMAT Format;
-    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
-    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
-    swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
-    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
-
-    swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
-    swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
-    swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
-
-    ComPtr<IDXGISwapChain1> swap_chain;
-    // Swap chain needs the queue so that it can force a flush on it.
-    ThrowIfFailed(m_factory->CreateSwapChainForHwnd(m_command.command_queue(), Win32Application::GetHandleWindow(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
-
-    // This sample does not support full screen transitions.
-    ThrowIfFailed(m_factory->MakeWindowAssociation(Win32Application::GetHandleWindow(), DXGI_MWA_NO_ALT_ENTER));
-
-    //ThrowIfFailed(swap_chain.As(&m_swap_chain));
-    ThrowIfFailed(swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain)));
-    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-    m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
-
     bool result{ true };
     result &= m_rtv_desc_heap.initialize(512, false);
     result &= m_dsv_desc_heap.initialize(512, false);
@@ -158,7 +133,77 @@ void D3D12RainDrop::LoadPipeline()
         NAME_D3D12_COMPTR_OBJECT(m_srv_uav_heap);
 
         m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    } 
+
+#ifdef USE_RENDER
+    new (&m_surface) D3D12Surface(Win32Application::GetHandleWindow(), m_width, m_height);
+    
+    m_surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
+#endif
+
+    // Swap Chain
+    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+    swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
+    swap_chain_desc.Width = m_width;                                                  // UINT Width;
+    swap_chain_desc.Height = m_height;                                                // UINT Height;
+    swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;                              // DXGI_FORMAT Format;
+    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
+    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
+    swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
+    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
+
+    swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
+    swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
+    swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
+
+    ComPtr<IDXGISwapChain1> swap_chain;
+    // Swap chain needs the queue so that it can force a flush on it.
+    ThrowIfFailed(m_factory->CreateSwapChainForHwnd(m_command.command_queue(), Win32Application::GetHandleWindow(), &swap_chain_desc, nullptr, nullptr, &swap_chain));
+
+    // This sample does not support full screen transitions.
+    ThrowIfFailed(m_factory->MakeWindowAssociation(Win32Application::GetHandleWindow(), DXGI_MWA_NO_ALT_ENTER));
+
+    //ThrowIfFailed(swap_chain.As(&m_swap_chain));
+    ThrowIfFailed(swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain)));
+    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+    m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
+
+#ifdef USE_RENDER    
+    D3D12_RESOURCE_DESC desc{};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    desc.Alignment = 0; // NOTE: 0 is the same as 64KB (or 4MB for MSAA)       
+    desc.Width = m_width;
+    desc.Height = m_height;
+    desc.DepthOrArraySize = 1;
+    desc.MipLevels = 1;
+    desc.Format = depth_buffer_format;
+    desc.SampleDesc = { 1, 0 };
+    desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+#endif
+
+    // --- GPass ---------------------------
+
+    {
+        assert(m_width && m_height);
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // D3D12_RESOURCE_DIMENSION Dimension;
+        desc.Alignment = 0;                                   // UINT64 Alignment;
+        desc.Width = m_width;                                 // UINT64 Width;
+        desc.Height = m_height;                               // UINT Height;
+        desc.DepthOrArraySize = 1;                            // UINT16 DepthOrArraySize;
+        desc.MipLevels = 0;                                   // UINT16 MipLevels;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;             // DXGI_FORMAT Format;
+        desc.SampleDesc = { 1, 0 };                           // DXGI_SAMPLE_DESC SampleDesc;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;           // D3D12_TEXTURE_LAYOUT Layout;
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // D3D12_RESOURCE_FLAGS Flags;
+
+        render_target = Render_Target{ desc };
+        NAME_D3D12_OBJECT(render_target.resource(), L"Graphic Pass main buffer");
+        assert(render_target.resource());
     }
+
+    // --- GPass ---------------------------
 
     // Create frame resources.
     {
@@ -178,7 +223,6 @@ void D3D12RainDrop::LoadPipeline()
 
 void D3D12RainDrop::LoadAssets()
 {
-
     // Create the root signatures.
     {
         D3D12_DESCRIPTOR_RANGE ranges[2]{};
@@ -338,6 +382,7 @@ void D3D12RainDrop::LoadAssets()
 
         ThrowIfFailed(m_device->CreateComputePipelineState(&compute_pso_desc, IID_PPV_ARGS(&m_compute_state)));
         NAME_D3D12_COMPTR_OBJECT(m_compute_state);
+
     }
 
     CreateVertexBuffer();
@@ -1099,6 +1144,8 @@ void D3D12RainDrop::OnDestroy()
     CloseHandle(m_render_context_fence_event);
     CloseHandle(m_thread_handle);
     CloseHandle(m_thread_fence_event);
+
+    render_target.release();
 }
 
 void D3D12RainDrop::OnKeyDown(UINT8 key)
