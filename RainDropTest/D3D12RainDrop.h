@@ -80,7 +80,11 @@ private:
     // Pipeline objects
     D3D12_VIEWPORT m_viewport;
     D3D12_RECT m_scissor_rect;
+#ifdef USE_RENDER
+    D3D12Surface m_surface;
+#else
     ComPtr<IDXGISwapChain4> m_swap_chain;
+#endif
     ComPtr<id3d12_device> m_device;
     ComPtr<ID3D12Resource> m_render_targets[Frame_Count];
     ComPtr<ID3D12Resource> m_depth_stencil;
@@ -95,7 +99,6 @@ private:
     UINT m_srv_uav_descriptor_size;
 
     D3D12Command m_command;
-    D3D12Surface m_surface;
     ComPtr<IDXGIFactory7> m_factory;
     Render_Target render_target;
 

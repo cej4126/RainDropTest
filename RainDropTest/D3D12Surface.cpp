@@ -9,23 +9,28 @@ void D3D12Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue*
     {
         m_allow_tearing = DXGI_PRESENT_ALLOW_TEARING;
     }
+
     DXGI_SWAP_CHAIN_DESC1 desc{};
+    desc.BufferCount = buffer_count;                                       // UINT BufferCount;
     desc.Width = m_width;                                                  // UINT Width;
     desc.Height = m_height;                                                // UINT Height;
     desc.Format = default_back_buffer_format;                              // DXGI_FORMAT Format;
-    desc.Stereo = false;                                                   // BOOL Stereo;
-    desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
-    desc.BufferCount = buffer_count;                                       // UINT BufferCount;
-    desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
     desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
+    desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
+    desc.Flags = m_allow_tearing
+        ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+        : DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT; // UINT Flags;
+    desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
     desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
-    desc.Flags = m_allow_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0; // UINT Flags;
+    desc.Stereo = false;                                                   // BOOL Stereo;
 
     IDXGISwapChain1* swap_chain;
     ThrowIfFailed(factory->CreateSwapChainForHwnd(command_queue, m_handle, &desc, nullptr, nullptr, &swap_chain));
     ThrowIfFailed(factory->MakeWindowAssociation(m_handle, DXGI_MWA_NO_ALT_ENTER));
     swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain));
+    m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
+
     core::release(swap_chain);
 
     m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
@@ -41,8 +46,15 @@ void D3D12Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue*
 void D3D12Surface::present() const
 {
     assert(m_swap_chain);
-    m_swap_chain->Present(0, m_present_flag);
+    //m_swap_chain->Present(0, m_present_flag);
+    m_swap_chain->Present(1, m_present_flag);
+   // m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
+}
+
+UINT D3D12Surface::set_current_bb_index()
+{
     m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
+    return m_current_bb_index;
 }
 
 void D3D12Surface::resize()
@@ -90,7 +102,7 @@ void D3D12Surface::release()
     {
         render_target& render_target_iterm{ m_render_targets[i] };
         core::release(render_target_iterm.resource);
-        core::rtv_heap().free(render_target_iterm.rtv);
+        //core::rtv_heap().free(render_target_iterm.rtv);
     }
 
     core::release(m_swap_chain);

@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "DXSample.h"
+#include "D3D12Surface.h"
 
 class D3D12Command
 {
@@ -17,8 +18,11 @@ public:
     ~D3D12Command();
 
     void BeginFrame();
+#ifdef USE_RENDER
+    void EndFrame(const D3D12Surface& surface);
+#else
     void EndFrame(IDXGISwapChain4* swap_chain);
-    void EndFrame1(IDXGISwapChain4* swap_chain);
+#endif
     void Flush();
     void Release();
 

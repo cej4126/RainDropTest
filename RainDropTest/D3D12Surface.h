@@ -53,6 +53,7 @@ public:
     void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue);
     void present() const;
     void resize();
+    UINT set_current_bb_index();
 
     [[nodiscard]] constexpr UINT width() const { return m_width; }
     [[nodiscard]] constexpr UINT height() const { return m_height; }
@@ -60,6 +61,7 @@ public:
     [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv() const { return m_render_targets[m_current_bb_index].rtv.cpu; }
     [[nodiscard]] constexpr D3D12_VIEWPORT viewport() const { return m_viewport; }
     [[nodiscard]] constexpr D3D12_RECT scissor_rect() const { return m_scissor_rectangle; }
+    [[nodiscard]] constexpr HANDLE swap_chain_event() const { return m_swap_chain_event; }
 
 private:
     void finalize();
@@ -119,5 +121,6 @@ private:
     UINT m_present_flag{ 0 };
     D3D12_VIEWPORT m_viewport{};
     D3D12_RECT m_scissor_rectangle{};
+    HANDLE m_swap_chain_event;
 };
 

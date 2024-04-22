@@ -3,7 +3,6 @@
 #include "D3D12Command.h"
 #include "Main.h"
 
-//#define USE_RENDER
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -136,11 +135,8 @@ void D3D12RainDrop::LoadPipeline()
     } 
 
 #ifdef USE_RENDER
-    new (&m_surface) D3D12Surface(Win32Application::GetHandleWindow(), m_width, m_height);
-    
-    m_surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
-#endif
 
+#else
     // Swap Chain
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
     swap_chain_desc.BufferCount = Frame_Count;                                         // UINT BufferCount;
@@ -151,7 +147,6 @@ void D3D12RainDrop::LoadPipeline()
     swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
     swap_chain_desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
     swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;       // UINT Flags;
-
     swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
     swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
     swap_chain_desc.Stereo = 0;                                                       // BOOL Stereo;
@@ -167,20 +162,9 @@ void D3D12RainDrop::LoadPipeline()
     ThrowIfFailed(swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain)));
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
     m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
-
-#ifdef USE_RENDER    
-    D3D12_RESOURCE_DESC desc{};
-    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    desc.Alignment = 0; // NOTE: 0 is the same as 64KB (or 4MB for MSAA)       
-    desc.Width = m_width;
-    desc.Height = m_height;
-    desc.DepthOrArraySize = 1;
-    desc.MipLevels = 1;
-    desc.Format = depth_buffer_format;
-    desc.SampleDesc = { 1, 0 };
-    desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 #endif
+
+#ifdef USE_GRAPHIC_BUFFER
 
     // --- GPass ---------------------------
 
@@ -204,7 +188,9 @@ void D3D12RainDrop::LoadPipeline()
     }
 
     // --- GPass ---------------------------
+#endif
 
+#ifndef USE_RENDER
     // Create frame resources.
     {
         D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_rtv_desc_heap.cpu_start() };
@@ -219,6 +205,7 @@ void D3D12RainDrop::LoadPipeline()
             rtv_handle.ptr += m_rtv_desc_heap.descriptor_size();
          }
     }
+#endif
 }
 
 void D3D12RainDrop::LoadAssets()
@@ -870,7 +857,11 @@ void D3D12RainDrop::CreateAsyncContexts()
 void D3D12RainDrop::OnUpdate(float dt)
 {
     // Wait for the previous Present to complete.
+#ifdef USE_RENDER
+    WaitForSingleObjectEx(m_surface.swap_chain_event(), 100, FALSE);
+#else
     WaitForSingleObjectEx(m_swap_chain_event, 100, FALSE);
+#endif
 
     m_camera.Update(dt);
 
@@ -909,26 +900,12 @@ void D3D12RainDrop::OnRender()
     // Record all the commands we need to render the scene into the command list.
     PopulateCommandList();
 
-    m_command.EndFrame1(m_swap_chain.Get());
-
     MoveToNextFrame();
 }
 
 // Fill the command list with all the render commands and dependent state.
 void D3D12RainDrop::PopulateCommandList()
 {
-    // Command list allocators can only be reset when the associated
-    // command lists have finished execution on the GPU; apps should use
-    // fences to determine GPU execution progress.
-
-    //ThrowIfFailed(m_command_allocators[m_frame_index]->Reset());
-    //
-    //// However, when ExecuteCommandList() is called on a particular command
-    //// list, that command list can then be reset at any time and must be before
-    //// re-recording.
-    ////ThrowIfFailed(m_command.command_list()->Reset(m_command_allocators[m_frame_index].Get(), m_pipeline_state.Get()));
-    //ThrowIfFailed(m_command.command_list()->Reset(m_command_allocators[m_frame_index].Get(), nullptr));
-
     // Set necessary state.
     m_command.command_list()->SetPipelineState(m_pipeline_state.Get());
     m_command.command_list()->SetGraphicsRootSignature(m_root_signature.Get());
@@ -945,7 +922,11 @@ void D3D12RainDrop::PopulateCommandList()
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+#ifdef USE_RENDER
+    barrier.Transition.pResource = m_surface.back_buffer();
+#else
     barrier.Transition.pResource = m_render_targets[m_frame_index].Get();
+#endif
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -954,9 +935,12 @@ void D3D12RainDrop::PopulateCommandList()
     // Indicate that the back buffer will be used as a render target.
     //D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_rtv_heap->GetCPUDescriptorHandleForHeapStart();
     //rtv_handle.ptr += (SIZE_T)(m_frame_index * m_rtv_descriptor_size);
+#ifdef USE_RENDER
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_surface.rtv().ptr };
+#else
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_rtv_desc_heap.cpu_start() };
     rtv_handle.ptr += (SIZE_T)m_frame_index * m_rtv_desc_heap.descriptor_size();
-
+#endif
     D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
     m_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
@@ -990,11 +974,14 @@ void D3D12RainDrop::PopulateCommandList()
     m_command.command_list()->RSSetViewports(1, &m_viewport);
 
     // Indicate that the back buffer will now be used to present.
+#ifdef USE_RENDER
+    barrier.Transition.pResource = m_surface.back_buffer();
+#else
     barrier.Transition.pResource = m_render_targets[m_frame_index].Get();
+#endif
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
     m_command.command_list()->ResourceBarrier(1, &barrier);
-
 }
 
 void D3D12RainDrop::deferred_release(IUnknown* resource)
@@ -1160,8 +1147,10 @@ void D3D12RainDrop::OnKeyUp(UINT8 key)
 
 void D3D12RainDrop::create_surface(HWND hwnd, UINT width, UINT height)
 {
+#ifdef USE_RENDER
     new (&m_surface) D3D12Surface(hwnd, width, height);
     m_surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
+#endif
 }
 
 void D3D12RainDrop::WaitForRenderContext()
@@ -1183,6 +1172,12 @@ void D3D12RainDrop::WaitForRenderContext()
 // processed by the GPU.
 void D3D12RainDrop::MoveToNextFrame()
 {
+#ifdef USE_RENDER
+    m_command.EndFrame(m_surface);
+#else
+    m_command.EndFrame(m_swap_chain.Get());
+#endif
+
     // Assign the current fence value to the current frame.
     m_frame_fence_values[m_frame_index] = m_render_context_fence_value;
 
@@ -1191,7 +1186,11 @@ void D3D12RainDrop::MoveToNextFrame()
     m_render_context_fence_value++;
 
     // Update the frame index.
+#ifdef USE_RENDER
+    m_frame_index = m_surface.set_current_bb_index();
+#else
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+#endif
 
     // If the next frame is not ready to be rendered yet, wait until it is ready.
     if (m_render_context_fence->GetCompletedValue() < m_frame_fence_values[m_frame_index])
