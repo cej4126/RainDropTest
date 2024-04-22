@@ -78,29 +78,23 @@ private:
     };
 
     // Pipeline objects
+#ifdef USE_SURFACE
+#else
     D3D12_VIEWPORT m_viewport;
     D3D12_RECT m_scissor_rect;
-#ifdef USE_RENDER
-    D3D12Surface m_surface;
-#else
-    ComPtr<IDXGISwapChain4> m_swap_chain;
 #endif
+    D3D12Surface m_surface;
+    Render_Target render_target;
+
     ComPtr<id3d12_device> m_device;
-    ComPtr<ID3D12Resource> m_render_targets[Frame_Count];
     ComPtr<ID3D12Resource> m_depth_stencil;
     ComPtr<ID3D12RootSignature> m_root_signature;
     ComPtr<ID3D12RootSignature> m_compute_root_signature;
     UINT m_frame_index;
     ComPtr<ID3D12CommandAllocator> m_command_allocators[Frame_Count];
-    ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
-    ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
-    ComPtr<ID3D12DescriptorHeap> m_srv_uav_heap;
-    UINT m_rtv_descriptor_size;
-    UINT m_srv_uav_descriptor_size;
 
     D3D12Command m_command;
     ComPtr<IDXGIFactory7> m_factory;
-    Render_Target render_target;
 
     //UINT8* m_pConstantBufferGSData;
 
@@ -119,6 +113,11 @@ private:
     ComPtr<ID3D12Resource> m_constant_buffer_gs;
     UINT8* m_p_constant_buffer_gs_data{ nullptr };
     ComPtr<ID3D12Resource> m_constant_buffer_cs;
+    ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
+    ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
+    ComPtr<ID3D12DescriptorHeap> m_srv_uav_heap;
+    UINT m_rtv_descriptor_size;
+    UINT m_srv_uav_descriptor_size;
 
     SimpleCamera m_camera;
 
@@ -128,7 +127,7 @@ private:
     ComPtr<ID3D12GraphicsCommandList> m_compute_command_list;
 
     // Synchronization objects.
-    HANDLE m_swap_chain_event{ nullptr };
+    //HANDLE m_swap_chain_event{ nullptr };
     ComPtr<ID3D12Fence> m_render_context_fence;
     UINT64 m_render_context_fence_value{ 0 };
     HANDLE m_render_context_fence_event{ nullptr };

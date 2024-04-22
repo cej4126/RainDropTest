@@ -27,5 +27,3 @@ using id3d12_graphics_command_list = ID3D12GraphicsCommandList6;
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
-
-#define USE_RENDER

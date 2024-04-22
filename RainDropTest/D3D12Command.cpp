@@ -39,22 +39,14 @@ void D3D12Command::BeginFrame()
     m_command_list->Reset(frame.command_allocator.Get(), nullptr);
 }
 
-#ifdef USE_RENDER
 void D3D12Command::EndFrame(const D3D12Surface& surface)
-#else
-void D3D12Command::EndFrame(IDXGISwapChain4* swap_chain)
-#endif
 {
     m_command_list->Close();
     ID3D12CommandList* const command_lists[]{ m_command_list.Get() };
     m_command_queue->ExecuteCommandLists(_countof(command_lists), &command_lists[0]);
 
     // Presenting swap chain buffers happens in lockstep with frame buffers.
-#ifdef USE_RENDER
     surface.present();
-#else
-    swap_chain->Present(1, 0);
-#endif
 
     //UINT64& fence_value{ m_fence_value };
     //++fence_value;
