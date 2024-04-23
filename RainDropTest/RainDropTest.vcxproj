@@ -138,6 +138,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Barriers.cpp" />
     <ClCompile Include="D3D12Command.cpp" />
     <ClCompile Include="D3D12RainDrop.cpp" />
     <ClCompile Include="D3D12Resources.cpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Barriers.h" />
     <ClInclude Include="D3D12Command.h" />
     <ClInclude Include="D3D12RainDrop.h" />
     <ClInclude Include="D3D12Resources.h" />

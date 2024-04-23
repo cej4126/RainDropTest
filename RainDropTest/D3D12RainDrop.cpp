@@ -2,6 +2,7 @@
 #include "D3D12RainDrop.h"
 #include "D3D12Command.h"
 #include "Main.h"
+#include "Barriers.h"
 
 
 // InterlockedCompareExchange returns the object's value if the 
@@ -113,8 +114,8 @@ void D3D12RainDrop::LoadPipeline()
         // Describe and create a shader resource view (SRV) and unordered
         // access view (UAV) descriptor heap.
         D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
-        srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
         srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
+        srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
         srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
         srv_uav_heap_desc.NodeMask = 0;                        // UINT NodeMask;
         ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_uav_heap_desc, IID_PPV_ARGS(&m_srv_uav_heap)));
@@ -361,14 +362,8 @@ void D3D12RainDrop::LoadAssets()
 
         Update_Subresource(m_constant_buffer_cs.Get(), constant_buffer_cs_upload.Get(), &compute_cb_data);
 
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = m_constant_buffer_cs.Get();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        m_command.command_list()->ResourceBarrier(1, &barrier);
+        barriers::transition_resource(m_command.command_list(), m_constant_buffer_cs.Get(),
+            D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     }
 
     // Create the geometry shader's constant buffer.
@@ -568,14 +563,8 @@ void D3D12RainDrop::CreateVertexBuffer()
 
     Update_Subresource(m_vertex_buffer.Get(), m_vertex_buffer_upload.Get(), &vertex_data);
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_vertex_buffer.Get();
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    m_command.command_list()->ResourceBarrier(1, &barrier);
+    barriers::transition_resource(m_command.command_list(), m_vertex_buffer.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
     m_vertex_buffer_view.BufferLocation = m_vertex_buffer->GetGPUVirtualAddress();
     m_vertex_buffer_view.SizeInBytes = static_cast<UINT>(buffer_size);
@@ -704,19 +693,10 @@ void D3D12RainDrop::CreateParticleBuffers()
     Update_Subresource(m_particle_buffer_0.Get(), m_particle_buffer_upload_0.Get(), &particle_data);
     Update_Subresource(m_particle_buffer_1.Get(), m_particle_buffer_upload_1.Get(), &particle_data);
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_particle_buffer_0.Get();
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-
-    m_command.command_list()->ResourceBarrier(1, &barrier);
-
-    barrier.Transition.pResource = m_particle_buffer_1.Get();
-
-    m_command.command_list()->ResourceBarrier(1, &barrier);
+    barriers::resource_barrier barriers{};
+    barriers.add(m_particle_buffer_0.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    barriers.add(m_particle_buffer_1.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    barriers.apply(m_command.command_list());
 
     // Create the resource heap view for the srv
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
@@ -844,14 +824,8 @@ void D3D12RainDrop::PopulateCommandList()
     m_command.command_list()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
     m_command.command_list()->RSSetScissorRects(1, &m_surface.scissor_rect());
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_surface.back_buffer();
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_command.command_list()->ResourceBarrier(1, &barrier);
+    barriers::transition_resource(m_command.command_list(), m_surface.back_buffer(),
+        D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     // Indicate that the back buffer will be used as a render target.
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_surface.rtv().ptr };
@@ -878,10 +852,8 @@ void D3D12RainDrop::PopulateCommandList()
     //m_command.command_list()->RSSetViewports(1, &m_viewport);
 
     // Indicate that the back buffer will now be used to present.
-    barrier.Transition.pResource = m_surface.back_buffer();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    m_command.command_list()->ResourceBarrier(1, &barrier);
+    barriers::transition_resource(m_command.command_list(), m_surface.back_buffer(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void D3D12RainDrop::deferred_release(IUnknown* resource)
@@ -966,7 +938,7 @@ DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
 // Run the particle simulation using the compute shader.
 void D3D12RainDrop::Simulate()
 {
-    ID3D12GraphicsCommandList* p_command_list = m_compute_command_list.Get();
+    id3d12_graphics_command_list* p_command_list = m_compute_command_list.Get();
 
     UINT srv_index;
     UINT uav_index;
@@ -986,14 +958,8 @@ void D3D12RainDrop::Simulate()
         p_uav_resource = m_particle_buffer_0.Get();
     }
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = p_uav_resource;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    p_command_list->ResourceBarrier(1, &barrier);
+    barriers::transition_resource(p_command_list, p_uav_resource,
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     p_command_list->SetPipelineState(m_compute_state.Get());
     p_command_list->SetComputeRootSignature(m_compute_root_signature.Get());
@@ -1012,9 +978,8 @@ void D3D12RainDrop::Simulate()
 
     p_command_list->Dispatch(static_cast<int>(ceil(Particle_Count / 128.0f)), 1, 1);
 
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-    p_command_list->ResourceBarrier(1, &barrier);
+    barriers::transition_resource(p_command_list, p_uav_resource,
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 }
 
 void D3D12RainDrop::OnDestroy()

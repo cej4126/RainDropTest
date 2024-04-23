@@ -124,10 +124,9 @@ private:
     // Compute objects.
     ComPtr<ID3D12CommandQueue> m_compute_command_queue;
     ComPtr<ID3D12CommandAllocator> m_compute_command_allocator;
-    ComPtr<ID3D12GraphicsCommandList> m_compute_command_list;
+    ComPtr<id3d12_graphics_command_list> m_compute_command_list;
 
     // Synchronization objects.
-    //HANDLE m_swap_chain_event{ nullptr };
     ComPtr<ID3D12Fence> m_render_context_fence;
     UINT64 m_render_context_fence_value{ 0 };
     HANDLE m_render_context_fence_event{ nullptr };
