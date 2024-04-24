@@ -1,31 +1,31 @@
 #pragma once
 #include "stdafx.h"
 #include "DXSample.h"
-#include "D3D12Surface.h"
+#include "Surface.h"
 
-class D3D12Command
+class Command
 {
 public:
-    D3D12Command() = default;
-    explicit D3D12Command(id3d12_device* const device, D3D12_COMMAND_LIST_TYPE type);
+    Command() = default;
+    explicit Command(id3d12_device* const device, D3D12_COMMAND_LIST_TYPE type);
 
-    explicit D3D12Command(const D3D12Command&) = delete;
-    D3D12Command& operator=(const D3D12Command&) = delete;
-    explicit D3D12Command(D3D12Command&&) = delete;
+    explicit Command(const Command&) = delete;
+    Command& operator=(const Command&) = delete;
+    explicit Command(Command&&) = delete;
 
-    D3D12Command& operator=(D3D12Command&&) = delete;
+    Command& operator=(Command&&) = delete;
 
-    ~D3D12Command();
+    ~Command();
 
     void BeginFrame();
-    void EndFrame(const D3D12Surface& surface);
+    void EndFrame(const Surface& surface);
     void Flush();
     void Release();
 
     [[nodiscard]] ID3D12CommandQueue* const command_queue() const { return m_command_queue.Get(); }
     [[nodiscard]] ID3D12GraphicsCommandList6* const command_list() const { return m_command_list.Get(); }
     [[nodiscard]] constexpr UINT frame_index() const { return m_frame_index; }
-
+ 
 private:
     struct command_frame
     {

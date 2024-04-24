@@ -1,12 +1,12 @@
 #include "Main.h"
-#include "D3D12RainDrop.h"
+#include "RainDrop.h"
 
-D3D12RainDrop m_rain(1280, 720, L"D3D12 rain");
+RainDrop m_rain(1280, 720, L"D3D12 rain");
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    //    D3D12RainDrop rain(1280, 720, L"D3D12 rain");
+    //    RainDrop rain(1280, 720, L"D3D12 rain");
     return Win32Application::Run(&m_rain, hInstance, nCmdShow);
 }
 

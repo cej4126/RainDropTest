@@ -1,27 +1,27 @@
 #pragma once
 #include "stdafx.h"
-#include "D3D12Resources.h"
+#include "Resources.h"
 
-class D3D12Surface
+class Surface
 {
 public:
-    D3D12Surface() {}
+    Surface() {}
     //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
     constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
     constexpr static UINT buffer_count{ 3 };
 
-    constexpr explicit D3D12Surface(HWND handle, UINT width, UINT height)
+    constexpr explicit Surface(HWND handle, UINT width, UINT height)
         : m_handle{ handle }, m_width{ width }, m_height{ height }
     {
         assert(handle);
     }
 
     // disable copy
-    explicit D3D12Surface(const D3D12Surface&) = delete;
-    D3D12Surface& operator=(const D3D12Surface&) = delete;
+    explicit Surface(const Surface&) = delete;
+    Surface& operator=(const Surface&) = delete;
 
     // set the move
-    constexpr D3D12Surface(D3D12Surface&& o) noexcept :
+    constexpr Surface(Surface&& o) noexcept :
         m_swap_chain{ o.m_swap_chain }, m_width{ o.m_width }, m_height{ o.m_height }, m_handle{ o.m_handle },
         m_current_bb_index{ o.m_current_bb_index },
         m_allow_tearing{ o.m_allow_tearing }, m_present_flag{ o.m_present_flag },
@@ -36,7 +36,7 @@ public:
         o.reset();
     }
 
-    constexpr D3D12Surface& operator=(D3D12Surface&& o) noexcept
+    constexpr Surface& operator=(Surface&& o) noexcept
     {
         assert(this != &o);
         if (this != &o)
@@ -48,7 +48,7 @@ public:
         return *this;
     }
 
-    ~D3D12Surface() { release(); }
+    ~Surface() { release(); }
 
     void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue);
     void present() const;
@@ -67,7 +67,7 @@ private:
     void finalize();
     void release();
 
-    constexpr void move(D3D12Surface& o)
+    constexpr void move(Surface& o)
     {
         m_swap_chain = o.m_swap_chain;
         for (UINT i{ 0 }; i < buffer_count; ++i)

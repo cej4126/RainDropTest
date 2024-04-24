@@ -1,7 +1,7 @@
-#include "D3D12Surface.h"
+#include "Surface.h"
 #include "Main.h"
 
-void D3D12Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue)
+void Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue)
 {
     assert(factory && command_queue);
 
@@ -43,7 +43,7 @@ void D3D12Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue*
     finalize();
 }
 
-void D3D12Surface::present() const
+void Surface::present() const
 {
     assert(m_swap_chain);
     //m_swap_chain->Present(0, m_present_flag);
@@ -51,13 +51,13 @@ void D3D12Surface::present() const
    // m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
 }
 
-UINT D3D12Surface::set_current_bb_index()
+UINT Surface::set_current_bb_index()
 {
     m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
     return m_current_bb_index;
 }
 
-void D3D12Surface::resize()
+void Surface::resize()
 {
     assert(m_swap_chain);
     for (UINT i{ 0 }; i < buffer_count; ++i)
@@ -72,7 +72,7 @@ void D3D12Surface::resize()
     finalize();
 }
 
-void D3D12Surface::finalize()
+void Surface::finalize()
 {
     // create RTVs for back-buffers
     D3D12_RENDER_TARGET_VIEW_DESC render_target_desc{};
@@ -96,7 +96,7 @@ void D3D12Surface::finalize()
     m_scissor_rectangle = { 0, 0, (INT)m_width, (INT)m_height };
 }
 
-void D3D12Surface::release()
+void Surface::release()
 {
     for (UINT i{ 0 }; i < buffer_count; ++i)
     {

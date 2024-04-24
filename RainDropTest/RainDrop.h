@@ -4,18 +4,18 @@
 #include "DXSample.h"
 #include "SimpleCamera.h"
 #include "StepTimer.h"
-#include "D3D12Resources.h"
-#include "D3D12Surface.h"
-#include "D3D12Command.h"
+#include "Resources.h"
+#include "Surface.h"
+#include "Command.h"
 
 using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
 
-class D3D12RainDrop : public DXSample
+class RainDrop : public DXSample
 {
 public:
-    D3D12RainDrop(UINT width, UINT height, std::wstring name);
+    RainDrop(UINT width, UINT height, std::wstring name);
 
     virtual void OnInit();
     virtual void OnUpdate(float dt);
@@ -78,12 +78,7 @@ private:
     };
 
     // Pipeline objects
-#ifdef USE_SURFACE
-#else
-    D3D12_VIEWPORT m_viewport;
-    D3D12_RECT m_scissor_rect;
-#endif
-    D3D12Surface m_surface;
+    Surface m_surface;
     Render_Target render_target;
 
     ComPtr<id3d12_device> m_device;
@@ -91,9 +86,8 @@ private:
     ComPtr<ID3D12RootSignature> m_root_signature;
     ComPtr<ID3D12RootSignature> m_compute_root_signature;
     UINT m_frame_index;
-    ComPtr<ID3D12CommandAllocator> m_command_allocators[Frame_Count];
 
-    D3D12Command m_command;
+    Command m_command;
     ComPtr<IDXGIFactory7> m_factory;
 
     //UINT8* m_pConstantBufferGSData;
@@ -142,7 +136,7 @@ private:
 
     struct ThreadData
     {
-        D3D12RainDrop* p_context;
+        RainDrop* p_context;
         UINT thread_index;
     };
     ThreadData m_thread_data;

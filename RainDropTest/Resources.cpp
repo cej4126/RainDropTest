@@ -1,5 +1,5 @@
 #include "Main.h"
-#include "D3D12Resources.h"
+#include "Resources.h"
 
 bool Descriptor_Heap::initialize(UINT capacity, bool is_shader_visible)
 {

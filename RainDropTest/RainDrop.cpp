@@ -1,19 +1,18 @@
 #include "stdafx.h"
-#include "D3D12RainDrop.h"
-#include "D3D12Command.h"
+#include "RainDrop.h"
+#include "Command.h"
 #include "Main.h"
 #include "Barriers.h"
-
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
 // change and 0 will be returned.
 #define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
 
-//const float D3D12RainDrop::Particle_Spread = 400.0f;
-const float D3D12RainDrop::Particle_Spread = 500.0f;
+//const float RainDrop::Particle_Spread = 400.0f;
+const float RainDrop::Particle_Spread = 500.0f;
 
-D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
+RainDrop::RainDrop(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     m_frame_index(0),
     m_srv_uav_descriptor_size(0),
@@ -38,7 +37,7 @@ D3D12RainDrop::D3D12RainDrop(UINT width, UINT height, std::wstring name) :
     //}
 }
 
-void D3D12RainDrop::OnInit()
+void RainDrop::OnInit()
 {
     m_camera.Init({ 0.0f, 0.0f, 1500.0f });
     m_camera.SetMoveSpeed(250.0f);
@@ -49,7 +48,7 @@ void D3D12RainDrop::OnInit()
 }
 
 // Load the rendering pipeline dependencies.
-void D3D12RainDrop::LoadPipeline()
+void RainDrop::LoadPipeline()
 {
 #if defined(_DEBUG)
         // Enable the D3D12 debug layer.
@@ -79,7 +78,7 @@ void D3D12RainDrop::LoadPipeline()
         ThrowIfFailed(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
     }
 
-    new (&m_command) D3D12Command(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    new (&m_command) Command(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
     if (!m_command.command_queue())
     {
         throw;
@@ -150,7 +149,7 @@ void D3D12RainDrop::LoadPipeline()
 #endif
 }
 
-void D3D12RainDrop::LoadAssets()
+void RainDrop::LoadAssets()
 {
     // Create the root signatures.
     {
@@ -261,14 +260,6 @@ void D3D12RainDrop::LoadAssets()
         pixel_shader = shader_file_infos[2].shaders;
         compute_shader = shader_file_infos[3].shaders;
 
-        // D3D12_INPUT_ELEMENT_DESC
-        //    LPCSTR SemanticName;
-        //    UINT SemanticIndex;
-        //    DXGI_FORMAT Format;
-        //    UINT InputSlot;
-        //    UINT AlignedByteOffset;
-        //    D3D12_INPUT_CLASSIFICATION InputSlotClass;
-        //    UINT InstanceDataStepRate;
         D3D12_INPUT_ELEMENT_DESC input_element_descriptors[] =
         {
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -448,7 +439,7 @@ void D3D12RainDrop::LoadAssets()
 // IntermediateOffset = 0;
 // FirstSubresource = 0;
 // NumSubresources = 1;
-UINT64 D3D12RainDrop::Update_Subresource(ID3D12Resource* p_destination_resource, ID3D12Resource* p_intermediate_resource, D3D12_SUBRESOURCE_DATA* p_src_data)
+UINT64 RainDrop::Update_Subresource(ID3D12Resource* p_destination_resource, ID3D12Resource* p_intermediate_resource, D3D12_SUBRESOURCE_DATA* p_src_data)
 {
     // Call 1
     const UINT Number_Subresources = 1;
@@ -514,7 +505,7 @@ UINT64 D3D12RainDrop::Update_Subresource(ID3D12Resource* p_destination_resource,
 }
 
 // Create the particle vertex buffer.
-void D3D12RainDrop::CreateVertexBuffer()
+void RainDrop::CreateVertexBuffer()
 {
     std::vector<Particle_Vertex> vertices;
     vertices.resize(Particle_Count);
@@ -572,14 +563,14 @@ void D3D12RainDrop::CreateVertexBuffer()
 }
 
 // Random percent value, from -1 to 1.
-float D3D12RainDrop::RandomPercent()
+float RainDrop::RandomPercent()
 {
     int r = rand();
     float ret = static_cast<float>((r % 10000) - 5000);
     return ret / 5000.0f;
 }
 
-void D3D12RainDrop::LoadParticles(Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_particles)
+void RainDrop::LoadParticles(Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_particles)
 {
     const float pi_2 = 3.141592654f;
 
@@ -617,7 +608,7 @@ void D3D12RainDrop::LoadParticles(Particle* p_particles, const XMFLOAT3& center,
 }
 
 // Create the position and velocity buffer shader resources.
-void D3D12RainDrop::CreateParticleBuffers()
+void RainDrop::CreateParticleBuffers()
 {
     // Initialize the data in the buffers
     std::vector<Particle> data;
@@ -736,7 +727,7 @@ void D3D12RainDrop::CreateParticleBuffers()
     m_device->CreateUnorderedAccessView(m_particle_buffer_1.Get(), nullptr, &uav_desc, uav_handle_1);
 }
 
-void D3D12RainDrop::CreateAsyncContexts()
+void RainDrop::CreateAsyncContexts()
 {
     // Create the compute resources.
     D3D12_COMMAND_QUEUE_DESC queue_desc = { D3D12_COMMAND_LIST_TYPE_COMPUTE, 0, D3D12_COMMAND_QUEUE_FLAG_NONE, 0 };
@@ -763,7 +754,7 @@ void D3D12RainDrop::CreateAsyncContexts()
 }
 
 // Update frame-based values.
-void D3D12RainDrop::OnUpdate(float dt)
+void RainDrop::OnUpdate(float dt)
 {
     // Wait for the previous Present to complete.
     WaitForSingleObjectEx(m_surface.swap_chain_event(), 100, FALSE);
@@ -779,7 +770,7 @@ void D3D12RainDrop::OnUpdate(float dt)
 }
 
 // Render the scene.
-void D3D12RainDrop::OnRender()
+void RainDrop::OnRender()
 {
     // Let the compute thread know that a new frame is being rendered.
     InterlockedExchange(&m_render_context_fence_value1, m_render_context_fence_value);
@@ -809,7 +800,7 @@ void D3D12RainDrop::OnRender()
 }
 
 // Fill the command list with all the render commands and dependent state.
-void D3D12RainDrop::PopulateCommandList()
+void RainDrop::PopulateCommandList()
 {
     // Set necessary state.
     m_command.command_list()->SetPipelineState(m_pipeline_state.Get());
@@ -856,7 +847,7 @@ void D3D12RainDrop::PopulateCommandList()
         D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void D3D12RainDrop::deferred_release(IUnknown* resource)
+void RainDrop::deferred_release(IUnknown* resource)
 {
     const UINT frame_idx{ current_frame_index() };
     std::lock_guard lock{ deferred_releases_mutex };
@@ -864,7 +855,7 @@ void D3D12RainDrop::deferred_release(IUnknown* resource)
     set_deferred_releases_flag();
 }
 
-void __declspec(noinline) D3D12RainDrop::process_deferred_releases(UINT frame_index)
+void __declspec(noinline) RainDrop::process_deferred_releases(UINT frame_index)
 {
     std::lock_guard lock{ deferred_releases_mutex };
     // NOTE: we clear this flag in the beginning. If we'd clear it at the end
@@ -888,7 +879,7 @@ void __declspec(noinline) D3D12RainDrop::process_deferred_releases(UINT frame_in
     }
 }
 
-DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
+DWORD RainDrop::AsyncComputeThreadProc(int thread_index)
 {
     // Get the global resource to local resource
     ID3D12CommandQueue* p_command_queue = m_compute_command_queue.Get();
@@ -898,6 +889,7 @@ DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
 
     while (0 == InterlockedGetValue(&m_terminating))
     {
+
         // Run the particle simulation.
         Simulate();
 
@@ -936,7 +928,7 @@ DWORD D3D12RainDrop::AsyncComputeThreadProc(int thread_index)
 }
 
 // Run the particle simulation using the compute shader.
-void D3D12RainDrop::Simulate()
+void RainDrop::Simulate()
 {
     id3d12_graphics_command_list* p_command_list = m_compute_command_list.Get();
 
@@ -982,7 +974,7 @@ void D3D12RainDrop::Simulate()
         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 }
 
-void D3D12RainDrop::OnDestroy()
+void RainDrop::OnDestroy()
 {
     // Notify the compute threads that the app is shutting down.
     InterlockedExchange(&m_terminating, 1);
@@ -1000,23 +992,23 @@ void D3D12RainDrop::OnDestroy()
     render_target.release();
 }
 
-void D3D12RainDrop::OnKeyDown(UINT8 key)
+void RainDrop::OnKeyDown(UINT8 key)
 {
     m_camera.OnKeyDown(key);
 }
 
-void D3D12RainDrop::OnKeyUp(UINT8 key)
+void RainDrop::OnKeyUp(UINT8 key)
 {
     m_camera.OnKeyUp(key);
 }
 
-void D3D12RainDrop::create_surface(HWND hwnd, UINT width, UINT height)
+void RainDrop::create_surface(HWND hwnd, UINT width, UINT height)
 {
-    new (&m_surface) D3D12Surface(hwnd, width, height);
+    new (&m_surface) Surface(hwnd, width, height);
     m_surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
 }
 
-void D3D12RainDrop::WaitForRenderContext()
+void RainDrop::WaitForRenderContext()
 {
     // Add a signal command to the queue.
     ThrowIfFailed(m_command.command_queue()->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
@@ -1033,7 +1025,7 @@ void D3D12RainDrop::WaitForRenderContext()
 // Cycle through the frame resources. This method blocks execution if the 
 // next frame resource in the queue has not yet had its previous contents 
 // processed by the GPU.
-void D3D12RainDrop::MoveToNextFrame()
+void RainDrop::MoveToNextFrame()
 {
     m_command.EndFrame(m_surface);
 

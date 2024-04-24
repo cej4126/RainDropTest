@@ -139,10 +139,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Barriers.cpp" />
-    <ClCompile Include="D3D12Command.cpp" />
-    <ClCompile Include="D3D12RainDrop.cpp" />
-    <ClCompile Include="D3D12Resources.cpp" />
-    <ClCompile Include="D3D12Surface.cpp" />
+    <ClCompile Include="Command.cpp" />
+    <ClCompile Include="RainDrop.cpp" />
+    <ClCompile Include="Resources.cpp" />
+    <ClCompile Include="Surface.cpp" />
     <ClCompile Include="DXSample.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="SimpleCamera.cpp" />
@@ -151,10 +151,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Barriers.h" />
-    <ClInclude Include="D3D12Command.h" />
-    <ClInclude Include="D3D12RainDrop.h" />
-    <ClInclude Include="D3D12Resources.h" />
-    <ClInclude Include="D3D12Surface.h" />
+    <ClInclude Include="Command.h" />
+    <ClInclude Include="RainDrop.h" />
+    <ClInclude Include="Resources.h" />
+    <ClInclude Include="Surface.h" />
     <ClInclude Include="DXSample.h" />
     <ClInclude Include="DXSampleHelper.h" />
     <ClInclude Include="Main.h" />
