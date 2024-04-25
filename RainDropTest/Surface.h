@@ -121,6 +121,6 @@ private:
     UINT m_present_flag{ 0 };
     D3D12_VIEWPORT m_viewport{};
     D3D12_RECT m_scissor_rectangle{};
-    HANDLE m_swap_chain_event;
+    HANDLE m_swap_chain_event{};
 };
 

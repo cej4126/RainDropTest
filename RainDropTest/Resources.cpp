@@ -144,7 +144,7 @@ Render_Target::Render_Target(D3D12_RESOURCE_DESC desc)
     clear_value.Format = desc.Format;
     memcpy(&clear_value.Color, &default_clear_value[0], sizeof(default_clear_value));
 
-    ThrowIfFailed(device->CreateCommittedResource(&heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &desc,
+    ThrowIfFailed(device->CreateCommittedResource(&d3dx::heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &desc,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clear_value, IID_PPV_ARGS(&m_resource)));
     assert(m_resource);
 

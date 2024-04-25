@@ -60,7 +60,7 @@ namespace barriers {
         }
 
     private:
-        D3D12_RESOURCE_BARRIER m_barriers[m_max_resource_barriers];
+        D3D12_RESOURCE_BARRIER m_barriers[m_max_resource_barriers]{};
         UINT m_offset{ 0 };
     };
 

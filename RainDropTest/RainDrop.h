@@ -174,7 +174,6 @@ private:
 
     void LoadPipeline();
     void LoadAssets();
-    UINT64 Update_Subresource(ID3D12Resource* p_destination_resource, ID3D12Resource* p_intermediate_resource, D3D12_SUBRESOURCE_DATA* p_src_data);
     void CreateVertexBuffer();
     void CreateAsyncContexts();
     float RandomPercent();

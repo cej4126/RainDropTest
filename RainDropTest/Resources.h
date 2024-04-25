@@ -60,7 +60,7 @@ public:
     Render_Target& operator=(const Render_Target&) = delete;
 
     // move
-    constexpr Render_Target(Render_Target&& o)
+    constexpr Render_Target(Render_Target&& o) noexcept
         : m_resource{ std::move(o.m_resource) }, m_srv{ o.m_srv }, m_mip_count{ o.m_mip_count }
     {
         for (UINT i{ 0 }; i < m_mip_count; ++i)
