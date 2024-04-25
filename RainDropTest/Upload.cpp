@@ -135,7 +135,7 @@ namespace upload {
         assert(m_frame_index != Invalid_Index);
         upload_frame& frame{ upload_frames[m_frame_index] };
         id3d12_graphics_command_list* const cmd_list{ frame.command_list };
-        ThrowIfFailed(cmd_list->Close());
+        ThrowIfFailed(cmd_list->Close()); 
 
         std::lock_guard lock{ queue_mutex };
 

@@ -135,65 +135,31 @@ void RainDrop::LoadAssets()
 {
     // Create the root signatures.
     {
-        D3D12_DESCRIPTOR_RANGE ranges[2]{};
-        ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;                               // D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
-        ranges[0].NumDescriptors = 1;                                                        // UINT NumDescriptors;
-        ranges[0].BaseShaderRegister = 0;                                                    // UINT BaseShaderRegister;
-        ranges[0].RegisterSpace = 0;                                                         // UINT RegisterSpace;
-        ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;  // UINT OffsetInDescriptorsFromTableStart;
+        d3dx::d3d12_descriptor_range range_srv{ D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 };
+        d3dx::d3d12_descriptor_range range_uav{ D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0 };
 
-        ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;                               // D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
-        ranges[1].NumDescriptors = 1;                                                        // UINT NumDescriptors;
-        ranges[1].BaseShaderRegister = 0;                                                    // UINT BaseShaderRegister;
-        ranges[1].RegisterSpace = 0;                                                         // UINT RegisterSpace;
-        ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;  // UINT OffsetInDescriptorsFromTableStart;
-
-        D3D12_ROOT_PARAMETER root_parameters[Root_Parameters_Count]{};
+        d3dx::d3d12_root_parameter root_parameters[Root_Parameters_Count]{};
         // Constant Buffer
-        root_parameters[Root_Parameter_CB].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        root_parameters[Root_Parameter_CB].Constants.ShaderRegister = 0;
-        root_parameters[Root_Parameter_CB].Constants.RegisterSpace = 0;
-        root_parameters[Root_Parameter_CB].Constants.Num32BitValues = 0;
-        root_parameters[Root_Parameter_CB].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        root_parameters[Root_Parameter_CB].as_cbv(D3D12_SHADER_VISIBILITY_ALL, 0);
         // SRV Descriptor Table
-        root_parameters[Root_Parameter_SRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        root_parameters[Root_Parameter_SRV].DescriptorTable.NumDescriptorRanges = 1;
-        root_parameters[Root_Parameter_SRV].DescriptorTable.pDescriptorRanges = &ranges[0];
-        root_parameters[Root_Parameter_SRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        root_parameters[Root_Parameter_SRV].as_descriptor_table(D3D12_SHADER_VISIBILITY_VERTEX, &range_srv, 1);
         // UAV Descriptor Table
-        root_parameters[Root_Parameter_UAV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        root_parameters[Root_Parameter_UAV].DescriptorTable.NumDescriptorRanges = 1;
-        root_parameters[Root_Parameter_UAV].DescriptorTable.pDescriptorRanges = &ranges[1];
-        root_parameters[Root_Parameter_UAV].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        root_parameters[Root_Parameter_UAV].as_descriptor_table(D3D12_SHADER_VISIBILITY_ALL, &range_uav, 1);
 
-        // The rendering pipeline does not need the UAV parameter.
-        D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
-        root_signature_desc.NumParameters = Root_Parameter_SRV + 1;                               // UINT NumParameters;
-        root_signature_desc.pParameters = root_parameters;                                        // _Field_size_full_(NumParameters)  const D3D12_ROOT_PARAMETER* pParameters;
-        root_signature_desc.NumStaticSamplers = 0;                                                // UINT NumStaticSamplers;
-        root_signature_desc.pStaticSamplers = nullptr;                                            // _Field_size_full_(NumStaticSamplers)  const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers;
-        root_signature_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; // D3D12_ROOT_SIGNATURE_FLAGS Flags;
+        d3dx::d3d12_root_signature_desc root_signature_desc{ &root_parameters[0], Root_Parameter_SRV + 1,
+             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT };
 
-        ComPtr<ID3DBlob> signature;
-        ComPtr<ID3DBlob> error;
-
-        ThrowIfFailed(D3D12SerializeRootSignature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-        ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_root_signature)));
-        NAME_D3D12_COMPTR_OBJECT(m_root_signature);
+        m_root_signature.Attach(root_signature_desc.create());
+        assert(m_root_signature.Get());
+        NAME_D3D12_OBJECT(m_root_signature.Get(), L"Root Signature");
 
         // Create compute root signature
         root_parameters[Root_Parameter_SRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-        D3D12_ROOT_SIGNATURE_DESC compute_root_signature_desc = {};
-        compute_root_signature_desc.NumParameters = Root_Parameters_Count;                        // UINT NumParameters;
-        compute_root_signature_desc.pParameters = root_parameters;                                // _Field_size_full_(NumParameters)  const D3D12_ROOT_PARAMETER* pParameters;
-        compute_root_signature_desc.NumStaticSamplers = 0;                                        // UINT NumStaticSamplers;
-        compute_root_signature_desc.pStaticSamplers = nullptr;                                    // _Field_size_full_(NumStaticSamplers)  const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers;
-        compute_root_signature_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;                       // D3D12_ROOT_SIGNATURE_FLAGS Flags;
-        ThrowIfFailed(D3D12SerializeRootSignature(&compute_root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-
-        ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_compute_root_signature)));
-        NAME_D3D12_COMPTR_OBJECT(m_compute_root_signature);
+        d3dx::d3d12_root_signature_desc compute_root_signature_desc{ &root_parameters[0], Root_Parameters_Count, D3D12_ROOT_SIGNATURE_FLAG_NONE };
+        m_compute_root_signature.Attach(compute_root_signature_desc.create());
+        assert(m_compute_root_signature.Get());
+        NAME_D3D12_OBJECT(m_compute_root_signature.Get(), L"Compute Root Signature");
     }
 
     // Create the pipeline states, which includes compiling and loading shaders.
@@ -438,23 +404,6 @@ void RainDrop::LoadParticles(Particle* p_particles, const XMFLOAT3& center, cons
     {
         XMFLOAT3 delta(spread, spread, spread);
 
-        //// Find min length
-        //while (XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&delta))) > spread * spread)
-        //{
-        //    delta.x = RandomPercent() * spread;
-        //    delta.y = RandomPercent() * spread;
-        //    delta.z = RandomPercent() * spread;
-        //}
-
-        //float r = RandomPercent() * spread;
-        //float a = RandomPercent() * pi_2;
-        //float b = RandomPercent() * pi_2;
-
-        //p_particles[i].position.x = center.x + r * cosf(a);
-        //p_particles[i].position.y = center.y + r * sinf(a);
-        //p_particles[i].position.z = center.z + r * sinf(b);
-        //p_particles[i].position.w = 10000.0f * 10000.0f;
-
         p_particles[i].position.x = center.x + RandomPercent() * spread;
         p_particles[i].position.y = 1000.0f + (RandomPercent()) * 500.f;
         p_particles[i].position.z = center.z + RandomPercent() * spread;
@@ -643,7 +592,6 @@ void RainDrop::PopulateCommandList()
     PIXBeginEvent(m_command.command_list(), 0, L"Draw particles for thread");
     m_command.command_list()->DrawInstanced(Particle_Count, 1, 0, 0);
     PIXEndEvent(m_command.command_list());
-    //m_command.command_list()->RSSetViewports(1, &m_viewport);
 
     // Indicate that the back buffer will now be used to present.
     barriers::transition_resource(m_command.command_list(), m_surface.back_buffer(),

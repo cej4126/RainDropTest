@@ -1,7 +1,37 @@
+#include "stdafx.h"
 #include "DXSampleHelper.h"
 #include "Main.h"
 
 namespace d3dx {
+
+    ID3D12RootSignature* create_root_signature(const D3D12_ROOT_SIGNATURE_DESC1& desc)
+    {
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC versioned_desc{};
+        versioned_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+        versioned_desc.Desc_1_1 = desc;
+
+        using namespace Microsoft::WRL;
+        ComPtr<ID3DBlob> signature_blob{ nullptr };
+        ComPtr<ID3DBlob> error_blob{ nullptr };
+        HRESULT hr{ S_OK };
+        if (FAILED(hr = D3D12SerializeVersionedRootSignature(&versioned_desc, &signature_blob, &error_blob)))
+        {
+            DEBUG_OP(const char* error_msg{ error_blob ? (const char*)error_blob->GetBufferPointer() : "" });
+            DEBUG_OP(OutputDebugStringA(error_msg));
+            return nullptr;
+        }
+
+        ID3D12RootSignature* signature{ nullptr };
+        ThrowIfFailed(core::device()->CreateRootSignature(0, signature_blob->GetBufferPointer(),
+            signature_blob->GetBufferSize(), IID_PPV_ARGS(&signature)));
+
+        if (FAILED(hr))
+        {
+            core::release(signature);
+        }
+
+        return signature;
+    }
 
     // IntermediateOffset = 0;
     // FirstSubresource = 0;
