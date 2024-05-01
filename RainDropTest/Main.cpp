@@ -1,7 +1,7 @@
 #include "Main.h"
 #include "RainDrop.h"
 
-RainDrop m_rain(1280, 720, L"D3D12 rain");
+d3d12::RainDrop m_rain(1280, 720, L"D3D12 rain");
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -11,7 +11,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 }
 
 
-namespace core {
+namespace d3d12::core{
 
     id3d12_device* const device()
     {

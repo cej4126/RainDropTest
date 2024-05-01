@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-namespace d3dx {
+namespace d3d12::d3dx {
     constexpr struct {
         const D3D12_HEAP_PROPERTIES default_heap{
             D3D12_HEAP_TYPE_DEFAULT,                        // Type

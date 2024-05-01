@@ -2,7 +2,7 @@
 #include "DXSampleHelper.h"
 #include "Main.h"
 
-namespace upload {
+namespace d3d12::upload {
 
     namespace {
         struct upload_frame

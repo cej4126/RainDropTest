@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-namespace upload {
+namespace d3d12::upload {
 
     class Upload_Context
     {

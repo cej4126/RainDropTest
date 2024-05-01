@@ -1,9 +1,10 @@
 #pragma once
 #include "stdafx.h"
+#include "Resources.h"
 
 class Descriptor_Heap;
 
-namespace core {
+namespace d3d12::core {
     template<typename T>
     constexpr void release(T*& resource)
     {
@@ -31,8 +32,8 @@ namespace core {
     }
 
 
-    Descriptor_Heap& dsv_heap();
-    Descriptor_Heap& rtv_heap();
-    Descriptor_Heap& srv_heap();
-    Descriptor_Heap& uav_heap();
+    [[nodiscard]] Descriptor_Heap& dsv_heap();
+    [[nodiscard]] Descriptor_Heap& rtv_heap();
+    [[nodiscard]] Descriptor_Heap& srv_heap();
+    [[nodiscard]] Descriptor_Heap& uav_heap();
 }
