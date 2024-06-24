@@ -5,6 +5,10 @@
 #include "Barriers.h"
 #include "Upload.h"
 #include "Buffers.h"
+#include "Utilities.h"
+#include "ContentToEngine.h"
+#include <filesystem>
+#include "Content.h"
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -15,6 +19,8 @@ namespace d3d12 {
 
     namespace {
         Depth_Buffer m_depth_buffer{};
+
+        UINT cube_model_id{ Invalid_Index };
 
     } // anonymous namespace
 
@@ -47,6 +53,32 @@ namespace d3d12 {
         //}
     }
 
+    [[nodiscard]] UINT load_model(const char* path)
+    {
+        std::unique_ptr<UINT8[]> model;
+        UINT64 size{ 0 };
+
+        util::read_file(path, model, size);
+
+        const UINT model_id{ content::create_resource(model.get(), content::asset_type::mesh) };
+        assert(model_id != Invalid_Index);
+        return model_id; 
+    }
+
+    void create_render_items()
+    {
+        assert(std::filesystem::exists("..\\x64\\cube.model"));
+
+        std::thread threads[]{
+            std::thread{ [] { cube_model_id = load_model("..\\x64\\cube.model"); }},
+        };
+
+        for (auto& t : threads)
+        {
+            t.join();
+        }
+    }
+
     void RainDrop::OnInit()
     {
         m_camera.Init({ 0.0f, 0.0f, 1500.0f });
@@ -55,6 +87,8 @@ namespace d3d12 {
         LoadPipeline();
         LoadAssets();
         CreateAsyncContexts();
+
+        create_render_items();
     }
 
     // Load the rendering pipeline dependencies.
@@ -124,7 +158,8 @@ namespace d3d12 {
         m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
-    if (!(upload::initialize()))
+    if (!(upload::initialize() &&
+          content::initialize()))
     {
         throw;
     }
@@ -700,6 +735,11 @@ namespace d3d12 {
 
     void RainDrop::OnDestroy()
     {
+        if (cube_model_id != Invalid_Index)
+        {
+            content::destroy_resource(cube_model_id, content::asset_type::mesh);
+        }
+
         m_command.Release();
 
         // NOTE: we don't call process_deferred_releases at the end because
@@ -710,6 +750,7 @@ namespace d3d12 {
             process_deferred_releases(i);
         }
 
+        content::shutdown();
         upload::shutdown();
 
         m_render_target.release();

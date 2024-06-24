@@ -141,6 +141,8 @@
     <ClCompile Include="Barriers.cpp" />
     <ClCompile Include="Buffers.cpp" />
     <ClCompile Include="Command.cpp" />
+    <ClCompile Include="Content.cpp" />
+    <ClCompile Include="ContentToEngine.cpp" />
     <ClCompile Include="DXSampleHelper.cpp" />
     <ClCompile Include="RainDrop.cpp" />
     <ClCompile Include="Resources.cpp" />
@@ -156,6 +158,10 @@
     <ClInclude Include="Barriers.h" />
     <ClInclude Include="Buffers.h" />
     <ClInclude Include="Command.h" />
+    <ClInclude Include="Content.h" />
+    <ClInclude Include="ContentToEngine.h" />
+    <ClInclude Include="FreeList.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="RainDrop.h" />
     <ClInclude Include="Resources.h" />
     <ClInclude Include="Surface.h" />
@@ -166,6 +172,8 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="Upload.h" />
+    <ClInclude Include="Utilities.h" />
+    <ClInclude Include="Vector.h" />
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>
   <ItemGroup>
