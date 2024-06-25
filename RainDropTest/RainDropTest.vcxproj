@@ -144,13 +144,16 @@
     <ClCompile Include="Content.cpp" />
     <ClCompile Include="ContentToEngine.cpp" />
     <ClCompile Include="DXSampleHelper.cpp" />
+    <ClCompile Include="Entity.cpp" />
     <ClCompile Include="RainDrop.cpp" />
     <ClCompile Include="Resources.cpp" />
+    <ClCompile Include="Script.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="DXSample.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="SimpleCamera.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Upload.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
@@ -160,10 +163,12 @@
     <ClInclude Include="Command.h" />
     <ClInclude Include="Content.h" />
     <ClInclude Include="ContentToEngine.h" />
+    <ClInclude Include="Entity.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="RainDrop.h" />
     <ClInclude Include="Resources.h" />
+    <ClInclude Include="Script.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="DXSample.h" />
     <ClInclude Include="DXSampleHelper.h" />
@@ -171,6 +176,7 @@
     <ClInclude Include="SimpleCamera.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StepTimer.h" />
+    <ClInclude Include="Transform.h" />
     <ClInclude Include="Upload.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="Vector.h" />

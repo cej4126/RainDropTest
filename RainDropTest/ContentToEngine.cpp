@@ -12,16 +12,18 @@ namespace d3d12::content
 
         UINT get_geometry_hierarchy_buffer_size(const void* const data)
         {
+            const UINT8* data_ptr{ (UINT8*)data };
             const geometry_data* geometry_ptr = (geometry_data*)(data);
             const UINT level_of_detail_count = geometry_ptr->level_of_detail_count;
 
             UINT size{ sizeof(UINT) + (sizeof(float) + sizeof(level_of_detail_offset_count) * level_of_detail_count) };
             // Get the gpu_ids for the total_number_of_sub_meshes
-            geometry_header* mesh_ptr = (geometry_header*)data + sizeof(UINT);
+            UINT64 offset = sizeof(UINT);
             for (UINT i{ 0 }; i < level_of_detail_count; ++i)
             {
+                geometry_header* mesh_ptr = (geometry_header*)&data_ptr[offset];
                 size += sizeof(UINT) * mesh_ptr->sub_mesh_count;
-                mesh_ptr += sizeof(geometry_header) + mesh_ptr->size_of_sub_meshes;
+                offset += sizeof(geometry_header) + mesh_ptr->size_of_sub_meshes;
             }
 
             return size;
@@ -84,9 +86,9 @@ namespace d3d12::content
 
             *(UINT*)hierarchy_buffer = level_of_detail_count;
 
-            float* const thresholds{ (float*)(hierarchy_buffer + sizeof(UINT)) };
-            level_of_detail_offset_count* lod_offset_count{ (level_of_detail_offset_count*)hierarchy_buffer + sizeof(UINT) + (sizeof(float) * level_of_detail_count) };
-            UINT* const gpu_ids{ (UINT*)(hierarchy_buffer + sizeof(UINT) + ((sizeof(float) + sizeof(level_of_detail_offset_count)) * level_of_detail_count)) };
+            float* const thresholds{ (float*)&hierarchy_buffer[sizeof(UINT)] };
+            level_of_detail_offset_count* lod_offset_count{ (level_of_detail_offset_count*)&hierarchy_buffer[sizeof(UINT) + (sizeof(float) * level_of_detail_count)] };
+            UINT* const gpu_ids{ (UINT*)&hierarchy_buffer[sizeof(UINT) + ((sizeof(float) + sizeof(level_of_detail_offset_count)) * level_of_detail_count)] };
 
             UINT sub_mesh_index{ 0 };
             for (UINT level_of_detail_idx{ 0 }; level_of_detail_idx < level_of_detail_count; ++level_of_detail_idx)
@@ -206,8 +208,8 @@ namespace d3d12::content
                 struct geometry_data* ptr = (geometry_data*)pointer;
                 const UINT level_of_detail_count{ ptr->level_of_detail_count };
                 assert(level_of_detail_count);
-                level_of_detail_offset_count* lod_offset_count{ (level_of_detail_offset_count*)pointer + sizeof(UINT) + (sizeof(float) * level_of_detail_count) };
-                UINT* const gpu_ids{ (UINT*)(pointer + sizeof(UINT) + ((sizeof(float) + sizeof(level_of_detail_offset_count)) * level_of_detail_count)) };
+                level_of_detail_offset_count* lod_offset_count{ (level_of_detail_offset_count*)&pointer[sizeof(UINT) + (sizeof(float) * level_of_detail_count)] };
+                UINT* const gpu_ids{ (UINT*)&pointer[sizeof(UINT) + ((sizeof(float) + sizeof(level_of_detail_offset_count)) * level_of_detail_count)] };
                 UINT id_index{ 0 };
                 for (UINT lod_idx{ 0 }; lod_idx < level_of_detail_count; ++lod_idx)
                 {
