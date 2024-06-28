@@ -1,15 +1,29 @@
 #include "Main.h"
 #include "RainDrop.h"
+#include <filesystem>
 
 d3d12::RainDrop m_rain(1280, 720, L"D3D12 rain");
+
+std::filesystem::path set_current_directoyr_to_executable_path()
+{
+    // set the working directory to the executable path
+    wchar_t path[MAX_PATH];
+    const uint32_t length{ GetModuleFileName(0, &path[0], MAX_PATH) };
+    if (!length || GetLastError() == ERROR_INSUFFICIENT_BUFFER) return {};
+    std::filesystem::path p{ path };
+    std::filesystem::current_path(p.parent_path());
+    return std::filesystem::current_path();
+}
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
+
+    set_current_directoyr_to_executable_path();
+
     //    RainDrop rain(1280, 720, L"D3D12 rain");
     return Win32Application::Run(&m_rain, hInstance, nCmdShow);
 }
-
 
 namespace d3d12::core{
 

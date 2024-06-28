@@ -3,7 +3,7 @@
 #pragma once
 #include "stdafx.h"
 
-namespace d3d12::utl {
+namespace utl {
 
     // A vector class similar to std::vector with basic functionality.
     // The user can specify in the template argument whether they want

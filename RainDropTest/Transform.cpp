@@ -6,14 +6,14 @@ namespace transform
 {
     namespace {
 
-        d3d12::utl::vector<XMFLOAT4X4> to_world;
-        d3d12::utl::vector<XMFLOAT4X4> inv_world;
-        d3d12::utl::vector<XMFLOAT4> rotations;
-        d3d12::utl::vector<XMFLOAT3> orientations;
-        d3d12::utl::vector<XMFLOAT3> positions;
-        d3d12::utl::vector<XMFLOAT3> scales;
-        d3d12::utl::vector<UINT> has_transform;
-        d3d12::utl::vector<UINT> changes_from_previous_frame;
+        utl::vector<XMFLOAT4X4> to_world;
+        utl::vector<XMFLOAT4X4> inv_world;
+        utl::vector<XMFLOAT4> rotations;
+        utl::vector<XMFLOAT3> orientations;
+        utl::vector<XMFLOAT3> positions;
+        utl::vector<XMFLOAT3> scales;
+        utl::vector<UINT> has_transform;
+        utl::vector<UINT> changes_from_previous_frame;
         UINT write_flag;
 
         XMFLOAT3 calculate_orientation(XMFLOAT4 rotation)
@@ -50,9 +50,9 @@ namespace transform
 
             to_world.emplace_back();
             inv_world.emplace_back();
-            rotations.emplace_back(info.position);
+            rotations.emplace_back(info.rotation);
             orientations.emplace_back(calculate_orientation(XMFLOAT4{ info.rotation }));
-            positions.emplace_back(info.rotation);
+            positions.emplace_back(info.position);
             scales.emplace_back(info.scale);
             has_transform.emplace_back(0);
             changes_from_previous_frame.emplace_back(component_flags::all);

@@ -6,10 +6,10 @@
 namespace script {
 
     namespace {
-        d3d12::utl::vector<UINT> entity_scripts;
-        d3d12::utl::vector<UINT> id_mapping;
+        utl::vector<UINT> entity_scripts;
+        utl::vector<UINT> id_mapping;
 
-        d3d12::utl::vector<UINT> ids;
+        utl::vector<UINT> ids;
         std::deque<UINT> free_ids;
 
     } // anonymous namespace

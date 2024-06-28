@@ -6,11 +6,12 @@
 
 namespace game_entity {
     namespace {
-        d3d12::utl::vector<transform::component> transforms;
-        d3d12::utl::vector<script::component> scripts;
+        utl::vector<transform::component> transforms;
+        utl::vector<script::component> scripts;
 
-        d3d12::utl::vector<UINT> ids;
+        utl::vector<UINT> ids;
         std::deque<UINT> free_ids;
+        bool min_deleted_set{ false };
         
     } // anonymous namespace
 
@@ -20,11 +21,12 @@ namespace game_entity {
 
         UINT id;
 
-        if (free_ids.size() > min_deleted_elements)
+        if (free_ids.size() && (free_ids.size() > min_deleted_elements || min_deleted_set))
         {
             id = free_ids.front();
             free_ids.pop_front();
             ids[id] = id;
+            min_deleted_set = true;
         }
         else
         {
@@ -66,4 +68,23 @@ namespace game_entity {
         ids[id] = Invalid_Index;
         free_ids.push_back(id);
     }
+
+    bool is_alive(UINT id)
+    {
+        assert(id < ids.size());
+        return (ids[id] != Invalid_Index);
+    }
+
+    transform::component entity::get_transform() const
+    {
+        assert(is_alive(_id));
+        return transforms[_id];
+    }
+
+    //script::component entity::get_script() const
+    //{
+    //    assert(is_alive(_id));
+    //    return scripts[_id];
+    //}
+
 }

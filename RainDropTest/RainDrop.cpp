@@ -7,8 +7,13 @@
 #include "Buffers.h"
 #include "Utilities.h"
 #include "ContentToEngine.h"
+#include "Shaders.h"
 #include <filesystem>
 #include "Content.h"
+
+#include "Transform.h"
+#include "Entity.h"
+#include "Shaders.h"
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -21,6 +26,7 @@ namespace d3d12 {
         Depth_Buffer m_depth_buffer{};
 
         UINT cube_model_id{ Invalid_Index };
+        UINT cube_entity_id{ Invalid_Index };
 
     } // anonymous namespace
 
@@ -58,7 +64,7 @@ namespace d3d12 {
         std::unique_ptr<UINT8[]> model;
         UINT64 size{ 0 };
 
-        util::read_file(path, model, size);
+        utl::read_file(path, model, size);
 
         const UINT model_id{ content::create_resource(model.get(), content::asset_type::mesh) };
         assert(model_id != Invalid_Index);
@@ -67,10 +73,17 @@ namespace d3d12 {
 
     void create_render_items()
     {
-        assert(std::filesystem::exists("..\\x64\\cube.model"));
+        transform::init_info transform_info{};
+        transform_info.position[0] = 1.f;
+        game_entity::entity_info entity_info{};
+        entity_info.transform = &transform_info;
+
+        cube_entity_id = game_entity::create(entity_info).get_id();
+
+        assert(std::filesystem::exists("../cube.model"));
 
         std::thread threads[]{
-            std::thread{ [] { cube_model_id = load_model("..\\x64\\cube.model"); }},
+            std::thread{ [] { cube_model_id = load_model("../cube.model"); }},
         };
 
         for (auto& t : threads)
@@ -81,6 +94,17 @@ namespace d3d12 {
 
     void RainDrop::OnInit()
     {
+#ifdef _DEBUG
+        while (!shaders::compile_shaders())
+        {
+            // Pop up a message box allowing the user to retry compilation.
+            if (MessageBox(nullptr, L"Failed to compile engine shaders.", L"Shader Compilation Error", MB_RETRYCANCEL) != IDRETRY)
+                assert(false);
+    }
+#else
+        assert(!shaders::compile_shaders());
+#endif
+
         m_camera.Init({ 0.0f, 0.0f, 1500.0f });
         m_camera.SetMoveSpeed(250.0f);
 
@@ -159,7 +183,8 @@ namespace d3d12 {
     }
 
     if (!(upload::initialize() &&
-          content::initialize()))
+          content::initialize() &&
+          shaders::initialize()))
     {
         throw;
     }
@@ -198,50 +223,6 @@ namespace d3d12 {
 
         // Create the pipeline states, which includes compiling and loading shaders.
         {
-            ComPtr<ID3DBlob> vertex_shader;
-            ComPtr<ID3DBlob> geometry_shader;
-            ComPtr<ID3DBlob> pixel_shader;
-            ComPtr<ID3DBlob> compute_shader;
-
-#if defined(_DEBUG)
-            UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-            UINT computeFlags = 0;
-#endif
-            ComPtr<ID3DBlob> pErrorMsgs{ nullptr };
-
-
-            struct shader_file_info
-            {
-                const std::wstring file_name;
-                const std::string function;
-                const std::string compiler;
-                ComPtr<ID3DBlob> shaders;
-            };
-            shader_file_info shader_file_infos[]
-            {
-               { L"ParticleDraw.hlsl",   "VSParticleDraw", "vs_5_0" },
-               { L"ParticleDraw.hlsl",   "GSParticleDraw", "gs_5_0" },
-               { L"ParticleDraw.hlsl",   "PSParticleDraw", "ps_5_0" },
-               { L"NBodyGravityCS.hlsl", "CSMain",         "cs_5_0" }
-            };
-
-            //ComPtr<ID3DBlob> shaders[4];
-
-            for (UINT i = 0; i < _countof(shader_file_infos); ++i)
-            {
-                if (FAILED(D3DCompileFromFile(GetAssetFullPath(shader_file_infos[i].file_name.c_str()).c_str(), nullptr, nullptr, shader_file_infos[i].function.c_str(),
-                    shader_file_infos[i].compiler.c_str(), compile_flags, 0, &shader_file_infos[i].shaders, &pErrorMsgs)))
-                {
-                    const char* error_msg{ pErrorMsgs ? (const char*)pErrorMsgs->GetBufferPointer() : "" };
-                    OutputDebugStringA(error_msg);
-                }
-            }
-            vertex_shader = shader_file_infos[0].shaders;
-            geometry_shader = shader_file_infos[1].shaders;
-            pixel_shader = shader_file_infos[2].shaders;
-            compute_shader = shader_file_infos[3].shaders;
-
             D3D12_INPUT_ELEMENT_DESC input_element_descriptors[] =
             {
                 { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -250,11 +231,14 @@ namespace d3d12 {
             // Describe and create the graphics pipeline state object (PSO).
             D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
             pso_desc.pRootSignature = m_root_signature.Get();                                              // ID3D12RootSignature* pRootSignature;
-            pso_desc.VS = { vertex_shader->GetBufferPointer(), vertex_shader->GetBufferSize() };           // D3D12_SHADER_BYTECODE VS;
-            pso_desc.PS = { pixel_shader->GetBufferPointer(), pixel_shader->GetBufferSize() };             // D3D12_SHADER_BYTECODE PS;
+            pso_desc.VS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_vs);            // D3D12_SHADER_BYTECODE VS;
+            //pso_desc.VS = { vertex_shader->GetBufferPointer(), vertex_shader->GetBufferSize() };         // D3D12_SHADER_BYTECODE VS;
+            pso_desc.PS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_ps);              // D3D12_SHADER_BYTECODE PS;
+            //pso_desc.PS = { pixel_shader->GetBufferPointer(), pixel_shader->GetBufferSize() };             // D3D12_SHADER_BYTECODE PS;
             pso_desc.DS = {};                                                                              // D3D12_SHADER_BYTECODE DS;
             pso_desc.HS = {};                                                                              // D3D12_SHADER_BYTECODE HS;
-            pso_desc.GS = { geometry_shader->GetBufferPointer(), geometry_shader->GetBufferSize() };       // D3D12_SHADER_BYTECODE GS;
+            pso_desc.GS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_gs);       // D3D12_SHADER_BYTECODE GS;
+            //pso_desc.GS = { geometry_shader->GetBufferPointer(), geometry_shader->GetBufferSize() };       // D3D12_SHADER_BYTECODE GS;
             pso_desc.StreamOutput = {};                                                                    // D3D12_STREAM_OUTPUT_DESC StreamOutput;
             pso_desc.BlendState = d3dx::blend_state.blend_desc;                                                  // D3D12_BLEND_DESC BlendState;
             pso_desc.SampleMask = UINT_MAX;                                                                // UINT SampleMask;
@@ -277,7 +261,8 @@ namespace d3d12 {
             // Describe and create the compute pipeline state object (PSO).
             D3D12_COMPUTE_PIPELINE_STATE_DESC compute_pso_desc = {};
             compute_pso_desc.pRootSignature = m_compute_root_signature.Get();                              // ID3D12RootSignature* pRootSignature;
-            compute_pso_desc.CS = { compute_shader->GetBufferPointer(), compute_shader->GetBufferSize() }; // D3D12_SHADER_BYTECODE CS;
+            compute_pso_desc.CS = shaders::get_engine_shader(shaders::engine_shader::n_body_gravity_cs);    // D3D12_SHADER_BYTECODE CS;
+            //compute_pso_desc.CS = { compute_shader->GetBufferPointer(), compute_shader->GetBufferSize() }; // D3D12_SHADER_BYTECODE CS;
             compute_pso_desc.NodeMask = 0;                                                                 // UINT NodeMask;
             compute_pso_desc.CachedPSO = {};                                                               // D3D12_CACHED_PIPELINE_STATE CachedPSO;
             compute_pso_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;                                       // D3D12_PIPELINE_STATE_FLAGS Flags;
@@ -735,6 +720,8 @@ namespace d3d12 {
 
     void RainDrop::OnDestroy()
     {
+        game_entity::remove(cube_entity_id);
+
         if (cube_model_id != Invalid_Index)
         {
             content::destroy_resource(cube_model_id, content::asset_type::mesh);
@@ -750,6 +737,7 @@ namespace d3d12 {
             process_deferred_releases(i);
         }
 
+        shaders::shutdown();
         content::shutdown();
         upload::shutdown();
 

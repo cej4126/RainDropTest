@@ -49,3 +49,11 @@ using Microsoft::WRL::ComPtr;
 #else
 #define DEBUG_OP(x)
 #endif
+
+inline void ThrowIfFailed(HRESULT hr)
+{
+    if (FAILED(hr))
+    {
+        throw std::exception();
+    }
+}

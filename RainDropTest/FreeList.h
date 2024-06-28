@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "Vector.h"
 
-namespace d3d12::utl {
+namespace utl {
 
 #if USE_STL_VECTOR
 #pragma message("WARNING: using utl::free_list with std::vector result in duplicate calls to class destructor!")

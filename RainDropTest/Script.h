@@ -6,7 +6,7 @@ namespace script {
 
     struct init_info
     {
-
+        UINT i;
     };
 
     class component final
