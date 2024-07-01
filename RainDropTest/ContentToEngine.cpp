@@ -7,7 +7,7 @@ namespace d3d12::content
     namespace {
 
         constexpr uintptr_t single_mesh_marker{ (uintptr_t)0x01 };
-        utl::free_list<UINT8*> geometry_hierarchies;
+        utl::free_list<UINT8*> geometry_hierarchies{ 4 };
         std::mutex geometry_mutex;
 
         UINT get_geometry_hierarchy_buffer_size(const void* const data)
@@ -31,7 +31,8 @@ namespace d3d12::content
 
         UINT create_material_resource(const void* const data)
         {
-            return 0;
+            assert(data);
+            return d3d12::content::material::add(*(const d3d12::content::material_init_info*const)data);
         }
 
         UINT create_single_sub_mesh(const void* const data)
@@ -183,7 +184,9 @@ namespace d3d12::content
         }
 
         void destroy_material_resource(UINT id)
-        {}
+        {
+            content::material::remove(id);
+        }
 
         // If geometry has more than one LOD or sub_mesh:
         // struct {

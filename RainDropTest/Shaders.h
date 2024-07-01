@@ -20,6 +20,20 @@ namespace shaders {
         };
     };
 
+    struct shader_flags {
+        enum flags : UINT {
+            none          = 0x00,
+            vertex        = 0x01,
+            hull          = 0x02,
+            domain        = 0x04,
+            geometry      = 0x08,
+            pixel         = 0x10,
+            compute       = 0x20,
+            amplification = 0x40,
+            mesh          = 0x80,
+        };
+    };
+
     struct engine_shader {
         enum index : UINT {
             vertex_shader_vs,

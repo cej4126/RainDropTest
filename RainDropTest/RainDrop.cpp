@@ -28,6 +28,8 @@ namespace d3d12 {
         UINT cube_model_id{ Invalid_Index };
         UINT cube_entity_id{ Invalid_Index };
 
+        UINT material_id{ Invalid_Index };
+
     } // anonymous namespace
 
 
@@ -71,6 +73,15 @@ namespace d3d12 {
         return model_id; 
     }
 
+    void create_material()
+    {
+        d3d12::content::material_init_info info{};
+        info.type = d3d12::content::material_type::opaque;
+        info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::vertex_shader_vs;
+        info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::pixel_shader_ps;
+        material_id = content::create_resource(&info, content::asset_type::material);
+    }
+
     void create_render_items()
     {
         transform::init_info transform_info{};
@@ -90,6 +101,8 @@ namespace d3d12 {
         {
             t.join();
         }
+
+        create_material();
     }
 
     void RainDrop::OnInit()
@@ -232,18 +245,15 @@ namespace d3d12 {
             D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
             pso_desc.pRootSignature = m_root_signature.Get();                                              // ID3D12RootSignature* pRootSignature;
             pso_desc.VS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_vs);            // D3D12_SHADER_BYTECODE VS;
-            //pso_desc.VS = { vertex_shader->GetBufferPointer(), vertex_shader->GetBufferSize() };         // D3D12_SHADER_BYTECODE VS;
-            pso_desc.PS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_ps);              // D3D12_SHADER_BYTECODE PS;
-            //pso_desc.PS = { pixel_shader->GetBufferPointer(), pixel_shader->GetBufferSize() };             // D3D12_SHADER_BYTECODE PS;
+            pso_desc.PS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_ps);            // D3D12_SHADER_BYTECODE PS;
             pso_desc.DS = {};                                                                              // D3D12_SHADER_BYTECODE DS;
             pso_desc.HS = {};                                                                              // D3D12_SHADER_BYTECODE HS;
-            pso_desc.GS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_gs);       // D3D12_SHADER_BYTECODE GS;
-            //pso_desc.GS = { geometry_shader->GetBufferPointer(), geometry_shader->GetBufferSize() };       // D3D12_SHADER_BYTECODE GS;
+            pso_desc.GS = shaders::get_engine_shader(shaders::engine_shader::particle_draw_gs);            // D3D12_SHADER_BYTECODE GS;
             pso_desc.StreamOutput = {};                                                                    // D3D12_STREAM_OUTPUT_DESC StreamOutput;
-            pso_desc.BlendState = d3dx::blend_state.blend_desc;                                                  // D3D12_BLEND_DESC BlendState;
+            pso_desc.BlendState = d3dx::blend_state.blend_desc;                                            // D3D12_BLEND_DESC BlendState;
             pso_desc.SampleMask = UINT_MAX;                                                                // UINT SampleMask;
-            pso_desc.RasterizerState = d3dx::rasterizer_state.face_cull;                                         // D3D12_RASTERIZER_DESC RasterizerState;
-            pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                          // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+            pso_desc.RasterizerState = d3dx::rasterizer_state.face_cull;                                   // D3D12_RASTERIZER_DESC RasterizerState;
+            pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
             pso_desc.InputLayout = { input_element_descriptors, _countof(input_element_descriptors) };     // D3D12_INPUT_LAYOUT_DESC InputLayout;
             pso_desc.IBStripCutValue = {};                                                                 // D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
             pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;                          // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
@@ -261,8 +271,7 @@ namespace d3d12 {
             // Describe and create the compute pipeline state object (PSO).
             D3D12_COMPUTE_PIPELINE_STATE_DESC compute_pso_desc = {};
             compute_pso_desc.pRootSignature = m_compute_root_signature.Get();                              // ID3D12RootSignature* pRootSignature;
-            compute_pso_desc.CS = shaders::get_engine_shader(shaders::engine_shader::n_body_gravity_cs);    // D3D12_SHADER_BYTECODE CS;
-            //compute_pso_desc.CS = { compute_shader->GetBufferPointer(), compute_shader->GetBufferSize() }; // D3D12_SHADER_BYTECODE CS;
+            compute_pso_desc.CS = shaders::get_engine_shader(shaders::engine_shader::n_body_gravity_cs);   // D3D12_SHADER_BYTECODE CS;
             compute_pso_desc.NodeMask = 0;                                                                 // UINT NodeMask;
             compute_pso_desc.CachedPSO = {};                                                               // D3D12_CACHED_PIPELINE_STATE CachedPSO;
             compute_pso_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;                                       // D3D12_PIPELINE_STATE_FLAGS Flags;
@@ -725,6 +734,11 @@ namespace d3d12 {
         if (cube_model_id != Invalid_Index)
         {
             content::destroy_resource(cube_model_id, content::asset_type::mesh);
+        }
+
+        if (material_id != Invalid_Index)
+        {
+            content::destroy_resource(material_id, content::asset_type::material);
         }
 
         m_command.Release();

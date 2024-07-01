@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stdafx.h"
+#include "Shaders.h"
 
 namespace d3d12::content
 {
@@ -54,6 +55,22 @@ namespace d3d12::content
     {
         UINT16 offset;
         UINT16 count;
+    };
+
+    struct material_type {
+        enum type : UINT {
+            opaque,
+
+            count
+        };
+    };
+
+    struct material_init_info
+    {
+        material_type::type type;
+        UINT texture_count{ 0 };
+        UINT shader_ids[shaders::shader_type::count]{ Invalid_Index, Invalid_Index, Invalid_Index, Invalid_Index, Invalid_Index, Invalid_Index, Invalid_Index, Invalid_Index };
+        UINT* texture_ids;
     };
 
     UINT create_resource(const void* const data, asset_type::type type);

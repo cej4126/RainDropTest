@@ -16,14 +16,19 @@ namespace utl {
         static_assert(sizeof(T) >= sizeof(UINT));
     public:
         free_list() = default;
-        explicit free_list(UINT count)
+        free_list(UINT list_index) : m_list_index{ list_index } {}
+        explicit free_list(UINT count, UINT list_index)
         {
+            m_list_index = list_index;
             _array.reserve(count);
         }
 
         ~free_list()
         {
-            assert(!_size);
+            if (_size)
+            {
+                assert(!_size);
+            }
 #if USE_STL_VECTOR
             memset(_array.data(), 0, _array.size() * sizeof(T));
 #endif
@@ -110,5 +115,6 @@ namespace utl {
 #endif
         UINT                     _next_free_index{ Invalid_Index };
         UINT                     _size{ 0 };
+        UINT                     m_list_index;
     };
 }

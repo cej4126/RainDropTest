@@ -1,5 +1,6 @@
 #include <fstream>
 #include <filesystem>
+#include <unordered_map>
 
 #include "Shaders.h"
 #include "Utilities.h"
@@ -15,6 +16,20 @@ namespace shaders {
         constexpr const char* shader_source_path{ "..\\..\\RainDropTest\\" };
         constexpr const char* engine_shader_file{ "./shaders/d3d12/shaders.bin" };
 
+        struct elements_type {
+            enum type : UINT {
+                position_only = 0x00,
+                static_normal = 0x01,
+                static_normal_texture = 0x03,
+                static_color = 0x04,
+                skeletal = 0x08,
+                skeletal_color = skeletal | static_color,
+                skeletal_normal = skeletal | static_normal,
+                skeletal_normal_color = skeletal_normal | static_color,
+                skeletal_normal_texture = skeletal | static_normal_texture,
+                skeletal_normal_texture_color = skeletal_normal_texture | static_color,
+            };
+        };
 
         typedef struct compiled_shader
         {
@@ -56,6 +71,15 @@ namespace shaders {
         };
 
         static_assert(_countof(shader_files) == engine_shader::count);
+
+        std::unordered_map<UINT, UINT>shader_shader_map
+        {
+            { elements_type::static_normal, engine_shader::vertex_shader_vs },
+            { elements_type::static_normal_texture, engine_shader::vertex_shader_vs },
+            //{ elements_type::static_normal, engine_shader::normal_shader_vs },
+            //{ elements_type::static_normal_texture, engine_shader::normal_texture_shader_vs },
+        };
+
 
         bool compiled_shaders_are_up_to_date()
         {

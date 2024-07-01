@@ -1,5 +1,4 @@
 #include "Content.h"
-#include "ContentToEngine.h"
 #include "Math.h"
 #include "Buffers.h"
 #include "FreeList.h"
@@ -19,9 +18,14 @@ namespace d3d12::content
             UINT element_type{};
         };
 
-        utl::free_list<ID3D12Resource*> sub_mesh_buffers{};
-        utl::free_list<sub_mesh_view> sub_mesh_views{};
+        utl::free_list<ID3D12Resource*> sub_mesh_buffers{ 1 };
+        utl::free_list<sub_mesh_view> sub_mesh_views{ 2 };
         std::mutex sub_mesh_mutex{};
+
+        // material
+        utl::vector<ID3D12RootSignature*> root_signatures;
+        utl::free_list<std::unique_ptr<UINT8[]>> materials{ 3 };
+        std::mutex material_mutex{};
 
         constexpr D3D_PRIMITIVE_TOPOLOGY get_d3d_primitive_topology(primitive_topology::type type)
         {
@@ -125,4 +129,79 @@ namespace d3d12::content
         {}
 
     } // namespace sub_mesh
+
+    namespace material {
+        // Output format:
+        //
+        // struct {
+        // material_type::type  type,
+        // shader_flags::flags  flags,
+        // id::id_type          root_signature_id,
+        // u32                  texture_count,
+        // u32                  shader_count,
+        // id::id_type          shader_ids[shader_count],
+        // id::id_type          texture_ids[texture_count],
+        // u32*                 descriptor_indices[texture_count]
+        // } d3d12_material
+        UINT add(content::material_init_info info)
+        {
+            std::unique_ptr<UINT8[]> buffer;
+            std::lock_guard lock{ material_mutex };
+
+            UINT shader_count{ 0 };
+            UINT shader_flags{ 0 };
+            for (UINT i{ 0 }; i < shaders::shader_type::count; ++i)
+            {
+                if (info.shader_ids[i] != Invalid_Index)
+                {
+                    ++shader_count;
+                    shader_flags |= (1 << i);
+                }
+            }
+
+            UINT64 material_output_size{
+                (sizeof(d3d12::content::material::material_header) +
+                 sizeof(UINT) * shader_count +
+                 sizeof(UINT) * info.texture_count +
+                 sizeof(UINT) * info.texture_count) };
+            buffer = std::make_unique<UINT8[]>(material_output_size);
+            d3d12::content::material::material_header* header = (d3d12::content::material::material_header*)buffer.get();
+            UINT* const shader_ids = (UINT*)&buffer[(UINT)(sizeof(d3d12::content::material::material_header))];
+            UINT* const texture_ids = (UINT*)&buffer[(UINT)(sizeof(d3d12::content::material::material_header))];
+
+            header->type = info.type;
+            header->flags = *(shaders::shader_flags::flags*)&shader_flags;
+            header->shader_count = shader_count;
+            header->texture_count = info.texture_count;
+
+
+            // TODO: textures
+            //if (info.texture_count)
+            //{
+
+            //}
+
+            UINT shader_index{ 0 };
+            for (UINT i{ 0 }; i < shaders::shader_type::count; ++i)
+            {
+                if (info.shader_ids[i] != Invalid_Index)
+                {
+                    shader_ids[shader_index] = info.shader_ids[i];
+                    ++shader_index;
+                }
+            }
+
+            assert(buffer);
+            return materials.add(std::move(buffer));
+        }
+
+        void remove(UINT id)
+        {
+            std::lock_guard lock{ material_mutex };
+            materials.remove(id);
+        }
+
+        void get_materials(const UINT* const material_ids, UINT material_count, const d3d12::content::material::materials_cache& cache, UINT descriptor_index_count)
+        {}
+    } // namespace material
 }
