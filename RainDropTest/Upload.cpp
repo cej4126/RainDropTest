@@ -1,6 +1,7 @@
 #include "Upload.h"
 #include "DXSampleHelper.h"
 #include "Main.h"
+#include "Helpers.h"
 
 namespace d3d12::upload {
 

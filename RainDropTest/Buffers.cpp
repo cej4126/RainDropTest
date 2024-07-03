@@ -1,4 +1,5 @@
 #include "Buffers.h"
+#include "Helpers.h"
 #include "DXSampleHelper.h"
 #include "RainDrop.h"
 #include "Upload.h"

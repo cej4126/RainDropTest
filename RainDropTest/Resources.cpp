@@ -1,4 +1,5 @@
 #include "Main.h"
+#include "Helpers.h"
 #include "Resources.h"
 
 namespace d3d12 {

@@ -32,7 +32,7 @@ namespace d3d12::content
         UINT create_material_resource(const void* const data)
         {
             assert(data);
-            return d3d12::content::material::add(*(const d3d12::content::material_init_info*const)data);
+            return d3d12::content::material::add(*(const d3d12::content::material_init_info* const)data);
         }
 
         UINT create_single_sub_mesh(const void* const data)
@@ -99,7 +99,7 @@ namespace d3d12::content
                 assert(sub_mesh_count);
                 lod_offset_count[level_of_detail_idx].count = sub_mesh_count;
                 lod_offset_count[level_of_detail_idx].offset = sub_mesh_index;
-                const UINT8* sub_mesh_ptr = (UINT8 *)data + sizeof(geometry_data);
+                const UINT8* sub_mesh_ptr = (UINT8*)data + sizeof(geometry_data);
                 for (UINT id_idx{ 0 }; id_idx < sub_mesh_count; ++id_idx)
                 {
                     gpu_ids[sub_mesh_index] = sub_mesh::add(sub_mesh_ptr);
@@ -118,7 +118,7 @@ namespace d3d12::content
                     previous_threshold = thresholds[i];
                 }
                 return true;
-            }());
+                }());
             return geometry_hierarchies.add(hierarchy_buffer);
         }
 
@@ -259,4 +259,37 @@ namespace d3d12::content
         case asset_type::texture: destroy_texture_resource(id); break;
         }
     }
+
+    void get_sub_mesh_gpu_ids(UINT geometry_context_id, UINT id_count, UINT* const gpu_ids)
+    {
+        std::lock_guard lock{ geometry_mutex };
+        UINT8* const pointer{ geometry_hierarchies[geometry_context_id] };
+
+        if ((uintptr_t)pointer & single_mesh_marker)
+        {
+            assert(id_count);
+            *gpu_ids = gpu_id_from_fake_pointer(pointer);
+        }
+        else
+        {
+            struct geometry_data* ptr = (geometry_data*)pointer;
+            const UINT level_of_detail_count{ ptr->level_of_detail_count };
+            assert(level_of_detail_count);
+            level_of_detail_offset_count* lod_offset_count{ (level_of_detail_offset_count*)&pointer[sizeof(UINT) + (sizeof(float) * level_of_detail_count)] };
+            UINT* const geometry_gpu_ids{ (UINT*)&pointer[sizeof(UINT) + ((sizeof(float) + sizeof(level_of_detail_offset_count)) * level_of_detail_count)] };
+
+            assert([&]() {
+                const UINT gpu_id_count{ (UINT)lod_offset_count->offset + (UINT)lod_offset_count->count };
+                return gpu_id_count == id_count;
+                }());
+
+            memcpy(gpu_ids, geometry_gpu_ids, sizeof(UINT) * id_count); 
+        }
+
+    }
+
+    void get_lod_offsets_counts(const UINT* const geometry_ids, const float* thresholds, UINT id_count, utl::vector<level_of_detail_offset_count>& offsets_counts)
+    {
+    }
+
 }

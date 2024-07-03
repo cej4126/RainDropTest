@@ -75,4 +75,7 @@ namespace d3d12::content
 
     UINT create_resource(const void* const data, asset_type::type type);
     void destroy_resource(const UINT id, asset_type::type type);
+
+    void get_sub_mesh_gpu_ids(UINT geometry_context_id, UINT id_count, UINT* const gpu_ids);
+    void get_lod_offsets_counts(const UINT* const geometry_ids, const float* thresholds, UINT id_count, utl::vector<level_of_detail_offset_count>& offsets_counts);
 }

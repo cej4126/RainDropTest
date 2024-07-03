@@ -18,6 +18,15 @@ namespace d3d12::content
             UINT element_type{};
         };
 
+        struct d3d12_render_item
+        {
+            UINT entity_id;
+            UINT sub_mesh_gpu_id;
+            UINT material_id;
+            UINT pso_id;
+            UINT depth_id;
+        };
+
         utl::free_list<ID3D12Resource*> sub_mesh_buffers{ 1 };
         utl::free_list<sub_mesh_view> sub_mesh_views{ 2 };
         std::mutex sub_mesh_mutex{};
@@ -26,6 +35,10 @@ namespace d3d12::content
         utl::vector<ID3D12RootSignature*> root_signatures;
         utl::free_list<std::unique_ptr<UINT8[]>> materials{ 3 };
         std::mutex material_mutex{};
+
+        utl::free_list<d3d12_render_item> render_items;
+        utl::free_list<std::unique_ptr<UINT[]>>render_item_ids;
+        std::mutex render_item_mutex{};
 
         constexpr D3D_PRIMITIVE_TOPOLOGY get_d3d_primitive_topology(primitive_topology::type type)
         {
@@ -40,6 +53,12 @@ namespace d3d12::content
             }
 
             return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+        }
+
+        UINT create_main_pso(UINT material_id, D3D12_PRIMITIVE_TOPOLOGY primitive_topology, UINT elements_type)
+        {
+   //         constexpr UINT64 aligned_stream_size{ math::align_size_up<sizeof(UINT64)>(sizeof(dx3d)) };
+            return 0;
         }
 
     } // anonymous namespace
@@ -126,7 +145,22 @@ namespace d3d12::content
         }
 
         void get_views(const UINT* const gpu_ids, UINT id_count, const views_cache& cache)
-        {}
+        {
+            assert(gpu_ids && id_count);
+            assert(cache.position_buffers && cache.element_buffers && cache.index_buffer_views &&
+                cache.primitive_topologies && cache.elements_types);
+
+            std::lock_guard lock{ sub_mesh_mutex };
+            for (UINT i{ 0 }; i < id_count; ++i)
+            {
+                const sub_mesh_view& view{ sub_mesh_views[gpu_ids[i]] };
+                cache.position_buffers[i] = view.position_buffer_view.BufferLocation;
+                cache.element_buffers[i] = view.element_buffer_view.BufferLocation;
+                cache.index_buffer_views[i] = view.index_buffer_view;
+                cache.primitive_topologies[i] = view.primitive_topology;
+                cache.elements_types[i] = view.element_type;
+            }
+        }
 
     } // namespace sub_mesh
 
@@ -204,4 +238,71 @@ namespace d3d12::content
         void get_materials(const UINT* const material_ids, UINT material_count, const d3d12::content::material::materials_cache& cache, UINT descriptor_index_count)
         {}
     } // namespace material
+
+    namespace render_item {
+
+        UINT add(UINT entity_id, UINT geometry_content_id, UINT material_count, const UINT* const material_ids)
+        {
+            assert(entity_id != Invalid_Index && geometry_content_id != Invalid_Index);
+            assert(material_count && material_ids);
+
+            UINT* const gpu_ids{ (UINT* const)_malloca(material_count * sizeof(UINT)) };
+            content::get_sub_mesh_gpu_ids(geometry_content_id, material_count, gpu_ids);
+
+            sub_mesh::views_cache views_cache
+            {
+                (D3D12_GPU_VIRTUAL_ADDRESS* const)_malloca(material_count * sizeof(D3D12_GPU_VIRTUAL_ADDRESS)),
+                (D3D12_GPU_VIRTUAL_ADDRESS* const)_malloca(material_count * sizeof(D3D12_GPU_VIRTUAL_ADDRESS)),
+                (D3D12_INDEX_BUFFER_VIEW* const)_malloca(material_count * sizeof(D3D12_INDEX_BUFFER_VIEW)),
+                (D3D_PRIMITIVE_TOPOLOGY* const)_malloca(material_count * sizeof(D3D_PRIMITIVE_TOPOLOGY)),
+                (UINT* const)_malloca(material_count * sizeof(UINT))
+            };
+
+            sub_mesh::get_views(gpu_ids, material_count, views_cache);
+            
+            std::unique_ptr<UINT[]>items{ std::make_unique<UINT[]>(sizeof(UINT) * (1 + (UINT64)material_count + 1)) };
+
+            items[0] = geometry_content_id;
+            UINT* const item_ids{ &items[1] };
+
+            d3d12_render_item* const d3d12_items{ (d3d12_render_item* const)_malloca(material_count * sizeof(d3d12_render_item)) };
+
+            for (UINT i{ 0 }; i < material_count; ++i)
+            {
+                d3d12_render_item& item{ d3d12_items[i] };
+                item.entity_id = entity_id;
+                item.sub_mesh_gpu_id = gpu_ids[i];
+                item.material_id = material_ids[i];
+                item.pso_id = create_main_pso(item.material_id, views_cache.primitive_topologies[i], views_cache.elements_types[i]);
+                item.depth_id = Invalid_Index;
+            }
+
+            std::lock_guard lock{ render_item_mutex };
+            for (UINT i{ 0 }; i < material_count; ++i)
+            {
+                item_ids[i] = render_items.add(d3d12_items[i]);
+            }
+
+            // mark the end of ids list.
+            item_ids[material_count] = Invalid_Index;
+
+            return render_item_ids.add(std::move(items));
+        }
+
+        void remove(UINT id)
+        {
+            std::lock_guard lock{ render_item_mutex };
+            const UINT* const item_ids{ &render_item_ids[id][1] };
+
+            // NOTE: the last element in the list of ids is always an invalid id.
+            for (UINT i{ 0 }; item_ids[i] != Invalid_Index; ++i)
+            {
+                render_items.remove(item_ids[i]);
+            }
+
+            render_item_ids.remove(id);
+        }
+
+    } // namespace render_item
+
 }

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "Helpers.h"
 #include "RainDrop.h"
 #include "Command.h"
 #include "Main.h"
@@ -27,7 +28,7 @@ namespace d3d12 {
 
         UINT cube_model_id{ Invalid_Index };
         UINT cube_entity_id{ Invalid_Index };
-
+        UINT cube_item_id{ Invalid_Index };
         UINT material_id{ Invalid_Index };
 
     } // anonymous namespace
@@ -103,6 +104,9 @@ namespace d3d12 {
         }
 
         create_material();
+        UINT materials[]{ material_id };
+
+        cube_item_id = content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
     }
 
     void RainDrop::OnInit()
@@ -727,14 +731,30 @@ namespace d3d12 {
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     }
 
+    void remove_item(UINT& entity_id, UINT& item_id, UINT& model_id)
+    {
+        if (entity_id != Invalid_Index)
+        {
+            game_entity::remove(entity_id);
+            entity_id = Invalid_Index;
+        }
+
+        if (item_id != Invalid_Index)
+        {
+            content::render_item::remove(item_id);
+            item_id = Invalid_Index;
+        }
+
+        if (model_id != Invalid_Index)
+        {
+            content::destroy_resource(model_id, content::asset_type::mesh);
+            model_id = Invalid_Index;
+        }
+    }
+
     void RainDrop::OnDestroy()
     {
-        game_entity::remove(cube_entity_id);
-
-        if (cube_model_id != Invalid_Index)
-        {
-            content::destroy_resource(cube_model_id, content::asset_type::mesh);
-        }
+        remove_item(cube_entity_id, cube_item_id, cube_model_id);
 
         if (material_id != Invalid_Index)
         {

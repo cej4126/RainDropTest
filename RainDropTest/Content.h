@@ -43,10 +43,24 @@ namespace d3d12::content
             UINT* shader_count;
         };
 
-//        return content::material::add(*(const d3d12::content::material_init_info* const)data);
+        //        return content::material::add(*(const d3d12::content::material_init_info* const)data);
 
         UINT add(d3d12::content::material_init_info info);
         void remove(UINT id);
         void get_materials(const UINT* const material_ids, UINT material_count, const materials_cache& cache, UINT descriptor_index_count);
     } // namespace material
+
+    namespace render_item {
+        struct items_cache
+        {
+            UINT* const entuty_ids;
+            UINT* const sub_mesh_gpu_ids;
+            UINT* const material_ids;
+            ID3D12PipelineState** const psos;
+        };
+
+        UINT add(UINT entity_id, UINT geometry_content_id, UINT material_count, const UINT* const material_ids);
+        void remove(UINT id);
+        
+    }
 }
