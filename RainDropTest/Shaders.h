@@ -92,6 +92,7 @@ namespace shaders {
 
     bool initialize();
     void shutdown();
+    UINT element_type_to_shader_id(UINT key);
     D3D12_SHADER_BYTECODE get_engine_shader(UINT id);
 
     std::unique_ptr<UINT8[]> compile_shaders(shader_file_info info);

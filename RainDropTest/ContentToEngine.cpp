@@ -231,6 +231,25 @@ namespace d3d12::content
         void destroy_texture_resource(UINT id)
         {}
 
+        UINT lod_from_threshold(float threshold, float* thresholds, UINT lod_count)
+        {
+            assert(threshold >= 0);
+            if (lod_count == 1)
+            {
+                return 0;
+            }
+
+            for (UINT i{ lod_count - 1 }; i > 0; --i)
+            {
+                if (thresholds[i] <= threshold)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
+
     } // anonymous namespace
 
     UINT create_resource(const void* const data, asset_type::type type)
@@ -290,6 +309,28 @@ namespace d3d12::content
 
     void get_lod_offsets_counts(const UINT* const geometry_ids, const float* thresholds, UINT id_count, utl::vector<level_of_detail_offset_count>& offsets_counts)
     {
+        assert(geometry_ids && id_count);
+        assert(offsets_counts.empty());
+
+        std::lock_guard lock{ geometry_mutex };
+
+        for (UINT i{ 0 }; i < id_count; ++i)
+        {
+            UINT8* const pointer{ geometry_hierarchies[geometry_ids[i]] };
+            if ((uintptr_t)pointer & single_mesh_marker)
+            {
+                offsets_counts.emplace_back(level_of_detail_offset_count{ 0, 1 });
+            }
+            else
+            {
+                struct geometry_data* ptr = (geometry_data*)pointer;
+                const UINT level_of_detail_count{ ptr->level_of_detail_count };
+                float* const thresholds{ (float*)&pointer[sizeof(UINT)] };
+                level_of_detail_offset_count* lod_offset_count{ (level_of_detail_offset_count*)&pointer[sizeof(UINT) + (sizeof(float) * level_of_detail_count)] };
+                UINT lod{ lod_from_threshold(thresholds[i], thresholds, level_of_detail_count) };
+                offsets_counts.emplace_back(lod_offset_count[lod]);
+            }
+        }
     }
 
 }

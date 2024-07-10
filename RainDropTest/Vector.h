@@ -277,7 +277,10 @@ namespace utl {
         // Indexing operator. Returns a reference to the item at specified index.
         [[nodiscard]] constexpr T& operator[](UINT64 index)
         {
-            assert(_data && index < _size);
+            if (!_data || index >= _size)
+            {
+                assert(_data && index < _size);
+            }
             return _data[index];
         }
 

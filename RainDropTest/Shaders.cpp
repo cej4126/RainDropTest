@@ -74,12 +74,13 @@ namespace shaders {
 
         std::unordered_map<UINT, UINT>shader_shader_map
         {
+           
             { elements_type::static_normal, engine_shader::vertex_shader_vs },
             { elements_type::static_normal_texture, engine_shader::vertex_shader_vs },
             //{ elements_type::static_normal, engine_shader::normal_shader_vs },
             //{ elements_type::static_normal_texture, engine_shader::normal_texture_shader_vs },
         };
-
+        std::mutex shader_mutex;
 
         bool compiled_shaders_are_up_to_date()
         {
@@ -272,11 +273,15 @@ namespace shaders {
 
     bool initialize()
     {
+        std::lock_guard lock{ shader_mutex };
+
         return load_engine_shaders();
     }
 
     void shutdown()
     {
+        std::lock_guard lock{ shader_mutex };
+
         for (UINT i{ 0 }; i < engine_shader::count; ++i)
         {
             engine_shaders[i] = {};
@@ -284,8 +289,20 @@ namespace shaders {
         engine_shaders_blob.reset();
     }
 
+    UINT element_type_to_shader_id(UINT key)
+    {
+        std::lock_guard lock{ shader_mutex };
+        auto pair = shader_shader_map.find(key);
+        if (pair == shader_shader_map.end())
+        {
+            throw;
+        }
+        return pair->second;
+    }
+
     D3D12_SHADER_BYTECODE get_engine_shader(UINT id)
     {
+        std::lock_guard lock{ shader_mutex };
         assert(id < engine_shader::count);
         const compiled_shader_ptr& shader{ engine_shaders[id] };
         assert(shader && shader->byte_code_size());
@@ -294,6 +311,7 @@ namespace shaders {
 
     bool compile_shaders()
     {
+        std::lock_guard lock{ shader_mutex };
         if (compiled_shaders_are_up_to_date()) return true;
 
         shader_compiler compiler{};

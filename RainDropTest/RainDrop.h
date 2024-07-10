@@ -12,6 +12,20 @@ using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
 namespace d3d12 {
+
+    struct frame_info
+    {
+        UINT* render_item_ids{ nullptr };
+        float* thresholds{ nullptr };
+        UINT render_item_count{ 0 };
+    };
+
+    struct d3d12_frame_info
+    {
+        const frame_info* info{ nullptr };
+        //D3D12_GPU_VIRTUAL_ADDRESS global_shader_data{ 0 };
+    };
+
     class RainDrop : public DXSample
     {
     public:
@@ -19,6 +33,7 @@ namespace d3d12 {
 
         virtual void OnInit();
         virtual void OnUpdate(float dt);
+        virtual void render();
         virtual void OnRender();
         virtual void OnDestroy();
         virtual void OnKeyDown(UINT8 key);

@@ -11,10 +11,11 @@
 #include "Shaders.h"
 #include <filesystem>
 #include "Content.h"
-
 #include "Transform.h"
 #include "Entity.h"
 #include "Shaders.h"
+#include "Resources.h"
+#include "GraphicPass.h"
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -30,6 +31,24 @@ namespace d3d12 {
         UINT cube_entity_id{ Invalid_Index };
         UINT cube_item_id{ Invalid_Index };
         UINT material_id{ Invalid_Index };
+
+        barriers::resource_barrier resource_barriers{};
+
+
+        d3d12_frame_info get_d3d12_frame_info(const frame_info& info)
+        {
+            d3d12_frame_info d3d12_info
+            {
+                &info
+            };
+
+            return d3d12_info;
+        }
+
+        //void prepare_render_frame(const d3d12_frame_info& d3d12_info)
+        //{
+        //    gpass_cache& cache{ frame_cache };
+        //}
 
     } // anonymous namespace
 
@@ -71,7 +90,7 @@ namespace d3d12 {
 
         const UINT model_id{ content::create_resource(model.get(), content::asset_type::mesh) };
         assert(model_id != Invalid_Index);
-        return model_id; 
+        return model_id;
     }
 
     void create_material()
@@ -117,7 +136,7 @@ namespace d3d12 {
             // Pop up a message box allowing the user to retry compilation.
             if (MessageBox(nullptr, L"Failed to compile engine shaders.", L"Shader Compilation Error", MB_RETRYCANCEL) != IDRETRY)
                 assert(false);
-    }
+        }
 #else
         assert(!shaders::compile_shaders());
 #endif
@@ -199,9 +218,10 @@ namespace d3d12 {
         m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
-    if (!(upload::initialize() &&
-          content::initialize() &&
-          shaders::initialize()))
+    if (!(graphic_pass::initialize() &&
+        upload::initialize() &&
+        content::initialize() &&
+        shaders::initialize()))
     {
         throw;
     }
@@ -527,6 +547,26 @@ namespace d3d12 {
         memcpy(destination, &constant_buffer_gs, sizeof(Constant_Buffer_GS));
     }
 
+    void RainDrop::render()
+    {
+
+        UINT render_items[1]{};
+        render_items[0] = cube_item_id;
+
+        frame_info info{};
+        info.render_item_ids = &render_items[0];
+        info.render_item_count = 1;
+
+        const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info) };
+
+        // gpass::depth_prepass
+        graphic_pass::depth_prepass(d3d12_info);
+
+        // gpass::render
+        ID3D12DescriptorHeap* const heaps[]{ m_srv_desc_heap.heap() };
+
+    }
+
     // Render the scene.
     void RainDrop::OnRender()
     {
@@ -550,6 +590,7 @@ namespace d3d12 {
         {
             process_deferred_releases(m_frame_index);
         }
+
 
         // Record all the commands we need to render the scene into the command list.
         PopulateCommandList();
@@ -597,6 +638,9 @@ namespace d3d12 {
 
         PIXBeginEvent(m_command.command_list(), 0, L"Draw particles for thread");
         m_command.command_list()->DrawInstanced(Particle_Count, 1, 0, 0);
+
+        render();
+
         PIXEndEvent(m_command.command_list());
 
         // Indicate that the back buffer will now be used to present.
@@ -774,6 +818,7 @@ namespace d3d12 {
         shaders::shutdown();
         content::shutdown();
         upload::shutdown();
+        graphic_pass::shutdown();
 
         m_render_target.release();
 

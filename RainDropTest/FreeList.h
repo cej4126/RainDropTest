@@ -82,7 +82,10 @@ namespace utl {
 
         [[nodiscard]] constexpr T& operator[](UINT id)
         {
-            assert(id < _array.size() && !already_removed(id, false));
+            if (id >= _array.size() || already_removed(id, false))
+            {
+                assert(id < _array.size() && !already_removed(id, false));
+            }
             return _array[id];
         }
 
