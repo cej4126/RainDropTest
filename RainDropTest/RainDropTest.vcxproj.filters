@@ -170,6 +170,9 @@
     <ClInclude Include="GraphicPass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SharedTypes.h">
+      <Filter>Assets\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="nBodyGravityCS.hlsl">
@@ -184,6 +187,9 @@
       <Filter>Assets\Shaders</Filter>
     </None>
     <None Include="VertexShader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="CommonTypes.hlsli">
       <Filter>Assets\Shaders</Filter>
     </None>
   </ItemGroup>

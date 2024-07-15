@@ -193,6 +193,7 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClInclude Include="Resources.h" />
     <ClInclude Include="Script.h" />
     <ClInclude Include="Shaders.h" />
+    <ClInclude Include="SharedTypes.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="DXSample.h" />
     <ClInclude Include="DXSampleHelper.h" />
@@ -227,6 +228,7 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <None Include="CommonTypes.hlsli" />
     <None Include="PixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

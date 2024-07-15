@@ -29,7 +29,8 @@ namespace d3d12::graphic_pass {
         content::material_type::type* material_types{ nullptr };
         UINT** descriptor_indices{ nullptr };
         UINT* texture_counts{ nullptr };
-        D3D12_GPU_VIRTUAL_ADDRESS* position_buffers{ nullptr };
+        //D3D12_GPU_VIRTUAL_ADDRESS* position_buffers{ nullptr };
+        D3D12_VERTEX_BUFFER_VIEW* position_buffer_views{ nullptr };
         D3D12_GPU_VIRTUAL_ADDRESS* element_buffers{ nullptr };
         D3D12_INDEX_BUFFER_VIEW* index_buffer_views{ nullptr };
         D3D_PRIMITIVE_TOPOLOGY* primitive_topologies{ nullptr };
@@ -69,8 +70,9 @@ namespace d3d12::graphic_pass {
                 material_types = (content::material_type::type*)&root_signatures[items_count];
                 descriptor_indices = (UINT**)&material_types[items_count];
                 texture_counts = (UINT*)&descriptor_indices[items_count];
-                position_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&texture_counts[items_count];
-                element_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&position_buffers[items_count];
+                //position_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&texture_counts[items_count];
+                position_buffer_views = (D3D12_VERTEX_BUFFER_VIEW*)&texture_counts[items_count];
+                element_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&position_buffer_views[items_count];
                 index_buffer_views = (D3D12_INDEX_BUFFER_VIEW*)&element_buffers[items_count];
                 primitive_topologies = (D3D_PRIMITIVE_TOPOLOGY*)&index_buffer_views[items_count];
                 elements_types = (UINT*)&primitive_topologies[items_count];
@@ -90,7 +92,8 @@ namespace d3d12::graphic_pass {
             sizeof(content::material_type::type) +           // material_types
             sizeof(UINT*) +                                  // descriptor_indices
             sizeof(UINT) +                                   // texture_counts
-            sizeof(D3D12_GPU_VIRTUAL_ADDRESS) +              // position_buffers
+            //sizeof(D3D12_GPU_VIRTUAL_ADDRESS) +              // position_buffers
+            sizeof(D3D12_VERTEX_BUFFER_VIEW) +              // position_buffers
             sizeof(D3D12_GPU_VIRTUAL_ADDRESS) +              // element_buffers
             sizeof(D3D12_INDEX_BUFFER_VIEW) +                // index_buffer_views
             sizeof(D3D_PRIMITIVE_TOPOLOGY) +                 // primitive_topologies
@@ -107,5 +110,6 @@ namespace d3d12::graphic_pass {
     void shutdown();
 
     void set_size(DirectX::XMUINT2 size);
-    void depth_prepass(const d3d12_frame_info& d3d12_info);
+    void depth_prepass(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info);
+    void render(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info);
 }

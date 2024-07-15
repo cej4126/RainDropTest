@@ -141,7 +141,8 @@ namespace d3d12 {
         assert(!shaders::compile_shaders());
 #endif
 
-        m_camera.Init({ 0.0f, 0.0f, 1500.0f });
+        m_camera.Init({ 0.0f, 0.0f, 10.0f });
+//        m_camera.Init({ 0.0f, 0.0f, 1500.0f });
         m_camera.SetMoveSpeed(250.0f);
 
         LoadPipeline();
@@ -560,10 +561,11 @@ namespace d3d12 {
         const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info) };
 
         // gpass::depth_prepass
-        graphic_pass::depth_prepass(d3d12_info);
+        //graphic_pass::depth_prepass(m_command.command_list(), d3d12_info);
+        graphic_pass::render(m_command.command_list(), d3d12_info);
 
         // gpass::render
-        ID3D12DescriptorHeap* const heaps[]{ m_srv_desc_heap.heap() };
+        //ID3D12DescriptorHeap* const heaps[]{ m_srv_desc_heap.heap() };
 
     }
 
@@ -623,7 +625,7 @@ namespace d3d12 {
         m_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
         // Record commands.
-        const float clearColor[] = { 0.0f, 0.0f, 0.1f, 0.0f };
+        const float clearColor[] = { 0.3f, 0.3f, 0.3f, 0.0f };
         m_command.command_list()->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
         m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -636,12 +638,12 @@ namespace d3d12 {
         srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
         m_command.command_list()->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
 
-        PIXBeginEvent(m_command.command_list(), 0, L"Draw particles for thread");
+        //PIXBeginEvent(m_command.command_list(), 0, L"Draw particles for thread");
         m_command.command_list()->DrawInstanced(Particle_Count, 1, 0, 0);
 
         render();
 
-        PIXEndEvent(m_command.command_list());
+        //PIXEndEvent(m_command.command_list());
 
         // Indicate that the back buffer will now be used to present.
         barriers::transition_resource(m_command.command_list(), m_surface.back_buffer(),

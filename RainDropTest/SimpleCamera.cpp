@@ -3,7 +3,7 @@
 
 SimpleCamera::SimpleCamera() :
 
-    m_initial_position(0, 0, 0),
+    m_initial_position(0, 0, 20),
     m_position(m_initial_position),
     m_yaw(XM_PI),
     m_pitch(0.0f),
@@ -60,9 +60,9 @@ void SimpleCamera::Update(float elapsed_seconds)
     float rotate_interval = m_turn_speed * elapsed_seconds;
 
     if (m_keys_pressed.left) m_yaw += rotate_interval;
-    if (m_keys_pressed.right) m_yaw += rotate_interval;
+    if (m_keys_pressed.right) m_yaw -= rotate_interval;
     if (m_keys_pressed.up) m_pitch += rotate_interval;
-    if (m_keys_pressed.down) m_pitch += rotate_interval;
+    if (m_keys_pressed.down) m_pitch -= rotate_interval;
 
     // Prevent looking too far up or down.
     m_pitch = min(m_pitch, XM_PIDIV4);
@@ -88,6 +88,7 @@ XMMATRIX SimpleCamera::GetViewMatrix()
 
 XMMATRIX SimpleCamera::GetProjectionMatrix(float fov, float aspect_ratio, float near_plane, float far_plane)
 {
+    //return XMMatrixPerspectiveFovRH(1.2217, 1.3333, 0.01f, 100.f);
     return XMMatrixPerspectiveFovRH(fov, aspect_ratio, near_plane, far_plane);
 }
 
