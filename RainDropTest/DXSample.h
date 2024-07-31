@@ -2,6 +2,7 @@
 #include "string"
 #include "DXSampleHelper.h"
 #include "Win32Application.h"
+#include <Windows.h>
 
 class DXSample
 {
@@ -9,7 +10,7 @@ public:
     DXSample(UINT width, UINT height, std::wstring name);
     virtual ~DXSample();
 
-    virtual void OnInit() = 0;
+    virtual void OnInit(UINT width, UINT height) = 0;
     virtual void create_surface(HWND hwnd, UINT width, UINT height) = 0;
 
     virtual void OnUpdate(float dt = 17.6f) = 0;

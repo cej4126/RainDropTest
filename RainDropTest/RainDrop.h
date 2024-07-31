@@ -7,8 +7,7 @@
 #include "Resources.h"
 #include "Surface.h"
 #include "Command.h"
-
-using namespace DirectX;
+#include "Camera.h"
 
 using Microsoft::WRL::ComPtr;
 namespace d3d12 {
@@ -18,12 +17,15 @@ namespace d3d12 {
         UINT* render_item_ids{ nullptr };
         float* thresholds{ nullptr };
         UINT render_item_count{ 0 };
+        UINT camera_id{ Invalid_Index };
     };
 
     struct d3d12_frame_info
     {
         const frame_info* info{ nullptr };
-        //D3D12_GPU_VIRTUAL_ADDRESS global_shader_data{ 0 };
+        D3D12_GPU_VIRTUAL_ADDRESS global_shader_data{ 0 };
+        UINT surface_width{ 0 };
+        UINT surface_height{ 0 };
     };
 
     class RainDrop : public DXSample
@@ -31,11 +33,13 @@ namespace d3d12 {
     public:
         RainDrop(UINT width, UINT height, std::wstring name);
 
-        virtual void OnInit();
+        virtual void OnInit(UINT width, UINT height);
         virtual void OnUpdate(float dt);
         virtual void render();
         virtual void OnRender();
         virtual void OnDestroy();
+
+        // TODO: remove old camera
         virtual void OnKeyDown(UINT8 key);
         virtual void OnKeyUp(UINT8 key);
 
@@ -51,7 +55,7 @@ namespace d3d12 {
         Descriptor_Heap& dsv_heap() { return m_dsv_desc_heap; }
         Descriptor_Heap& srv_heap() { return m_srv_desc_heap; }
         Descriptor_Heap& uav_heap() { return m_uav_desc_heap; }
-
+        constant_buffer& cbuffer() { return m_constant_buffers[current_frame_index()]; }
 
     private:
         static const float Particle_Spread;
@@ -94,7 +98,7 @@ namespace d3d12 {
         };
 
         // Pipeline objects
-        Surface m_surface;
+        //Surface m_surface;
         Render_Target m_render_target;
 
         ComPtr<id3d12_device> m_device;
@@ -128,7 +132,9 @@ namespace d3d12 {
         UINT m_rtv_descriptor_size;
         UINT m_srv_uav_descriptor_size;
 
-        SimpleCamera m_camera;
+        // TODO: remove old camera
+        //SimpleCamera m_camera;
+        UINT m_camera_id;
 
         // Compute objects.
         ComPtr<ID3D12CommandQueue> m_compute_command_queue;
@@ -166,6 +172,8 @@ namespace d3d12 {
         Descriptor_Heap m_dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
         Descriptor_Heap m_srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
         Descriptor_Heap m_uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+
+        constant_buffer m_constant_buffers[Frame_Count];
 
         // Indices of shader resources in the descriptor heap.
         enum Root_Parameters : UINT32

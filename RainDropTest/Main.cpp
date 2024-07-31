@@ -51,4 +51,5 @@ namespace d3d12::core{
     Descriptor_Heap& dsv_heap() { return m_rain.dsv_heap(); }
     Descriptor_Heap& srv_heap() { return m_rain.srv_heap(); }
     Descriptor_Heap& uav_heap() { return m_rain.uav_heap(); }
+    constant_buffer& cbuffer() { return m_rain.cbuffer(); }
 }

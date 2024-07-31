@@ -40,4 +40,5 @@ namespace game_entity {
     entity create(entity_info info);
     void remove(UINT id);
     bool is_alive(UINT id);
+
 }

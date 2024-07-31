@@ -3,6 +3,12 @@
 
 namespace math {
 
+    constexpr float pi{ 3.1415926535897932384626433832795f };
+
+    constexpr float dtor(float deg)
+    {
+        return deg / 180.f * pi;
+    }
 
     // Align by rounding down. Will result in a multiple of 'alignment' that is less than or equal to 'size'.
     template<UINT64 alignment>
@@ -22,6 +28,15 @@ namespace math {
         static_assert(alignment, "Alignment must be non-zero.");
         constexpr UINT64 mask{ alignment - 1 };
         static_assert(!(alignment & mask), "Alignment should be a power of 2.");
+        return ((size + mask) & ~mask);
+    }
+
+    // Align by rounding up. Will result in a multiple of 'alignment' that is greater than or equal to 'size'.
+    [[nodiscard]] constexpr UINT64 align_size_up(UINT64 size, UINT64 alignment)
+    {
+        assert(alignment && "Alignment must be non-zero.");
+        const UINT64 mask{ alignment - 1 };
+        assert(!(alignment & mask) && "Alignment should be a power of 2.");
         return ((size + mask) & ~mask);
     }
 

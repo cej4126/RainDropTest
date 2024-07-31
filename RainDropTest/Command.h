@@ -19,7 +19,7 @@ namespace d3d12::command {
         ~Command();
 
         void BeginFrame();
-        void EndFrame(const Surface& surface);
+        void EndFrame(const surface::Surface& surface);
         void Flush();
         void Release();
 

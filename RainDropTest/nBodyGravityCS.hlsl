@@ -99,7 +99,8 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     if (DTid.x < g_param.x)
     {
         newPosVelo[DTid.x].pos = pos + vel;
-        if (newPosVelo[DTid.x].pos.y < -newPosVelo[DTid.x].pos.w)
+        if (newPosVelo[DTid.x].pos.y > -newPosVelo[DTid.x].pos.w)
+        //if (newPosVelo[DTid.x].pos.y < -newPosVelo[DTid.x].pos.w)
         {
             newPosVelo[DTid.x].pos.y = newPosVelo[DTid.x].pos.w;
 

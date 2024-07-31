@@ -1,4 +1,4 @@
-//*********************************************************
+ //*********************************************************
 //
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
@@ -42,11 +42,20 @@ struct PosVelo
 
 StructuredBuffer<PosVelo> g_bufPosVelo;
 
-cbuffer cb0
+struct GlobalShaderData
 {
     row_major float4x4 g_mWorldViewProj;
     row_major float4x4 g_mInvView;
+    //float4x4 g_mWorldViewProj;
+    //float4x4 g_mInvView;
 };
+ConstantBuffer<GlobalShaderData> GlobalData : register(b0, space0);
+
+//cbuffer cb0
+//{
+//    row_major float4x4 g_mWorldViewProj;
+//    row_major float4x4 g_mInvView;
+//};
 
 cbuffer cb1
 {
@@ -107,8 +116,10 @@ void GSParticleDraw(point VSParticleDrawOut input[1], inout TriangleStream<GSPar
     for (int i = 0; i < 4; i++)
     {
         float3 position = g_positions[i] * g_fParticleRad;
-        position = mul(position, (float3x3) g_mInvView) + input[0].pos;
-        output.pos = mul(float4(position, 1.0), g_mWorldViewProj);
+        position = mul(position, (float3x3) GlobalData.g_mInvView) + input[0].pos;
+        output.pos = mul(float4(position, 1.0), GlobalData.g_mWorldViewProj);
+        //position = mul(position, (float3x3) g_mInvView) + input[0].pos;
+        //output.pos = mul(float4(position, 1.0), g_mWorldViewProj);
 
         output.color = input[0].color;
         output.tex = g_texcoords[i];

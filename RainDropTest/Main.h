@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 #include "stdafx.h"
 #include "Resources.h"
 
@@ -36,4 +36,5 @@ namespace d3d12::core {
     [[nodiscard]] Descriptor_Heap& rtv_heap();
     [[nodiscard]] Descriptor_Heap& srv_heap();
     [[nodiscard]] Descriptor_Heap& uav_heap();
+    [[nodiscard]] constant_buffer& cbuffer();
 }

@@ -2,6 +2,8 @@
 #include "Vector.h"
 #include "Content.h"
 #include "RainDrop.h"
+#include "SharedTypes.h"
+#include "Transform.h"
 
 namespace d3d12::graphic_pass
 {
@@ -38,7 +40,17 @@ namespace d3d12::graphic_pass
             const UINT render_items_count{ (UINT)cache.size() };
             UINT current_entity_id{ Invalid_Index };
             
+            hlsl::PerObjectData* current_data_pointer{ nullptr };
 
+            for (UINT i{ 0 }; i < render_items_count; ++i)
+            {
+                current_entity_id = cache.entity_ids[i];
+                hlsl::PerObjectData data{};
+                transform::get_transform_matrices(current_entity_id, data.World, data.InvWorld);
+                XMMATRIX world{ XMLoadFloat4x4(&data.World) };
+                //XMMATRIX wvp{ XMMatrixMultiply(world, d3d12_info };
+
+            }
              
         }
 

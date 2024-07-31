@@ -46,7 +46,7 @@ namespace d3d12::command {
         m_command_list->Reset(frame.command_allocator.Get(), nullptr);
     }
 
-    void Command::EndFrame(const Surface& surface)
+    void Command::EndFrame(const surface::Surface& surface)
     {
         m_command_list->Close();
         ID3D12CommandList* const command_lists[]{ m_command_list.Get() };

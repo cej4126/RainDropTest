@@ -1,7 +1,9 @@
 #pragma once
 #include "stdafx.h"
 #include "Resources.h"
-namespace d3d12 {
+
+namespace d3d12::surface {
+
     class Surface
     {
     public:
@@ -123,4 +125,8 @@ namespace d3d12 {
         D3D12_RECT m_scissor_rectangle{};
         HANDLE m_swap_chain_event{};
     };
+
+    UINT surface_create(HWND hwnd, UINT width, UINT height);
+    void surface_remove(UINT id);
+    surface::Surface& get_surface(UINT id);
 }

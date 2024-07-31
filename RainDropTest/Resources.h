@@ -49,6 +49,103 @@ namespace d3d12 {
         const D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
     };
 
+    // --- constant buffer ------------------------------------------------------
+
+    class constant_buffer
+    {
+    public:
+        constant_buffer() = default;
+        explicit constant_buffer(UINT size, UINT alignment);
+        DISABLE_COPY(constant_buffer);
+        constexpr constant_buffer(constant_buffer&& o)
+            : m_buffer{o.m_buffer }, m_gpu_address{ o.m_gpu_address }, m_size{ o.m_size },
+            m_cpu_address{ o.m_cpu_address }, m_cpu_offset{ o.m_cpu_offset }
+
+        {
+            o.reset();
+        }
+
+        constexpr constant_buffer& operator=(constant_buffer&& o)
+        {
+            assert(this != &o);
+            if (this != &o)
+            {
+                release();
+                move(o);
+            }
+
+            return *this;
+        }
+
+        ~constant_buffer() { release(); }
+
+        void release();
+
+        constexpr void clear()
+        {
+            m_cpu_offset = 0;
+        }
+        [[nodiscard]] UINT8* const allocate(UINT size);
+
+        template<typename T>
+        [[nodiscard]] T* const allocate()
+        {
+            return (T* const)allocate(sizeof(T));
+        }
+
+        [[nodiscard]] constexpr ID3D12Resource* const buffer() const { return m_buffer; }
+        [[nodiscard]] constexpr D3D12_GPU_VIRTUAL_ADDRESS gpu_address() const { return m_gpu_address; }
+        [[nodiscard]] constexpr UINT size() { return m_size; }
+        [[nodiscard]] constexpr UINT8* const cpu_address() const { return m_cpu_address; }
+
+        template<typename T>
+        [[nodiscard]] constexpr D3D12_GPU_VIRTUAL_ADDRESS gpu_address(T* const allocation)
+        {
+            std::lock_guard lock{ m_mutex };
+            if (!m_cpu_address)
+            {
+                assert(m_cpu_address);
+                return {};
+            }
+
+            const UINT8* const address{ (const UINT8* const)allocation };
+            assert((address >= cpu_address) && (address <= m_cpu_address + m_cpu_offset));
+
+            const UINT64 offset{ (UINT64)(address - m_cpu_address) };
+            return m_gpu_address + offset;
+        }
+    private:
+
+        constexpr void move(constant_buffer& o)
+        {
+            m_buffer = o.m_buffer;
+            m_gpu_address = o.m_gpu_address;
+            m_size = o.m_size;
+
+            m_cpu_address = o.m_cpu_address;
+            m_cpu_offset = o.m_cpu_offset;
+        }
+
+        constexpr void reset()
+        {
+            m_buffer = nullptr;
+            m_gpu_address = 0;
+            m_size = 0;
+
+            m_cpu_address = 0;
+            m_cpu_offset = 0;
+        }
+
+        // d3d12_buffer
+        ID3D12Resource* m_buffer{ nullptr };
+        D3D12_GPU_VIRTUAL_ADDRESS m_gpu_address{ 0 };
+        UINT m_size{ 0 };
+
+        UINT8* m_cpu_address{ 0 };
+        UINT m_cpu_offset{ 0 };
+        std::mutex m_mutex{};
+    };
+
 
     // --- texture -----------------------------------------------------
     class d3d12_texture

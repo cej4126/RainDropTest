@@ -26,6 +26,16 @@ namespace transform {
         };
     };
 
+    struct component_cache
+    {
+        XMFLOAT4 rotation;
+        XMFLOAT3 orientation;
+        XMFLOAT3 position;
+        XMFLOAT3 scale;
+        UINT id;
+        UINT flags;
+    };
+
     class component final
     {
     public:
@@ -45,4 +55,8 @@ namespace transform {
 
     component create(init_info info, game_entity::entity entity);
     void remove(component c);
+
+    void get_transform_matrices(UINT id, XMFLOAT4X4 world, XMFLOAT4X4 inverse_world);
+    void update(const component_cache* const cache, UINT count);
+
 }

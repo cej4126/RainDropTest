@@ -1,7 +1,16 @@
 #include "Surface.h"
 #include "Main.h"
+#include "FreeList.h"
+#include "Resources.h"
 
-namespace d3d12 {
+namespace d3d12::surface {
+    
+    namespace {
+
+        utl::free_list<Surface> surfaces;
+
+    } // anonymous namespace
+
     void Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue)
     {
         assert(factory && command_queue);
@@ -107,5 +116,22 @@ namespace d3d12 {
         }
 
         core::release(m_swap_chain);
+    }
+    
+    UINT surface_create(HWND hwnd, UINT width, UINT height)
+    {
+        UINT id{ surfaces.add(hwnd, width, height) };
+        return id;
+    }
+
+    void surface_remove(UINT id)
+    {
+        surfaces.remove(id);
+    }
+
+    Surface& get_surface(UINT id)
+    {
+        assert(id != Invalid_Index);
+        return surfaces[id];
     }
 }

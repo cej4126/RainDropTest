@@ -16,6 +16,11 @@
 #include "Shaders.h"
 #include "Resources.h"
 #include "GraphicPass.h"
+#include "SharedTypes.h"
+#include "FreeList.h"
+
+//extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
+//extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -32,11 +37,26 @@ namespace d3d12 {
         UINT cube_item_id{ Invalid_Index };
         UINT material_id{ Invalid_Index };
 
+        game_entity::entity camera_entity{};
+
         barriers::resource_barrier resource_barriers{};
 
+        utl::vector<UINT> surface_ids;
 
-        d3d12_frame_info get_d3d12_frame_info(const frame_info& info)
+        d3d12_frame_info get_d3d12_frame_info(const frame_info& info, const surface::Surface& surface)
         {
+            camera::Camera& camera{ camera::get(info.camera_id) };
+            camera.update();
+            hlsl::GlobalShaderData global_shader_data{};
+
+            XMStoreFloat4x4A(&global_shader_data.View, camera.view());
+            XMStoreFloat4x4A(&global_shader_data.Projection, camera.projection());
+            XMStoreFloat4x4A(&global_shader_data.InverseProjection, camera.inverse_projection());
+            XMStoreFloat4x4A(&global_shader_data.ViewPorjection, camera.view_projection());
+            XMStoreFloat4x4A(&global_shader_data.InverseViewPorjection, camera.inverse_view_projection());
+            XMStoreFloat3(&global_shader_data.CameraPosition, camera.position());
+            XMStoreFloat3(&global_shader_data.CameraDirection, camera.direction());
+
             d3d12_frame_info d3d12_info
             {
                 &info
@@ -102,14 +122,25 @@ namespace d3d12 {
         material_id = content::create_resource(&info, content::asset_type::material);
     }
 
-    void create_render_items()
+    game_entity::entity create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name)
     {
         transform::init_info transform_info{};
-        transform_info.position[0] = 1.f;
+        XMVECTOR quat{ XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&rotation)) };
+        XMFLOAT4A rot_quat;
+        XMStoreFloat4A(&rot_quat, quat);
+        memcpy(&transform_info.rotation[0], &rot_quat.x, sizeof(transform_info.rotation));
+        memcpy(&transform_info.position[0], &position.x, sizeof(transform_info.position));
+
         game_entity::entity_info entity_info{};
         entity_info.transform = &transform_info;
 
-        cube_entity_id = game_entity::create(entity_info).get_id();
+        game_entity::entity entity = game_entity::create(entity_info).get_id();
+        return entity;
+    }
+
+    void create_render_items()
+    {
+        cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "").get_id();
 
         assert(std::filesystem::exists("../cube.model"));
 
@@ -128,7 +159,7 @@ namespace d3d12 {
         cube_item_id = content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
     }
 
-    void RainDrop::OnInit()
+    void RainDrop::OnInit(UINT width, UINT height)
     {
 #ifdef _DEBUG
         while (!shaders::compile_shaders())
@@ -141,15 +172,22 @@ namespace d3d12 {
         assert(!shaders::compile_shaders());
 #endif
 
-        m_camera.Init({ 0.0f, 0.0f, 10.0f });
-//        m_camera.Init({ 0.0f, 0.0f, 1500.0f });
-        m_camera.SetMoveSpeed(250.0f);
-
         LoadPipeline();
         LoadAssets();
         CreateAsyncContexts();
 
         create_render_items();
+
+        // TODO: remove old camera
+        //m_camera.Init({ 0.0f, 0.0f, 10.0f });
+        //m_camera.Init({ 0.0f, 0.0f, 1000.0f });
+        // m_camera.SetMoveSpeed(250.0f);
+
+        //camera_entity = create_entity_item({ 100.f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "");
+        camera_entity = create_entity_item({ 10.f, 3.f, 0.f }, { math::dtor(0.f), math::dtor(0.f), math::dtor(0.f) }, "");
+        m_camera_id = camera::create(camera::perspective_camera_init_info(camera_entity.get_id()));
+        camera::aspect_ratio(m_camera_id, (float)width / height);
+
     }
 
     // Load the rendering pipeline dependencies.
@@ -203,6 +241,12 @@ namespace d3d12 {
     NAME_D3D12_OBJECT(m_dsv_desc_heap.heap(), L"DSV Descriptor Heap");
     NAME_D3D12_OBJECT(m_srv_desc_heap.heap(), L"SRV Descriptor Heap");
     NAME_D3D12_OBJECT(m_uav_desc_heap.heap(), L"UAV Descriptor Heap");
+
+    for (UINT i{ 0 }; i < Frame_Count; ++i)
+    {
+        new (&m_constant_buffers[i]) constant_buffer{ 1024 * 1024, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT };
+        NAME_D3D12_OBJECT_INDEXED(m_constant_buffers[i].buffer(), i, L"Global Constant Buffer");
+    }
 
     // descriptor heap
     {
@@ -432,13 +476,20 @@ namespace d3d12 {
             XMFLOAT3 delta(spread, spread, spread);
 
             p_particles[i].position.x = center.x + RandomPercent() * spread;
-            p_particles[i].position.y = 1000.0f + (RandomPercent()) * 500.f;
+            //p_particles[i].position.y = 1000.0f + (RandomPercent()) * 500.f;
+            p_particles[i].position.y = -1000.0f + (RandomPercent()) * 500.f;
+
+            //p_particles[i].position.y = -p_particles[i].position.y;
+
             p_particles[i].position.z = center.z + RandomPercent() * spread;
             p_particles[i].position.w = p_particles[i].position.y;
 
             //p_particles[i].velocity = velocity;
             p_particles[i].velocity.x = RandomPercent() * 0.0005f;
             p_particles[i].velocity.y = -0.01f + RandomPercent() * 0.005f;
+
+            p_particles[i].velocity.y = -p_particles[i].velocity.y;
+
             p_particles[i].velocity.z = RandomPercent() * 0.0005f;
         }
     }
@@ -456,7 +507,7 @@ namespace d3d12 {
         float speed = 0.01f;
 
         const UINT number_of_objects = 5;
-        // center             vel                   spread
+        //                      center             vel                   spread
         LoadParticles(&data[0], XMFLOAT3(0, 0, 0), speed, center_spread, Particle_Count - number_of_objects);
 
         speed = 1.0f;
@@ -535,14 +586,23 @@ namespace d3d12 {
     // Update frame-based values.
     void RainDrop::OnUpdate(float dt)
     {
+        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
         // Wait for the previous Present to complete.
-        WaitForSingleObjectEx(m_surface.swap_chain_event(), 100, FALSE);
+        WaitForSingleObjectEx(surface.swap_chain_event(), 100, FALSE);
 
-        m_camera.Update(dt);
+        // TODO: remove old camera
+        //m_camera.Update(dt);
+
+        camera::Camera& camera{ camera::get(m_camera_id) };
+        camera.update();
 
         Constant_Buffer_GS constant_buffer_gs = {};
-        XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, XMMatrixMultiply(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspect_ratio, 1.0f, 5000.0f)));
-        XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, m_camera.GetViewMatrix()));
+        //XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, XMMatrixMultiply(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspect_ratio, 1.0f, 5000.0f)));
+        //XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, m_camera.GetViewMatrix()));
+
+
+        XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, camera.view_projection());
+        XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, camera.view()));
 
         UINT8* destination = m_p_constant_buffer_gs_data + sizeof(Constant_Buffer_GS) * m_frame_index;
         memcpy(destination, &constant_buffer_gs, sizeof(Constant_Buffer_GS));
@@ -557,8 +617,10 @@ namespace d3d12 {
         frame_info info{};
         info.render_item_ids = &render_items[0];
         info.render_item_count = 1;
+        info.camera_id = m_camera_id;
 
-        const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info) };
+        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, surface) };
 
         // gpass::depth_prepass
         //graphic_pass::depth_prepass(m_command.command_list(), d3d12_info);
@@ -614,13 +676,14 @@ namespace d3d12 {
 
         m_command.command_list()->IASetVertexBuffers(0, 1, &m_vertex_buffer_view);
         m_command.command_list()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-        m_command.command_list()->RSSetScissorRects(1, &m_surface.scissor_rect());
+        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        m_command.command_list()->RSSetScissorRects(1, &surface.scissor_rect());
 
-        barriers::transition_resource(m_command.command_list(), m_surface.back_buffer(),
+        barriers::transition_resource(m_command.command_list(), surface.back_buffer(),
             D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         // Indicate that the back buffer will be used as a render target.
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ m_surface.rtv().ptr };
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ surface.rtv().ptr };
         D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_depth_buffer.dsv();
         m_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
@@ -632,7 +695,7 @@ namespace d3d12 {
         // Render the particles.
         const UINT srv_index = (m_srv_index == 0 ? Srv_Particle_Pos_Vel_0 : Srv_Particle_Pos_Vel_1);
 
-        m_command.command_list()->RSSetViewports(1, &m_surface.viewport());
+        m_command.command_list()->RSSetViewports(1, &surface.viewport());
 
         D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
         srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
@@ -646,7 +709,7 @@ namespace d3d12 {
         //PIXEndEvent(m_command.command_list());
 
         // Indicate that the back buffer will now be used to present.
-        barriers::transition_resource(m_command.command_list(), m_surface.back_buffer(),
+        barriers::transition_resource(m_command.command_list(), surface.back_buffer(),
             D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     }
 
@@ -807,6 +870,8 @@ namespace d3d12 {
             content::destroy_resource(material_id, content::asset_type::material);
         }
 
+        camera::remove(m_camera_id);
+
         m_command.Release();
 
         // NOTE: we don't call process_deferred_releases at the end because
@@ -825,8 +890,13 @@ namespace d3d12 {
         m_render_target.release();
 
         m_depth_buffer.release();
+        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        surface.release();
 
-        m_surface.release();
+        for (UINT i{ 0 }; i < Frame_Count; ++i)
+        {
+            m_constant_buffers[i].release();
+        }
 
         // NOTE: some modules free their descriptors when they shutdown.
         //       We process those by calling process_deferred_free once more.
@@ -858,31 +928,40 @@ namespace d3d12 {
         // cleaned up by the destructor.
         WaitForRenderContext();
 
+        remove_surface();
+
         // Close handles to fence events and threads.
         CloseHandle(m_render_context_fence_event);
         CloseHandle(m_thread_handle);
         CloseHandle(m_thread_fence_event);
     }
 
+    // TODO: remove old camera
     void RainDrop::OnKeyDown(UINT8 key)
     {
-        m_camera.OnKeyDown(key);
+        //        m_camera.OnKeyDown(key);
     }
 
     void RainDrop::OnKeyUp(UINT8 key)
     {
-        m_camera.OnKeyUp(key);
+        //        m_camera.OnKeyUp(key);
     }
 
     void RainDrop::create_surface(HWND hwnd, UINT width, UINT height)
     {
-        new (&m_surface) Surface(hwnd, width, height);
-        m_surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
+        UINT id{ surface::surface_create(hwnd, width, height) };
+        surface_ids.emplace_back(id);
+        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
     }
 
     void RainDrop::remove_surface()
     {
-        m_command.Flush();
+        for (auto& id : surface_ids)
+        {
+            surface::surface_remove(id);
+        }
+        surface_ids.clear();
     }
 
     void RainDrop::WaitForRenderContext()
@@ -904,7 +983,8 @@ namespace d3d12 {
     // processed by the GPU.
     void RainDrop::MoveToNextFrame()
     {
-        m_command.EndFrame(m_surface);
+        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        m_command.EndFrame(surface);
 
         // Assign the current fence value to the current frame.
         m_frame_fence_values[m_frame_index] = m_render_context_fence_value;
@@ -914,7 +994,7 @@ namespace d3d12 {
         m_render_context_fence_value++;
 
         // Update the frame index.
-        m_frame_index = m_surface.set_current_bb_index();
+        m_frame_index = surface.set_current_bb_index();
 
         // If the next frame is not ready to be rendered yet, wait until it is ready.
         if (m_render_context_fence->GetCompletedValue() < m_frame_fence_values[m_frame_index])

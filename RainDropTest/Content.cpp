@@ -118,10 +118,14 @@ namespace d3d12::content
             switch (type)
             {
             case material_type::opaque:
+                using params = opaque_root_parameter;
+                d3dx::d3d12_root_parameter parameters[params::count]{};
+                parameters[params::global_shader_data].as_cbv(D3D12_SHADER_VISIBILITY_ALL, 0);
+
                 root_signature = d3dx::d3d12_root_signature_desc
                 {
                     //nullptr, 0, get_root_signature_flags(flags) | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
-                    nullptr, 0, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+                    &parameters[0], _countof(parameters), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
                     nullptr, 0
                 }.create();
             }

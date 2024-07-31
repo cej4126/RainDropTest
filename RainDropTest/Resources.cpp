@@ -1,6 +1,8 @@
 #include "Main.h"
 #include "Helpers.h"
 #include "Resources.h"
+#include "Math.h"
+#include "Buffers.h"
 
 namespace d3d12 {
 
@@ -103,6 +105,49 @@ namespace d3d12 {
         m_deferred_free_indicies[frame_idx].push_back(index);
         core::set_deferred_release_flag();
         handle = {};
+    }
+
+    // --- constant buffer ------------------------------------------------------
+
+    constant_buffer::constant_buffer(UINT size, UINT alignment)
+    {
+        // d3d12 buffer
+        assert(!m_buffer && size && alignment);
+        m_size = (UINT)math::align_size_up(size, alignment);
+        m_buffer = buffers::create_buffer_default_without_upload(size);
+
+        m_gpu_address = m_buffer->GetGPUVirtualAddress();
+        NAME_D3D12_OBJECT_INDEXED(m_buffer, m_size, L"Constant Buffer - size");
+
+        D3D12_RANGE range{};
+        ThrowIfFailed(m_buffer->Map(0, &range, (void**)(&m_cpu_address)));
+        assert(m_cpu_address);
+    }
+
+    void constant_buffer::release()
+    {
+        core::deferred_release(m_buffer);
+        m_gpu_address = 0;
+        m_size = 0;
+
+        m_cpu_address = nullptr;
+        m_cpu_offset = 0;
+    }
+
+    UINT8* const constant_buffer::allocate(UINT size)
+    {
+        std::lock_guard lock{ m_mutex };
+
+        const UINT aligned_size{ (UINT)buffers::align_size_for_constant_buffer(size) };
+        assert(m_cpu_offset + aligned_size <= m_size);
+        if (m_cpu_offset + aligned_size <= m_size)
+        {
+            UINT8* const address{ m_cpu_address + m_cpu_offset };
+            m_cpu_offset += aligned_size;
+            return address;
+        }
+
+        return nullptr;
     }
 
     // --- texture -----------------------------------------------------
