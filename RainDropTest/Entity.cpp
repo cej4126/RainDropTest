@@ -1,6 +1,6 @@
 #include "Entity.h"
 #include "Transform.h"
-#include "Script.h"
+#include "Scripts.h"
 #include "Vector.h"
 #include <deque>
 
@@ -12,8 +12,28 @@ namespace game_entity {
         utl::vector<UINT> ids;
         std::deque<UINT> free_ids;
         bool min_deleted_set{ false };
-        
+
     } // anonymous namespace
+
+    XMFLOAT4 entity::rotation()
+    {
+        return transform().rotation();
+    }
+
+    XMFLOAT3 entity::orientation()
+    {
+        return transform().orientation();
+    }
+
+    XMFLOAT3 entity::position()
+    {
+        return transform().position();
+    }
+
+    XMFLOAT3 entity::scale()
+    {
+        return transform().scale();
+    }
 
     entity create(entity_info info)
     {
@@ -46,9 +66,11 @@ namespace game_entity {
         transforms[id] = transform::create(*info.transform, new_entity);
 
         // create script component
-        if (info.script)
+        if (info.script && info.script->script_creator)
         {
+            assert(!scripts[id].is_valid());
             scripts[id] = script::create(*info.script, new_entity);
+            assert(scripts[id].is_valid());
         }
 
         return new_entity;
@@ -75,16 +97,15 @@ namespace game_entity {
         return (ids[id] != Invalid_Index);
     }
 
-    transform::component entity::get_transform() const
+    transform::component entity::transform() const
     {
         assert(is_alive(_id));
         return transforms[_id];
     }
 
-    //script::component entity::get_script() const
-    //{
-    //    assert(is_alive(_id));
-    //    return scripts[_id];
-    //}
-
+    script::component entity::script() const
+    {
+        assert(is_alive(_id));
+        return scripts[_id];
+    }
 }

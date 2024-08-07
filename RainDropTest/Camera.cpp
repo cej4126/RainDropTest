@@ -3,13 +3,13 @@
 #include "stdafx.h"
 #include "FreeList.h"
 #include "Entity.h"
+#include "Transform.h"
 
 namespace d3d12::camera {
 
     namespace {
 
         utl::free_list<Camera> cameras;
-
 
     } // anonymous namespace
 
@@ -31,8 +31,8 @@ namespace d3d12::camera {
     void Camera::update()
     {
         game_entity::entity entity{ m_entity_id };
-        XMFLOAT3 pos{ entity.get_transform().position() };
-        XMFLOAT3 dir{ entity.get_transform().orientation() };
+        XMFLOAT3 pos{ entity.transform().position() };
+        XMFLOAT3 dir{ entity.transform().orientation() };
         m_position = XMLoadFloat3(&pos);
         m_direction = XMLoadFloat3(&dir);
         m_view = XMMatrixLookAtRH(m_position, m_direction, m_up);
@@ -53,6 +53,10 @@ namespace d3d12::camera {
 
         m_view_projection = XMMatrixMultiply(m_view, m_projection);
         m_inverse_view_projection = XMMatrixInverse(nullptr, m_view_projection);
+    }
+
+    void mouse_move(input::input_source::type type, input::input_code::code code, const input::input_value& mouse_pos)
+    {
     }
 
     void Camera::field_of_view(float fov)
@@ -148,6 +152,5 @@ namespace d3d12::camera {
         assert(id != Invalid_Index);
         cameras[id].field_of_view(far_z);
     }
-
 }
 

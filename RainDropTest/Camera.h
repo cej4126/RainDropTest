@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "Input.h"
 
 namespace d3d12::camera {
 
@@ -60,8 +61,8 @@ namespace d3d12::camera {
     class Camera
     {
     public:
-        Camera() = default;
-        explicit Camera(UINT id) : _id{ id } {}
+        //Camera() = default;
+        //explicit Camera(UINT id) : _id{ id } {}
         explicit Camera(camera_init_info info);
         void update();
 
@@ -109,10 +110,12 @@ namespace d3d12::camera {
             float m_view_height;
         };
         camera_type::type m_projection_type{};
-        UINT m_entity_id{ Invalid_Index};
-        bool m_is_dirty{ false};
+        UINT m_entity_id{ Invalid_Index };
+        bool m_is_dirty{ false };
 
         UINT _id{ Invalid_Index };
+        void mouse_move(input::input_source::type type, input::input_code::code code, const input::input_value& mouse_pos);
+        input::input_system<Camera> m_input_system;
     };
 
     UINT create(camera_init_info info);
@@ -125,5 +128,6 @@ namespace d3d12::camera {
     void view_height(UINT id, float height);
     void near_z(UINT id, float near_z);
     void far_z(UINT id, float far_z);
+
 }
 

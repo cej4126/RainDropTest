@@ -1,7 +1,6 @@
 #pragma once
 #include "stdafx.h"
 
-
 namespace game_entity{
     class entity;
 }

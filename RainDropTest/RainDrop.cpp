@@ -1,3 +1,5 @@
+#include <functional>
+#include <string>
 #include "stdafx.h"
 #include "Helpers.h"
 #include "RainDrop.h"
@@ -18,6 +20,8 @@
 #include "GraphicPass.h"
 #include "SharedTypes.h"
 #include "FreeList.h"
+#include "Input.h"
+#include "Scripts.h"
 
 //extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 //extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
@@ -99,6 +103,32 @@ namespace d3d12 {
         //{
         //    --m_height_instances;
         //}
+
+        struct
+        {
+            input::input_code::code code;
+            float multipler;
+            input::axis::type axis;
+        } input_data[] =
+        {
+            { input::input_code::key_a,  1.f, input::axis::x },
+            { input::input_code::key_d, -1.f, input::axis::x },
+            { input::input_code::key_w,  1.f, input::axis::z },
+            { input::input_code::key_s, -1.f, input::axis::z },
+            { input::input_code::key_q, -1.f, input::axis::y },
+            { input::input_code::key_e,  1.f, input::axis::y }
+        };
+        input::input_source source{};
+        source.binding = std::hash<std::string>()("move");
+        source.source_type = input::input_source::keyboard;
+
+        for (int i{ 0 }; i < _countof(input_data); ++i)
+        {
+            source.code = input_data[i].code;
+            source.multiplier = input_data[i].multipler;
+            source.axis = input_data[i].axis;
+            input::bind(source);
+        }
     }
 
     [[nodiscard]] UINT load_model(const char* path)
@@ -131,10 +161,18 @@ namespace d3d12 {
         memcpy(&transform_info.rotation[0], &rot_quat.x, sizeof(transform_info.rotation));
         memcpy(&transform_info.position[0], &position.x, sizeof(transform_info.position));
 
+        script::init_info script_info{};
+        if (strlen(script_name) > 0)
+        {
+            script_info.script_creator = script::detail::get_script_creator(std::hash<std::string>()(script_name));
+            assert(script_info.script_creator);
+        }
+
         game_entity::entity_info entity_info{};
         entity_info.transform = &transform_info;
-
+        entity_info.script = &script_info;
         game_entity::entity entity = game_entity::create(entity_info).get_id();
+        assert(entity.is_valid());
         return entity;
     }
 
@@ -183,12 +221,16 @@ namespace d3d12 {
         //m_camera.Init({ 0.0f, 0.0f, 1000.0f });
         // m_camera.SetMoveSpeed(250.0f);
 
+        // x in(-)/out(+)
+        // y up(+)/down(-)
+        // z left(-)/right(+)
+
         //camera_entity = create_entity_item({ 100.f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "");
-        camera_entity = create_entity_item({ 10.f, 3.f, 0.f }, { math::dtor(0.f), math::dtor(0.f), math::dtor(0.f) }, "");
+        camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(10.f), math::dtor(0.f) }, "camera_script");
         m_camera_id = camera::create(camera::perspective_camera_init_info(camera_entity.get_id()));
         camera::aspect_ratio(m_camera_id, (float)width / height);
 
-    }
+}
 
     // Load the rendering pipeline dependencies.
     void RainDrop::LoadPipeline()
@@ -586,6 +628,8 @@ namespace d3d12 {
     // Update frame-based values.
     void RainDrop::OnUpdate(float dt)
     {
+        script::update(0.0165f);
+
         surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
         // Wait for the previous Present to complete.
         WaitForSingleObjectEx(surface.swap_chain_event(), 100, FALSE);
@@ -939,7 +983,7 @@ namespace d3d12 {
     // TODO: remove old camera
     void RainDrop::OnKeyDown(UINT8 key)
     {
-        //        m_camera.OnKeyDown(key);
+        //         m_camera.OnKeyDown(key);
     }
 
     void RainDrop::OnKeyUp(UINT8 key)

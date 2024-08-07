@@ -4,6 +4,9 @@
 namespace math {
 
     constexpr float pi{ 3.1415926535897932384626433832795f };
+    constexpr float half_pi{ pi * 0.5f };
+    constexpr float two_pi{ 2.f * pi };
+    constexpr float epsilon{ 1e-5f };
 
     constexpr float dtor(float deg)
     {
@@ -54,4 +57,12 @@ namespace math {
 
         return crc;
     }
+
+    template<typename T>
+    [[nodiscard]] constexpr T
+        clamp(T value, T min, T max)
+    {
+        return (value < min) ? min : (value > max) ? max : value;
+    }
+
 }

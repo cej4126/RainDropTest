@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "Win32Application.h"
 #include "StepTimer.h"
+#include "Input.h"
 
 time_it timer{};
 
@@ -84,19 +85,19 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
     }
     return 0;
 
-    case WM_KEYDOWN:
-        if (pSample)
-        {
-            pSample->OnKeyDown(static_cast<UINT8>(wParam));
-        }
-        return 0;
+    //case WM_KEYDOWN:
+    //    if (pSample)
+    //    {
+    //        pSample->OnKeyDown(static_cast<UINT8>(wParam));
+    //    }
+    //    return 0;
 
-    case WM_KEYUP:
-        if (pSample)
-        {
-            pSample->OnKeyUp(static_cast<UINT8>(wParam));
-        }
-        return 0;
+    //case WM_KEYUP:
+    //    if (pSample)
+    //    {
+    //        pSample->OnKeyUp(static_cast<UINT8>(wParam));
+    //    }
+    //    return 0;
 
     case WM_PAINT:
         timer.begin();
@@ -113,6 +114,8 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         PostQuitMessage(0);
         return 0;
     }
+
+    input::process_input_message(hWnd, message, wParam, lParam);
 
     // Handle any messages the switch statement didn't.
     return DefWindowProc(hWnd, message, wParam, lParam);

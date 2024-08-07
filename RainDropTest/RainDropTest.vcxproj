@@ -166,9 +166,10 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="GraphicPass.cpp" />
     <ClCompile Include="Helpers.cpp" />
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="RainDrop.cpp" />
     <ClCompile Include="Resources.cpp" />
-    <ClCompile Include="Script.cpp" />
+    <ClCompile Include="Scripts.cpp" />
     <ClCompile Include="Shaders.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="DXSample.cpp" />
@@ -191,10 +192,11 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="GraphicPass.h" />
     <ClInclude Include="Helpers.h" />
+    <ClInclude Include="Input.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="RainDrop.h" />
     <ClInclude Include="Resources.h" />
-    <ClInclude Include="Script.h" />
+    <ClInclude Include="Scripts.h" />
     <ClInclude Include="Shaders.h" />
     <ClInclude Include="SharedTypes.h" />
     <ClInclude Include="Surface.h" />

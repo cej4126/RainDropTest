@@ -43,6 +43,35 @@ namespace transform
             return orientation;
         }
 
+        void set_rotation(UINT id, const XMFLOAT4& rotation_quaternion)
+        {
+            rotations[id] = rotation_quaternion;
+            orientations[id] = calculate_orientation(rotation_quaternion);
+            has_transform[id] = 0;
+            changes_from_previous_frame[id] |= component_flags::rotation;
+        }
+
+        void set_orientation(UINT id, const XMFLOAT3& orientation)
+        {
+            orientations[id] = orientation;
+            has_transform[id] = 0;
+            changes_from_previous_frame[id] |= component_flags::orientation;
+        }
+
+        void set_position(UINT id, const XMFLOAT3& position)
+        {
+            positions[id] = position;
+            has_transform[id] = 0;
+            changes_from_previous_frame[id] |= component_flags::position;
+        }
+
+        void set_scale(UINT id, const XMFLOAT3& scale)
+        {
+            scales[id] = scale;
+            has_transform[id] = 0;
+            changes_from_previous_frame[id] |= component_flags::scale;
+        }
+
     } // anonymous namespace
 
     component create(init_info info, game_entity::entity entity)
@@ -96,7 +125,43 @@ namespace transform
     }
 
     void update(const component_cache* const cache, UINT count)
-    {}
+    {
+        assert(cache && count);
+
+        // NOTE: clearing "changes_from_previous_frame" happens once every frame when there will be no reads and the caches are
+        //       about to be applied by calling this function (i.e. the rest of the current frame will only have writes).
+        if (write_flag)
+        {
+            memset(changes_from_previous_frame.data(), 0, changes_from_previous_frame.size());
+            write_flag = 0;
+        }
+
+        for (UINT i{ 0 }; i < count; ++i)
+        {
+            const component_cache& c{ cache[i] };
+            assert(component{ c.id }.is_valid());
+
+            if (c.flags & component_flags::rotation)
+            {
+                set_rotation(c.id, c.rotation);
+            }
+
+            if (c.flags & component_flags::orientation)
+            {
+                set_orientation(c.id, c.orientation);
+            }
+
+            if (c.flags & component_flags::position)
+            {
+                set_position(c.id, c.position);
+            }
+
+            if (c.flags & component_flags::scale)
+            {
+                set_scale(c.id, c.scale);
+            }
+        }
+    }
 
     void remove(component c)
     {
