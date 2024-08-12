@@ -204,57 +204,56 @@ namespace d3d12::content
                 stream.primitive_topology = get_d3d_primitive_topology_type(primitive_topology);
                 stream.depth_stencil_format = DXGI_FORMAT_D32_FLOAT;
 
-                D3D12_RASTERIZER_DESC rasterizer{};
-                rasterizer.FillMode = D3D12_FILL_MODE_SOLID;                                // D3D12_FILL_MODE FillMode;
-                rasterizer.CullMode = D3D12_CULL_MODE_BACK;                                 // D3D12_CULL_MODE CullMode;
-                rasterizer.FrontCounterClockwise = FALSE;                                   // BOOL FrontCounterClockwise;
-                rasterizer.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;                            // INT DepthBias;
-                rasterizer.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;                 // FLOAT DepthBiasClamp;
-                rasterizer.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;    // FLOAT SlopeScaledDepthBias;
-                rasterizer.DepthClipEnable = TRUE;                                          // BOOL DepthClipEnable;
-                rasterizer.MultisampleEnable = FALSE;                                       // BOOL MultisampleEnable;
-                rasterizer.AntialiasedLineEnable = FALSE;                                   // BOOL AntialiasedLineEnable;
-                rasterizer.ForcedSampleCount = 0;                                           // UINT ForcedSampleCount;
-                rasterizer.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;  // D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
-                stream.rasterizer = rasterizer;
-                //stream.rasterizer = d3dx::rasterizer_state.face_cull;
+                //D3D12_RASTERIZER_DESC rasterizer{};
+                //rasterizer.FillMode = D3D12_FILL_MODE_SOLID;                                // D3D12_FILL_MODE FillMode;
+                //rasterizer.CullMode = D3D12_CULL_MODE_BACK;                                 // D3D12_CULL_MODE CullMode;
+                //rasterizer.FrontCounterClockwise = FALSE;                                   // BOOL FrontCounterClockwise;
+                //rasterizer.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;                            // INT DepthBias;
+                //rasterizer.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;                 // FLOAT DepthBiasClamp;
+                //rasterizer.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;    // FLOAT SlopeScaledDepthBias;
+                //rasterizer.DepthClipEnable = TRUE;                                          // BOOL DepthClipEnable;
+                //rasterizer.MultisampleEnable = FALSE;                                       // BOOL MultisampleEnable;
+                //rasterizer.AntialiasedLineEnable = FALSE;                                   // BOOL AntialiasedLineEnable;
+                //rasterizer.ForcedSampleCount = 0;                                           // UINT ForcedSampleCount;
+                //rasterizer.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;  // D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
+                //stream.rasterizer = rasterizer;
+                stream.rasterizer = d3dx::rasterizer_state.face_cull;
 
-                D3D12_DEPTH_STENCIL_DESC1 depth{};
-                depth.DepthEnable = TRUE;
-                depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-                depth.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-                //depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-                //depth.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-                depth.StencilEnable = FALSE;
-                depth.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-                depth.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-                const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp =
-                { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
-                depth.FrontFace = defaultStencilOp;
-                depth.BackFace = defaultStencilOp;
+                // D3D12_DEPTH_STENCIL_DESC1 depth{};
+                // depth.DepthEnable = TRUE;
+                // depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+                // // depth test - depth.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+                // depth.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+                // depth.StencilEnable = FALSE;
+                // depth.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+                // depth.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+                // const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp =
+                // { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
+                // depth.FrontFace = defaultStencilOp;
+                // depth.BackFace = defaultStencilOp;
+                // 
+                // stream.depth_stencil1 = depth;
+                stream.depth_stencil1 = d3dx::depth_state.reversed;
 
-                stream.depth_stencil1 = depth;
-                //stream.depth_stencil1 = d3dx::depth_state.reversed_readonly;
+                //D3D12_BLEND_DESC blend{};
+                //blend.AlphaToCoverageEnable = FALSE;
+                //blend.IndependentBlendEnable = FALSE;
+                //D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc{};
+                //defaultRenderTargetBlendDesc.BlendEnable = FALSE;
+                //defaultRenderTargetBlendDesc.LogicOpEnable = FALSE;
+                //defaultRenderTargetBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+                //defaultRenderTargetBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+                //defaultRenderTargetBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+                //defaultRenderTargetBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+                //defaultRenderTargetBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+                //defaultRenderTargetBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+                //defaultRenderTargetBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+                //defaultRenderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+                //for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+                //    blend.RenderTarget[i] = defaultRenderTargetBlendDesc;
 
-                D3D12_BLEND_DESC blend{};
-                blend.AlphaToCoverageEnable = FALSE;
-                blend.IndependentBlendEnable = FALSE;
-                D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc{};
-                defaultRenderTargetBlendDesc.BlendEnable = FALSE;
-                defaultRenderTargetBlendDesc.LogicOpEnable = FALSE;
-                defaultRenderTargetBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-                defaultRenderTargetBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-                defaultRenderTargetBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-                defaultRenderTargetBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-                defaultRenderTargetBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-                defaultRenderTargetBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-                defaultRenderTargetBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
-                defaultRenderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-                for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-                    blend.RenderTarget[i] = defaultRenderTargetBlendDesc;
-
-                stream.blend = blend;
-                //stream.blend = d3dx::blend_state.disabled;
+                //stream.blend = blend;
+                stream.blend = d3dx::blend_state.disabled;
 
                 const shaders::shader_flags::flags flags{ material_header_ptr->flags };
 
@@ -302,20 +301,20 @@ namespace d3d12::content
                 stream.primitive_topology = get_d3d_primitive_topology_type(primitive_topology);
                 stream.depth_stencil_format = DXGI_FORMAT_D32_FLOAT;
 
-                D3D12_RASTERIZER_DESC rasterizer{};
-                rasterizer.FillMode = D3D12_FILL_MODE_SOLID;                                // D3D12_FILL_MODE FillMode;
-                rasterizer.CullMode = D3D12_CULL_MODE_BACK;                                 // D3D12_CULL_MODE CullMode;
-                rasterizer.FrontCounterClockwise = FALSE;                                   // BOOL FrontCounterClockwise;
-                rasterizer.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;                            // INT DepthBias;
-                rasterizer.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;                 // FLOAT DepthBiasClamp;
-                rasterizer.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;    // FLOAT SlopeScaledDepthBias;
-                rasterizer.DepthClipEnable = TRUE;                                          // BOOL DepthClipEnable;
-                rasterizer.MultisampleEnable = FALSE;                                       // BOOL MultisampleEnable;
-                rasterizer.AntialiasedLineEnable = FALSE;                                   // BOOL AntialiasedLineEnable;
-                rasterizer.ForcedSampleCount = 0;                                           // UINT ForcedSampleCount;
-                rasterizer.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;  // D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
-                stream.rasterizer = rasterizer;
-                //stream.rasterizer = d3dx::rasterizer_state.face_cull;
+                //D3D12_RASTERIZER_DESC rasterizer{};
+                //rasterizer.FillMode = D3D12_FILL_MODE_SOLID;                                // D3D12_FILL_MODE FillMode;
+                //rasterizer.CullMode = D3D12_CULL_MODE_BACK;                                 // D3D12_CULL_MODE CullMode;
+                //rasterizer.FrontCounterClockwise = FALSE;                                   // BOOL FrontCounterClockwise;
+                //rasterizer.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;                            // INT DepthBias;
+                //rasterizer.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;                 // FLOAT DepthBiasClamp;
+                //rasterizer.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;    // FLOAT SlopeScaledDepthBias;
+                //rasterizer.DepthClipEnable = TRUE;                                          // BOOL DepthClipEnable;
+                //rasterizer.MultisampleEnable = FALSE;                                       // BOOL MultisampleEnable;
+                //rasterizer.AntialiasedLineEnable = FALSE;                                   // BOOL AntialiasedLineEnable;
+                //rasterizer.ForcedSampleCount = 0;                                           // UINT ForcedSampleCount;
+                //rasterizer.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;  // D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
+                //stream.rasterizer = rasterizer;
+                stream.rasterizer = d3dx::rasterizer_state.face_cull;
 
 
                 D3D12_DEPTH_STENCIL_DESC1 depth{};

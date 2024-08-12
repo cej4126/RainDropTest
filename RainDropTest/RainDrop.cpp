@@ -68,12 +68,6 @@ namespace d3d12 {
 
             return d3d12_info;
         }
-
-        //void prepare_render_frame(const d3d12_frame_info& d3d12_info)
-        //{
-        //    gpass_cache& cache{ frame_cache };
-        //}
-
     } // anonymous namespace
 
 
@@ -94,15 +88,6 @@ namespace d3d12 {
 
         m_render_context_fence_value1 = 0;
         m_thread_fence_value = 0;
-
-        //float sqRootNumAsyncContexts = (float)sqrt(static_cast<float>(Thread_Count));
-        //m_height_instances = static_cast<UINT>(ceil(sqRootNumAsyncContexts));
-        //m_width_instances = static_cast<UINT>(ceil(sqRootNumAsyncContexts));
-        //
-        //if (m_width_instances * (m_height_instances - 1) >= Thread_Count)
-        //{
-        //    --m_height_instances;
-        //}
 
         struct
         {
@@ -226,7 +211,7 @@ namespace d3d12 {
         // z left(-)/right(+)
 
         //camera_entity = create_entity_item({ 100.f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "");
-        camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(10.f), math::dtor(0.f) }, "camera_script");
+        camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, "camera_script");
         m_camera_id = camera::create(camera::perspective_camera_init_info(camera_entity.get_id()));
         camera::aspect_ratio(m_camera_id, (float)width / height);
 
@@ -364,7 +349,9 @@ namespace d3d12 {
             pso_desc.BlendState = d3dx::blend_state.blend_desc;                                            // D3D12_BLEND_DESC BlendState;
             pso_desc.SampleMask = UINT_MAX;                                                                // UINT SampleMask;
             pso_desc.RasterizerState = d3dx::rasterizer_state.face_cull;                                   // D3D12_RASTERIZER_DESC RasterizerState;
-            pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+            // depth test - pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+            //pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+            pso_desc.DepthStencilState = d3dx::depth_desc_state.reversed;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
             pso_desc.InputLayout = { input_element_descriptors, _countof(input_element_descriptors) };     // D3D12_INPUT_LAYOUT_DESC InputLayout;
             pso_desc.IBStripCutValue = {};                                                                 // D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
             pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;                          // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
@@ -518,15 +505,12 @@ namespace d3d12 {
             XMFLOAT3 delta(spread, spread, spread);
 
             p_particles[i].position.x = center.x + RandomPercent() * spread;
-            //p_particles[i].position.y = 1000.0f + (RandomPercent()) * 500.f;
             p_particles[i].position.y = -1000.0f + (RandomPercent()) * 500.f;
 
-            //p_particles[i].position.y = -p_particles[i].position.y;
 
             p_particles[i].position.z = center.z + RandomPercent() * spread;
             p_particles[i].position.w = p_particles[i].position.y;
 
-            //p_particles[i].velocity = velocity;
             p_particles[i].velocity.x = RandomPercent() * 0.0005f;
             p_particles[i].velocity.y = -0.01f + RandomPercent() * 0.005f;
 
@@ -549,7 +533,7 @@ namespace d3d12 {
         float speed = 0.01f;
 
         const UINT number_of_objects = 5;
-        //                      center             vel                   spread
+        //                      center             vel    spread
         LoadParticles(&data[0], XMFLOAT3(0, 0, 0), speed, center_spread, Particle_Count - number_of_objects);
 
         speed = 1.0f;
@@ -641,10 +625,6 @@ namespace d3d12 {
         camera.update();
 
         Constant_Buffer_GS constant_buffer_gs = {};
-        //XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, XMMatrixMultiply(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspect_ratio, 1.0f, 5000.0f)));
-        //XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, m_camera.GetViewMatrix()));
-
-
         XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, camera.view_projection());
         XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, camera.view()));
 
@@ -665,6 +645,8 @@ namespace d3d12 {
 
         surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
         const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, surface) };
+
+        m_command.command_list()->SetGraphicsRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_gs->GetGPUVirtualAddress() + m_frame_index * sizeof(Constant_Buffer_GS));
 
         // gpass::depth_prepass
         //graphic_pass::depth_prepass(m_command.command_list(), d3d12_info);
@@ -734,7 +716,9 @@ namespace d3d12 {
         // Record commands.
         const float clearColor[] = { 0.3f, 0.3f, 0.3f, 0.0f };
         m_command.command_list()->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
-        m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        // depth test - m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+        //m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+        m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
         // Render the particles.
         const UINT srv_index = (m_srv_index == 0 ? Srv_Particle_Pos_Vel_0 : Srv_Particle_Pos_Vel_1);

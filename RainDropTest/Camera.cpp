@@ -35,16 +35,18 @@ namespace d3d12::camera {
         XMFLOAT3 dir{ entity.transform().orientation() };
         m_position = XMLoadFloat3(&pos);
         m_direction = XMLoadFloat3(&dir);
-        m_view = XMMatrixLookAtRH(m_position, m_direction, m_up);
+        m_view = XMMatrixLookToRH(m_position, m_direction, m_up);
 
         if (m_is_dirty)
         {
             if (m_projection_type == camera_type::perspective)
             {
-                m_projection = XMMatrixPerspectiveFovRH(m_field_of_view * XM_PI, m_aspect_ratio, m_near_z, m_far_z);
+                // depth test - m_projection = XMMatrixPerspectiveFovRH(m_field_of_view * XM_PI, m_aspect_ratio, m_near_z, m_far_z);
+                m_projection = XMMatrixPerspectiveFovRH(m_field_of_view * XM_PI, m_aspect_ratio, m_far_z, m_near_z);
             }
             else
             {
+                // depth test - m_projection = XMMatrixOrthographicRH(m_view_width, m_view_height, m_near_z, m_far_z);
                 m_projection = XMMatrixOrthographicRH(m_view_width, m_view_height, m_near_z, m_far_z);
             }
             m_inverse_projection = XMMatrixInverse(nullptr, m_projection);

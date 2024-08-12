@@ -39,9 +39,6 @@
     <ClCompile Include="DXSample.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
-    <ClCompile Include="SimpleCamera.cpp">
-      <Filter>Source Files\Util</Filter>
-    </ClCompile>
     <ClCompile Include="Win32Application.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
@@ -105,9 +102,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DXSample.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="SimpleCamera.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="Win32Application.h">

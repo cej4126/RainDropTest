@@ -132,39 +132,39 @@ namespace d3d12::graphic_pass
 
     }
 
-    void depth_prepass(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info)
-    {
-        prepare_render_frame(d3d12_info);
+    //void depth_prepass(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info)
+    //{
+    //    prepare_render_frame(d3d12_info);
 
-        const graphic_cache& cache{ frame_cache };
-        const UINT items_count{ cache.size() };
+    //    const graphic_cache& cache{ frame_cache };
+    //    const UINT items_count{ cache.size() };
 
-        ID3D12RootSignature* current_root_signature{ nullptr };
-        ID3D12PipelineState* current_pipeline_state{ nullptr };
+    //    ID3D12RootSignature* current_root_signature{ nullptr };
+    //    ID3D12PipelineState* current_pipeline_state{ nullptr };
 
-        for (UINT i{ 0 }; i < items_count; ++i)
-        {
-            if (current_root_signature != cache.root_signatures[i])
-            {
-                current_root_signature = cache.root_signatures[i];
-                cmd_list->SetGraphicsRootSignature(current_root_signature);
-                //cmd_list->SetGraphicsRootConstantBufferView(opaque_root_parameter::global_shader_data, d3d12_info.global_shader_data);
-            }
+    //    for (UINT i{ 0 }; i < items_count; ++i)
+    //    {
+    //        if (current_root_signature != cache.root_signatures[i])
+    //        {
+    //            current_root_signature = cache.root_signatures[i];
+    //            cmd_list->SetGraphicsRootSignature(current_root_signature);
+    //            //cmd_list->SetGraphicsRootConstantBufferView(opaque_root_parameter::global_shader_data, d3d12_info.global_shader_data);
+    //        }
 
-            if (current_pipeline_state != cache.depth_pipeline_states[i])
-            {
-                current_pipeline_state = cache.depth_pipeline_states[i];
-                cmd_list->SetPipelineState(current_pipeline_state);
-            }
+    //        if (current_pipeline_state != cache.depth_pipeline_states[i])
+    //        {
+    //            current_pipeline_state = cache.depth_pipeline_states[i];
+    //            cmd_list->SetPipelineState(current_pipeline_state);
+    //        }
 
-            set_root_parameters(cmd_list, i);
+    //        set_root_parameters(cmd_list, i);
 
-            const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
-            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT ? 1 : 2) };
+    //        const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
+    //        const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT ? 1 : 2) };
 
-            cmd_list->IASetIndexBuffer(&ibv);
-            cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
-            cmd_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
-        }
-    }
+    //        cmd_list->IASetIndexBuffer(&ibv);
+    //        cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
+    //        cmd_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
+    //    }
+    //}
 }

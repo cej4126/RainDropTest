@@ -51,9 +51,9 @@ namespace d3d12::d3dx {
     } rasterizer_state;
 
     constexpr struct {
-        const D3D12_DEPTH_STENCIL_DESC enable{
-            TRUE,                                          // BOOL DepthEnable;
-            D3D12_DEPTH_WRITE_MASK_ALL,                    // D3D12_DEPTH_WRITE_MASK DepthWriteMask;
+        const D3D12_DEPTH_STENCIL_DESC enable {
+            TRUE,                                           // BOOL DepthEnable;
+            D3D12_DEPTH_WRITE_MASK_ALL,                     // D3D12_DEPTH_WRITE_MASK DepthWriteMask;
             D3D12_COMPARISON_FUNC_LESS,                     // D3D12_COMPARISON_FUNC DepthFunc;
             FALSE,                                          // BOOL StencilEnable;
             D3D12_DEFAULT_STENCIL_READ_MASK,                // UINT8 StencilReadMask;
@@ -72,10 +72,31 @@ namespace d3d12::d3dx {
             }
         };
 
-        const D3D12_DEPTH_STENCIL_DESC disable{
+        const D3D12_DEPTH_STENCIL_DESC disable {
             FALSE,                                          // BOOL DepthEnable;
             D3D12_DEPTH_WRITE_MASK_ZERO,                    // D3D12_DEPTH_WRITE_MASK DepthWriteMask;
             D3D12_COMPARISON_FUNC_LESS,                     // D3D12_COMPARISON_FUNC DepthFunc;
+            FALSE,                                          // BOOL StencilEnable;
+            D3D12_DEFAULT_STENCIL_READ_MASK,                // UINT8 StencilReadMask;
+            D3D12_DEFAULT_STENCIL_WRITE_MASK,               // UINT8 StencilWriteMask;
+            {                                               // FrontFace
+                D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilFailOp;
+                D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilDepthFailOp;
+                D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilPassOp;
+                D3D12_COMPARISON_FUNC_ALWAYS,                   // D3D12_COMPARISON_FUNC StencilFunc;
+            },
+            {                                               // BackFace
+                D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilFailOp;
+                D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilDepthFailOp;
+                D3D12_STENCIL_OP_KEEP,                          // D3D12_STENCIL_OP StencilPassOp;
+                D3D12_COMPARISON_FUNC_ALWAYS,                   // D3D12_COMPARISON_FUNC StencilFunc;
+            }
+        };
+
+        const D3D12_DEPTH_STENCIL_DESC reversed {
+            TRUE,                                           // BOOL DepthEnable;
+            D3D12_DEPTH_WRITE_MASK_ALL,                     // D3D12_DEPTH_WRITE_MASK DepthWriteMask;
+            D3D12_COMPARISON_FUNC_GREATER_EQUAL,            // D3D12_COMPARISON_FUNC DepthFunc;
             FALSE,                                          // BOOL StencilEnable;
             D3D12_DEFAULT_STENCIL_READ_MASK,                // UINT8 StencilReadMask;
             D3D12_DEFAULT_STENCIL_WRITE_MASK,               // UINT8 StencilWriteMask;

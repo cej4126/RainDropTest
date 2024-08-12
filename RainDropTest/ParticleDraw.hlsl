@@ -44,23 +44,14 @@ StructuredBuffer<PosVelo> g_bufPosVelo;
 
 struct GlobalShaderData
 {
-    row_major float4x4 g_mWorldViewProj;
-    row_major float4x4 g_mInvView;
-    //float4x4 g_mWorldViewProj;
-    //float4x4 g_mInvView;
+    float4x4 g_mWorldViewProj;
+    float4x4 g_mInvView;
 };
 ConstantBuffer<GlobalShaderData> GlobalData : register(b0, space0);
 
-//cbuffer cb0
-//{
-//    row_major float4x4 g_mWorldViewProj;
-//    row_major float4x4 g_mInvView;
-//};
-
 cbuffer cb1
 {
-//	static float g_fParticleRad = 10.0f;
-    static float g_fParticleRad = 40.0f;
+    static float g_fParticleRad = 20.0f;
 };
 
 cbuffer cbImmutable
@@ -91,13 +82,6 @@ VSParticleDrawOut VSParticleDraw(VSParticleIn input)
 
     output.pos = g_bufPosVelo[input.id].pos.xyz;
 
-	// org
-    //float mag = g_bufPosVelo[input.id].velo.w / 2.0f;
-    //output.color = lerp(float4(0.1f, 0.1f, 0.1f, 1.0f), input.color, mag);
-
-	//float mag = g_bufPosVelo[input.id].velo.w / 9;
-	//output.color = lerp(float4(1.0f, 0.1f, 0.1f, 1.0f), input.color, mag);
-
     output.color = input.color;
 
     return output;
@@ -116,10 +100,9 @@ void GSParticleDraw(point VSParticleDrawOut input[1], inout TriangleStream<GSPar
     for (int i = 0; i < 4; i++)
     {
         float3 position = g_positions[i] * g_fParticleRad;
-        position = mul(position, (float3x3) GlobalData.g_mInvView) + input[0].pos;
-        output.pos = mul(float4(position, 1.0), GlobalData.g_mWorldViewProj);
-        //position = mul(position, (float3x3) g_mInvView) + input[0].pos;
-        //output.pos = mul(float4(position, 1.0), g_mWorldViewProj);
+
+        position = mul((float3x3) GlobalData.g_mInvView, position) + input[0].pos;
+        output.pos = mul(GlobalData.g_mWorldViewProj, float4(position, 1.0));
 
         output.color = input[0].color;
         output.tex = g_texcoords[i];
@@ -141,14 +124,6 @@ float4 PSParticleDraw(PSParticleDrawIn input) : SV_Target
 
     float intensity = (0.5f - length(float2(0.5f, 0.5f) - input.tex)) * 2.0f;
 	
-    //if (intensity > 0.5f)
-    //{
-    //    intensity = 1.0f;
-    //}
-    //else
-    //{
-    //    intensity = 0.0f;
-    //}
     clip(intensity - 0.5f);
     return float4(input.color.xyz * intensity, 1.0f);
 }
