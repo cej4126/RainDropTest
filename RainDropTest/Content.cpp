@@ -195,7 +195,6 @@ namespace d3d12::content
 
                 D3D12_RT_FORMAT_ARRAY rt_array{};
                 rt_array.NumRenderTargets = 1;
-                //rt_array.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
                 rt_array.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
                 stream.render_target_formats = rt_array;

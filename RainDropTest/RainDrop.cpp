@@ -47,7 +47,7 @@ namespace d3d12 {
 
         utl::vector<UINT> surface_ids;
 
-        d3d12_frame_info get_d3d12_frame_info(const frame_info& info, const surface::Surface& surface)
+        d3d12_frame_info get_d3d12_frame_info(const frame_info& info, constant_buffer& cbuffer, const surface::Surface& surface)
         {
             camera::Camera& camera{ camera::get(info.camera_id) };
             camera.update();
@@ -61,9 +61,15 @@ namespace d3d12 {
             XMStoreFloat3(&global_shader_data.CameraPosition, camera.position());
             XMStoreFloat3(&global_shader_data.CameraDirection, camera.direction());
 
+            cbuffer.clear();
+            hlsl::GlobalShaderData* const shader_data{ cbuffer.allocate<hlsl::GlobalShaderData>() };
+            // TODO: handle the case when cbuffer is full.
+            memcpy(shader_data, &global_shader_data, sizeof(hlsl::GlobalShaderData));
+
             d3d12_frame_info d3d12_info
             {
-                &info
+                &info,
+                cbuffer.gpu_address(shader_data)
             };
 
             return d3d12_info;
@@ -628,7 +634,7 @@ namespace d3d12 {
 
         UINT8* destination = m_p_constant_buffer_gs_data + sizeof(Constant_Buffer_GS) * m_frame_index;
         memcpy(destination, &constant_buffer_gs, sizeof(Constant_Buffer_GS));
-    }
+    } 
 
     void RainDrop::render()
     {
@@ -642,7 +648,8 @@ namespace d3d12 {
         info.camera_id = m_camera_id;
 
         surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-        const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, surface) };
+
+        const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, m_constant_buffers[m_frame_index], surface) };
 
         m_command.command_list()->SetGraphicsRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_gs->GetGPUVirtualAddress() + m_frame_index * sizeof(Constant_Buffer_GS));
 

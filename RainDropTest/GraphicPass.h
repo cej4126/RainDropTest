@@ -10,6 +10,8 @@ namespace d3d12 {
 namespace d3d12::graphic_pass {
     struct opaque_root_parameter {
         enum parameter : UINT {
+            global_shader_data,
+
             count
         };
     };

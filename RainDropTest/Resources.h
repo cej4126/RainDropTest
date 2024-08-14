@@ -109,7 +109,8 @@ namespace d3d12 {
             }
 
             const UINT8* const address{ (const UINT8* const)allocation };
-            assert((address >= cpu_address) && (address <= m_cpu_address + m_cpu_offset));
+            assert(address <= m_cpu_address + m_cpu_offset);
+            assert(address >= m_cpu_address);
 
             const UINT64 offset{ (UINT64)(address - m_cpu_address) };
             return m_gpu_address + offset;
