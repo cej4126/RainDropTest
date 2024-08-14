@@ -505,18 +505,16 @@ namespace d3d12 {
             XMFLOAT3 delta(spread, spread, spread);
 
             p_particles[i].position.x = center.x + RandomPercent() * spread;
-            p_particles[i].position.y = -1000.0f + (RandomPercent()) * 500.f;
+            p_particles[i].position.y = -10.0f + (RandomPercent()) * 5.f;
 
 
             p_particles[i].position.z = center.z + RandomPercent() * spread;
             p_particles[i].position.w = p_particles[i].position.y;
 
-            p_particles[i].velocity.x = RandomPercent() * 0.0005f;
-            p_particles[i].velocity.y = -0.01f + RandomPercent() * 0.005f;
+            p_particles[i].velocity.x = RandomPercent() * 0.000005f;
+            p_particles[i].velocity.y = 0.0001f + RandomPercent() * 0.00005f;
 
-            p_particles[i].velocity.y = -p_particles[i].velocity.y;
-
-            p_particles[i].velocity.z = RandomPercent() * 0.0005f;
+            p_particles[i].velocity.z = RandomPercent() * 0.000005f;
         }
     }
 
@@ -529,15 +527,15 @@ namespace d3d12 {
         const UINT data_size = Particle_Count * sizeof(Particle);
 
         // Split the particles into two groups.
-        float center_spread = 1000.0f;
-        float speed = 0.01f;
+        float center_spread = 10.0f;
+        float speed = 0.00001f;
 
         const UINT number_of_objects = 5;
         //                      center             vel    spread
         LoadParticles(&data[0], XMFLOAT3(0, 0, 0), speed, center_spread, Particle_Count - number_of_objects);
 
-        speed = 1.0f;
-        center_spread = 1000.f;
+        speed = 0.00001f;
+        center_spread = 10.f;
         const UINT start_index = Particle_Count - number_of_objects;
         LoadParticles(&data[start_index], XMFLOAT3(0, 0, 0), speed, center_spread, number_of_objects);
 

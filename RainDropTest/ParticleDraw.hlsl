@@ -51,7 +51,7 @@ ConstantBuffer<GlobalShaderData> GlobalData : register(b0, space0);
 
 cbuffer cb1
 {
-    static float g_fParticleRad = 20.0f;
+    static float g_fParticleRad = 0.1f;
 };
 
 cbuffer cbImmutable
@@ -99,10 +99,9 @@ void GSParticleDraw(point VSParticleDrawOut input[1], inout TriangleStream<GSPar
 	// Emit two new triangles.
     for (int i = 0; i < 4; i++)
     {
-        float3 position = g_positions[i] * g_fParticleRad;
-
-        position = mul((float3x3) GlobalData.g_mInvView, position) + input[0].pos;
-        output.pos = mul(GlobalData.g_mWorldViewProj, float4(position, 1.0));
+        float4 position = float4(g_positions[i] * g_fParticleRad, 1.f);
+        position = mul(GlobalData.g_mInvView, position) + float4(input[0].pos, 1.f);        
+        output.pos = mul(GlobalData.g_mWorldViewProj, position);
 
         output.color = input[0].color;
         output.tex = g_texcoords[i];
@@ -117,11 +116,6 @@ void GSParticleDraw(point VSParticleDrawOut input[1], inout TriangleStream<GSPar
 //
 float4 PSParticleDraw(PSParticleDrawIn input) : SV_Target
 {
-	// org
-    //float intensity = 0.5f - length(float2(0.5f, 0.5f) - input.tex);
-    //intensity = clamp(intensity, 0.0f, 0.5f) * 2.0f;
-    //return float4(input.color.xyz, intensity);
-
     float intensity = (0.5f - length(float2(0.5f, 0.5f) - input.tex)) * 2.0f;
 	
     clip(intensity - 0.5f);
