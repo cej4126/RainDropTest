@@ -8,6 +8,7 @@
 // PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 //
 //*********************************************************
+#include "CommonTypes.hlsli"
 
 struct VSParticleIn
 {
@@ -41,12 +42,6 @@ struct PosVelo
 };
 
 StructuredBuffer<PosVelo> g_bufPosVelo;
-
-struct GlobalShaderData
-{
-    float4x4 g_mWorldViewProj;
-    float4x4 g_mInvView;
-};
 ConstantBuffer<GlobalShaderData> GlobalData : register(b0, space0);
 
 cbuffer cb1
@@ -100,8 +95,8 @@ void GSParticleDraw(point VSParticleDrawOut input[1], inout TriangleStream<GSPar
     for (int i = 0; i < 4; i++)
     {
         float4 position = float4(g_positions[i] * g_fParticleRad, 1.f);
-        position = mul(GlobalData.g_mInvView, position) + float4(input[0].pos, 1.f);        
-        output.pos = mul(GlobalData.g_mWorldViewProj, position);
+        position = mul(GlobalData.InverseView, position) + float4(input[0].pos, 1.f);
+        output.pos = mul(GlobalData.ViewProjection, position);
 
         output.color = input[0].color;
         output.tex = g_texcoords[i];

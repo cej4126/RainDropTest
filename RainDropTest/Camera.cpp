@@ -36,6 +36,7 @@ namespace d3d12::camera {
         m_position = XMLoadFloat3(&pos);
         m_direction = XMLoadFloat3(&dir);
         m_view = XMMatrixLookToRH(m_position, m_direction, m_up);
+        m_inverse_view = XMMatrixInverse(nullptr, m_view);
 
         if (m_is_dirty)
         {

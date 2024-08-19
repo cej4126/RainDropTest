@@ -10,12 +10,13 @@ namespace d3d12::core {
     {
         if (resource)
         {
-            resource->Release();
+             resource->Release();
             resource = nullptr;
         }
     }
 
     id3d12_device* const device();
+    ID3D12Fence* render_context_fence();
     UINT current_frame_index();
     void set_deferred_release_flag();
 
@@ -37,4 +38,7 @@ namespace d3d12::core {
     [[nodiscard]] Descriptor_Heap& srv_heap();
     [[nodiscard]] Descriptor_Heap& uav_heap();
     [[nodiscard]] constant_buffer& cbuffer();
+    UINT64 get_render_context_fence_value();
+    void set_render_context_fence_value();
+
 }

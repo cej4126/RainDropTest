@@ -163,6 +163,7 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClCompile Include="Command.cpp" />
     <ClCompile Include="Content.cpp" />
     <ClCompile Include="ContentToEngine.cpp" />
+    <ClCompile Include="Core.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="GraphicPass.cpp" />
     <ClCompile Include="Helpers.cpp" />
@@ -187,6 +188,7 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClInclude Include="Command.h" />
     <ClInclude Include="Content.h" />
     <ClInclude Include="ContentToEngine.h" />
+    <ClInclude Include="Core.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="GraphicPass.h" />

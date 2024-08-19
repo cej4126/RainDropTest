@@ -15,14 +15,14 @@ namespace d3d12::camera {
     {
         UINT entity_id{ Invalid_Index };
         camera_type::type type{};
-        XMFLOAT3 up;
+        XMFLOAT3 up{};
         union {
             float field_of_view{ 0.f };
             float view_width;
         };
         union {
-            float aspect_ratio{ 0.f };
-            float view_height;
+            float aspect_ratio;
+            float view_height{ 0.f };
         };
         float near_z{ 0.f };
         float far_z{ 0.f };
@@ -74,6 +74,7 @@ namespace d3d12::camera {
         void far_z(float far_z);
 
         [[nodiscard]] constexpr DirectX::XMMATRIX view() const { return m_view; }
+        [[nodiscard]] constexpr DirectX::XMMATRIX inverse_view() const { return m_inverse_view; }
         [[nodiscard]] constexpr DirectX::XMMATRIX projection() const { return m_projection; }
         [[nodiscard]] constexpr DirectX::XMMATRIX inverse_projection() const { return m_inverse_projection; }
         [[nodiscard]] constexpr DirectX::XMMATRIX view_projection() const { return m_view_projection; }
@@ -92,6 +93,7 @@ namespace d3d12::camera {
 
     private:
         XMMATRIX m_view{};
+        XMMATRIX m_inverse_view{};
         XMMATRIX m_projection{};
         XMMATRIX m_inverse_projection{};
         XMMATRIX m_view_projection{};

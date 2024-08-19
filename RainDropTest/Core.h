@@ -7,32 +7,66 @@
 #include "Surface.h"
 #include "Command.h"
 #include "Camera.h"
+#include "RainDrop.h"
+
+// InterlockedCompareExchange returns the object's value if the 
+// comparison fails.  If it is already 0, then its value won't 
+// change and 0 will be returned.
+#define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
 
 using Microsoft::WRL::ComPtr;
-namespace d3d12::rain_drop {
+namespace d3d12 {
 
-    class RainDrop
+    struct frame_info
+    {
+        UINT* render_item_ids{ nullptr };
+        float* thresholds{ nullptr };
+        UINT render_item_count{ 0 };
+        UINT camera_id{ Invalid_Index };
+    };
+
+    struct d3d12_frame_info
+    {
+        const frame_info* info{ nullptr };
+        D3D12_GPU_VIRTUAL_ADDRESS global_shader_data{ 0 };
+        UINT surface_width{ 0 };
+        UINT surface_height{ 0 };
+    };
+
+    class Core : public DXSample
     {
     public:
-        RainDrop();
+        Core(UINT width, UINT height, std::wstring name);
 
-        //temp
-        void create_descriptor_heap();
-        void populate_command_list(id3d12_graphics_command_list* command_list, UINT frame_count);
-        void update(UINT camera_id, UINT frame_index);
+        virtual void OnInit(UINT width, UINT height);
+        virtual void run();
+        void OnUpdate(float dt);
+        virtual void render();
+        virtual void OnRender();
+        virtual void OnDestroy();
 
-        bool initialize(UINT width, UINT height);
-        void CreateAsyncContexts();
+        virtual void create_surface(HWND hwnd, UINT width, UINT height);
+        void remove_surface();
 
-        void sync_compute_tread(ID3D12CommandQueue* command_queue);
-        void render(id3d12_graphics_command_list* command_list);
-        void shutdown();
+        id3d12_device* const device() const { return m_device.Get(); }
+        ID3D12Fence* render_context_fence() { return m_render_context_fence.Get(); }
+        UINT const current_frame_index() const { return m_frame_index; }
+        void set_deferred_releases_flag() { deferred_releases_flag[m_frame_index] = true; }
+        void deferred_release(IUnknown* resource);
+        UINT64 get_render_context_fence_value() { return InterlockedGetValue(&m_render_context_fence_value1); }
+        void set_render_context_fence_value() { InterlockedExchange(&m_render_context_fence_value1, 0); }
+
+        Descriptor_Heap& rtv_heap() { return m_rtv_desc_heap; }
+        Descriptor_Heap& dsv_heap() { return m_dsv_desc_heap; }
+        Descriptor_Heap& srv_heap() { return m_srv_desc_heap; }
+        Descriptor_Heap& uav_heap() { return m_uav_desc_heap; }
+        constant_buffer& cbuffer() { return m_constant_buffers[current_frame_index()]; }
 
     private:
-        static const float Particle_Spread;
-        UINT m_width{};
-        UINT m_height{};
 
+        rain_drop::RainDrop m_rain_drop;
+
+        static const float Particle_Spread;
         //static const UINT Particle_Count = 10000;
         static const UINT Particle_Count = 1000;
 
@@ -55,27 +89,28 @@ namespace d3d12::rain_drop {
             XMFLOAT4 velocity;
         };
 
-        struct Constant_Buffer_GS
-        {
-            XMFLOAT4X4 world_view_projection;
-            XMFLOAT4X4 inverse_view;
-
-            // Constant buffers are 256-byte aligned in GPU memory. Padding is added
-            // for convenience when computing the structure's size.
-            float padding[32];
-        };
-
         struct Constant_Buffer_CS
         {
             UINT param[4];
             float param_float[4];
         };
 
+        // Pipeline objects
+        //Surface m_surface;
+        Render_Target m_render_target;
+
+        ComPtr<id3d12_device> m_device;
+        ComPtr<ID3D12Resource> m_depth_stencil;
         ComPtr<ID3D12RootSignature> m_root_signature;
         ComPtr<ID3D12RootSignature> m_compute_root_signature;
+        UINT m_frame_index;
 
+        command::Command m_command;
+        ComPtr<IDXGIFactory7> m_factory;
 
-        UINT m_particle_src_index;  // Denotes which of the particle buffer resource views is the SRV(0 or 1).The UAV is 1 - srvIndex.
+        //UINT8* m_pConstantBufferGSData;
+
+        UINT m_srv_index;  // Denotes which of the particle buffer resource views is the SRV(0 or 1).The UAV is 1 - srvIndex.
 
         // Asset objects.
         ComPtr<ID3D12PipelineState> m_pipeline_state;
@@ -91,9 +126,13 @@ namespace d3d12::rain_drop {
         UINT8* m_p_constant_buffer_gs_data{ nullptr };
         ComPtr<ID3D12Resource> m_constant_buffer_cs;
         ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
-        ComPtr<ID3D12DescriptorHeap> m_srv_uav_heap;
+        //ComPtr<ID3D12DescriptorHeap> m_srv_uav_heap;
         UINT m_rtv_descriptor_size;
         UINT m_srv_uav_descriptor_size;
+
+        // TODO: remove old camera
+        //SimpleCamera m_camera;
+        UINT m_camera_id;
 
         // Compute objects.
         ComPtr<ID3D12CommandQueue> m_compute_command_queue;
@@ -101,13 +140,13 @@ namespace d3d12::rain_drop {
         ComPtr<id3d12_graphics_command_list> m_compute_command_list;
 
         // Synchronization objects.
-        //ComPtr<ID3D12Fence> m_render_context_fence;
+        ComPtr<ID3D12Fence> m_render_context_fence;
         UINT64 m_render_context_fence_value{ 0 };
         HANDLE m_render_context_fence_event{ nullptr };
         UINT64 m_frame_fence_values[Frame_Count];
 
-        ComPtr<ID3D12Fence> m_thread_fence;
-        volatile HANDLE m_thread_fence_event{};
+        //ComPtr<ID3D12Fence> m_thread_fence;
+        //volatile HANDLE m_thread_fence_event{};
 
         // Thread state.
         LONG volatile m_terminating{ 0 };
@@ -116,7 +155,7 @@ namespace d3d12::rain_drop {
 
         struct ThreadData
         {
-            RainDrop* p_context;
+            Core* p_context;
             UINT thread_index;
         };
         ThreadData m_thread_data;
@@ -125,6 +164,14 @@ namespace d3d12::rain_drop {
         bool deferred_releases_flag[Frame_Count]{ FALSE };
         std::mutex deferred_releases_mutex{};
         std::vector<IUnknown*> deferred_releases[Frame_Count]{};
+
+        //D3D12DescriptorHeap x;
+        Descriptor_Heap m_rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };
+        Descriptor_Heap m_dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
+        Descriptor_Heap m_srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+        Descriptor_Heap m_uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+
+        constant_buffer m_constant_buffers[Frame_Count];
 
         // Indices of shader resources in the descriptor heap.
         enum Root_Parameters : UINT32
@@ -146,12 +193,11 @@ namespace d3d12::rain_drop {
             Descriptor_Count = Srv_Particle_Pos_Vel_1 + 1
         };
 
-        void LoadAssets();
-        void CreateVertexBuffer();
-        float RandomPercent();
-        //void LoadParticles(_Out_writes_(number_of_particles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_particles);
-        void LoadParticles(Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles);
-        void CreateParticleBuffers();
+        void LoadPipeline();
+        void LoadAssets(UINT width, UINT height);
+        void PopulateCommandList();
+
+        void __declspec(noinline) process_deferred_releases(UINT frame_index);
 
         static DWORD WINAPI ThreadProc(ThreadData* p_data)
         {
@@ -159,8 +205,9 @@ namespace d3d12::rain_drop {
         }
 
         DWORD AsyncComputeThreadProc(int thread_index);
-        void Simulate();
+        //void Simulate();
 
-        //void WaitForRenderContext();
-     };
+        void WaitForRenderContext();
+        void MoveToNextFrame();
+    };
 }

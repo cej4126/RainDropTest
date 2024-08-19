@@ -11,9 +11,9 @@ public:
     virtual ~DXSample();
 
     virtual void OnInit(UINT width, UINT height) = 0;
+    virtual void run() = 0;
     virtual void create_surface(HWND hwnd, UINT width, UINT height) = 0;
 
-    virtual void OnUpdate(float dt = 17.6f) = 0;
     virtual void OnRender() = 0;
     virtual void OnDestroy() = 0;
 

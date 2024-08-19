@@ -55,14 +55,17 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
     // Main sample loop.
 
     MSG msg = {};
-    while (msg.message != WM_QUIT)
+    bool is_running{ true };
+    while (is_running)
     {
         // Process any message in the queue.
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            is_running &= (msg.message != WM_QUIT);
         }
+        pSample->run();
     }
 
     pSample->OnDestroy();
@@ -99,16 +102,15 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
     //    }
     //    return 0;
 
-    case WM_PAINT:
-        timer.begin();
-        if (pSample)
-        {
-            float dt{ timer.dt_avg() };
-            pSample->OnUpdate(dt);
-            pSample->OnRender();
-        }
-        timer.end();
-        return 0;
+    //case WM_PAINT:
+    //    timer.begin();
+    //    if (pSample)
+    //    {
+    //        float dt{ timer.dt_avg() };
+    //        pSample->OnUpdate(dt);
+    //    }
+    //    timer.end();
+    //    return 0;
 
     case WM_DESTROY:
         PostQuitMessage(0);
