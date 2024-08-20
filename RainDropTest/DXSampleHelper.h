@@ -1,15 +1,6 @@
 #pragma once
 #include "stdafx.h"
 
-
-namespace d3d12::d3dx {
-
-    // IntermediateOffset = 0;
-    // FirstSubresource = 0;
-    // NumSubresources = 1;
-    UINT64 Update_Subresource(id3d12_graphics_command_list* command_list, ID3D12Resource* p_destination_resource, ID3D12Resource* p_intermediate_resource, D3D12_SUBRESOURCE_DATA* p_src_data);
-}
-
 inline void GetAssetsPath(_Out_writes_(pathSize) WCHAR* path, UINT pathSize)
 {
     if (path == nullptr)

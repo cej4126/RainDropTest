@@ -511,6 +511,8 @@ namespace input {
         void on_event(input_source::type type, input_code::code code, const input_value& value) override
         {
             assert(type < input_source::count);
+            if (type < input_source::keyboard || type >= input_source::count) return;
+            
             for (const auto& item : m_input_callbacks[type])
             {
                 (item.instance->*item.callback)(type, code, value);

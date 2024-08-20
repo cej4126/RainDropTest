@@ -56,9 +56,7 @@ namespace d3d12::surface {
     void Surface::present() const
     {
         assert(m_swap_chain);
-        //m_swap_chain->Present(0, m_present_flag);
         m_swap_chain->Present(1, m_present_flag);
-        // m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
     }
 
     UINT Surface::set_current_bb_index()

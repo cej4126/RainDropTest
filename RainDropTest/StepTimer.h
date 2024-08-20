@@ -62,7 +62,7 @@ private:
 //        QueryPerformanceFrequency(&m_qpc_frequency);
 //        QueryPerformanceCounter(&m_qpc_last_time);
 //
-//        // Initialize max dalta to 1/10 of a second
+//        // Initialize max delta to 1/10 of a second
 //        m_qpc_max_delta = m_qpc_frequency.QuadPart / 10;
 //    }
 //
@@ -141,7 +141,7 @@ private:
 //			// If the app is running very close to the target elapsed time (within 1/4 of a millisecond) just clamp
 //			// the clock to exactly match the target value. This prevents tiny and irrelevant errors
 //			// from accumulating over time. Without this clamping, a game that requested a 60 fps
-//			// fixed update, running with vsync enabled on a 59.94 NTSC display, would eventually
+//			// fixed update, running with v-sync enabled on a 59.94 NTSC display, would eventually
 //			// accumulate enough tiny errors that it would drop a frame. It is better to just round 
 //			// small deviations down to zero to leave things running smoothly.
 //

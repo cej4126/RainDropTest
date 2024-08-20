@@ -16,24 +16,21 @@ namespace d3d12::rain_drop {
     public:
         RainDrop();
 
-        //temp
+        bool initialize(UINT width, UINT height);
         void create_descriptor_heap();
         void populate_command_list(id3d12_graphics_command_list* command_list, UINT frame_count);
         void update(UINT camera_id, UINT frame_index);
 
-        bool initialize(UINT width, UINT height);
         void CreateAsyncContexts();
-
         void sync_compute_tread(ID3D12CommandQueue* command_queue);
         void render(id3d12_graphics_command_list* command_list);
+
         void shutdown();
+
+        void set_rain_state(bool state) { m_rain_on = state; }
 
     private:
         static const float Particle_Spread;
-        UINT m_width{};
-        UINT m_height{};
-
-        //static const UINT Particle_Count = 10000;
         static const UINT Particle_Count = 1000;
 
         // "Vertex" definition for particles. Triangle vertices are generated 
@@ -55,16 +52,6 @@ namespace d3d12::rain_drop {
             XMFLOAT4 velocity;
         };
 
-        struct Constant_Buffer_GS
-        {
-            XMFLOAT4X4 world_view_projection;
-            XMFLOAT4X4 inverse_view;
-
-            // Constant buffers are 256-byte aligned in GPU memory. Padding is added
-            // for convenience when computing the structure's size.
-            float padding[32];
-        };
-
         struct Constant_Buffer_CS
         {
             UINT param[4];
@@ -75,25 +62,20 @@ namespace d3d12::rain_drop {
         ComPtr<ID3D12RootSignature> m_compute_root_signature;
 
 
-        UINT m_particle_src_index;  // Denotes which of the particle buffer resource views is the SRV(0 or 1).The UAV is 1 - srvIndex.
+        UINT m_particle_src_index{ 0 };  // Denotes which of the particle buffer resource views is the SRV(0 or 1).The UAV is 1 - srvIndex.
 
         // Asset objects.
         ComPtr<ID3D12PipelineState> m_pipeline_state;
         ComPtr<ID3D12PipelineState> m_compute_state;
         ComPtr<ID3D12Resource> m_vertex_buffer;
-        ComPtr<ID3D12Resource> m_vertex_buffer_upload;
         D3D12_VERTEX_BUFFER_VIEW m_vertex_buffer_view;
         ComPtr<ID3D12Resource> m_particle_buffer_0;
         ComPtr<ID3D12Resource> m_particle_buffer_1;
-        ComPtr<ID3D12Resource> m_particle_buffer_upload_0;
-        ComPtr<ID3D12Resource> m_particle_buffer_upload_1;
         ComPtr<ID3D12Resource> m_constant_buffer_gs;
         UINT8* m_p_constant_buffer_gs_data{ nullptr };
         ComPtr<ID3D12Resource> m_constant_buffer_cs;
-        ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
         ComPtr<ID3D12DescriptorHeap> m_srv_uav_heap;
-        UINT m_rtv_descriptor_size;
-        UINT m_srv_uav_descriptor_size;
+        UINT m_srv_uav_descriptor_size{ 0 };
 
         // Compute objects.
         ComPtr<ID3D12CommandQueue> m_compute_command_queue;
@@ -101,10 +83,7 @@ namespace d3d12::rain_drop {
         ComPtr<id3d12_graphics_command_list> m_compute_command_list;
 
         // Synchronization objects.
-        //ComPtr<ID3D12Fence> m_render_context_fence;
         UINT64 m_render_context_fence_value{ 0 };
-        HANDLE m_render_context_fence_event{ nullptr };
-        UINT64 m_frame_fence_values[Frame_Count];
 
         ComPtr<ID3D12Fence> m_thread_fence;
         volatile HANDLE m_thread_fence_event{};
@@ -121,10 +100,6 @@ namespace d3d12::rain_drop {
         };
         ThreadData m_thread_data;
         HANDLE m_thread_handle{ nullptr };
-
-        bool deferred_releases_flag[Frame_Count]{ FALSE };
-        std::mutex deferred_releases_mutex{};
-        std::vector<IUnknown*> deferred_releases[Frame_Count]{};
 
         // Indices of shader resources in the descriptor heap.
         enum Root_Parameters : UINT32
@@ -146,10 +121,8 @@ namespace d3d12::rain_drop {
             Descriptor_Count = Srv_Particle_Pos_Vel_1 + 1
         };
 
-        void LoadAssets();
         void CreateVertexBuffer();
         float RandomPercent();
-        //void LoadParticles(_Out_writes_(number_of_particles) Particle* p_particles, const XMFLOAT3& center, const XMFLOAT4& velocity, float spread, UINT number_of_particles);
         void LoadParticles(Particle* p_particles, const XMFLOAT3& center, const float& velocity, float spread, UINT number_of_paricles);
         void CreateParticleBuffers();
 
@@ -161,6 +134,7 @@ namespace d3d12::rain_drop {
         DWORD AsyncComputeThreadProc(int thread_index);
         void Simulate();
 
-        //void WaitForRenderContext();
+        bool m_rain_on{ false };
+
      };
 }

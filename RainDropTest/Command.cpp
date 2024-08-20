@@ -54,14 +54,6 @@ namespace d3d12::command {
 
         // Presenting swap chain buffers happens in lockstep with frame buffers.
         surface.present();
-
-        //UINT64& fence_value{ m_fence_value };
-        //++fence_value;
-        //command_frame& frame{ m_command_frame[m_frame_index] };
-        //frame.fence_value = fence_value;
-        //m_command_queue->Signal(m_fence.Get(), fence_value);
-
-       // m_frame_index = (m_frame_index + 1) % Frame_Count;
     }
 
     void Command::Flush()

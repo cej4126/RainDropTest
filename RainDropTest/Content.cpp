@@ -203,55 +203,8 @@ namespace d3d12::content
                 stream.primitive_topology = get_d3d_primitive_topology_type(primitive_topology);
                 stream.depth_stencil_format = DXGI_FORMAT_D32_FLOAT;
 
-                //D3D12_RASTERIZER_DESC rasterizer{};
-                //rasterizer.FillMode = D3D12_FILL_MODE_SOLID;                                // D3D12_FILL_MODE FillMode;
-                //rasterizer.CullMode = D3D12_CULL_MODE_BACK;                                 // D3D12_CULL_MODE CullMode;
-                //rasterizer.FrontCounterClockwise = FALSE;                                   // BOOL FrontCounterClockwise;
-                //rasterizer.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;                            // INT DepthBias;
-                //rasterizer.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;                 // FLOAT DepthBiasClamp;
-                //rasterizer.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;    // FLOAT SlopeScaledDepthBias;
-                //rasterizer.DepthClipEnable = TRUE;                                          // BOOL DepthClipEnable;
-                //rasterizer.MultisampleEnable = FALSE;                                       // BOOL MultisampleEnable;
-                //rasterizer.AntialiasedLineEnable = FALSE;                                   // BOOL AntialiasedLineEnable;
-                //rasterizer.ForcedSampleCount = 0;                                           // UINT ForcedSampleCount;
-                //rasterizer.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;  // D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
-                //stream.rasterizer = rasterizer;
                 stream.rasterizer = d3dx::rasterizer_state.face_cull;
-
-                // D3D12_DEPTH_STENCIL_DESC1 depth{};
-                // depth.DepthEnable = TRUE;
-                // depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-                // // depth test - depth.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-                // depth.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-                // depth.StencilEnable = FALSE;
-                // depth.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-                // depth.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-                // const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp =
-                // { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
-                // depth.FrontFace = defaultStencilOp;
-                // depth.BackFace = defaultStencilOp;
-                // 
-                // stream.depth_stencil1 = depth;
                 stream.depth_stencil1 = d3dx::depth_state.reversed;
-
-                //D3D12_BLEND_DESC blend{};
-                //blend.AlphaToCoverageEnable = FALSE;
-                //blend.IndependentBlendEnable = FALSE;
-                //D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc{};
-                //defaultRenderTargetBlendDesc.BlendEnable = FALSE;
-                //defaultRenderTargetBlendDesc.LogicOpEnable = FALSE;
-                //defaultRenderTargetBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-                //defaultRenderTargetBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-                //defaultRenderTargetBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-                //defaultRenderTargetBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-                //defaultRenderTargetBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-                //defaultRenderTargetBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-                //defaultRenderTargetBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
-                //defaultRenderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-                //for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-                //    blend.RenderTarget[i] = defaultRenderTargetBlendDesc;
-
-                //stream.blend = blend;
                 stream.blend = d3dx::blend_state.disabled;
 
                 const shaders::shader_flags::flags flags{ material_header_ptr->flags };
@@ -299,20 +252,6 @@ namespace d3d12::content
                 stream.root_signature = root_signatures[material_header_ptr->root_signature_id];
                 stream.primitive_topology = get_d3d_primitive_topology_type(primitive_topology);
                 stream.depth_stencil_format = DXGI_FORMAT_D32_FLOAT;
-
-                //D3D12_RASTERIZER_DESC rasterizer{};
-                //rasterizer.FillMode = D3D12_FILL_MODE_SOLID;                                // D3D12_FILL_MODE FillMode;
-                //rasterizer.CullMode = D3D12_CULL_MODE_BACK;                                 // D3D12_CULL_MODE CullMode;
-                //rasterizer.FrontCounterClockwise = FALSE;                                   // BOOL FrontCounterClockwise;
-                //rasterizer.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;                            // INT DepthBias;
-                //rasterizer.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;                 // FLOAT DepthBiasClamp;
-                //rasterizer.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;    // FLOAT SlopeScaledDepthBias;
-                //rasterizer.DepthClipEnable = TRUE;                                          // BOOL DepthClipEnable;
-                //rasterizer.MultisampleEnable = FALSE;                                       // BOOL MultisampleEnable;
-                //rasterizer.AntialiasedLineEnable = FALSE;                                   // BOOL AntialiasedLineEnable;
-                //rasterizer.ForcedSampleCount = 0;                                           // UINT ForcedSampleCount;
-                //rasterizer.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;  // D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
-                //stream.rasterizer = rasterizer;
                 stream.rasterizer = d3dx::rasterizer_state.face_cull;
 
 
@@ -320,14 +259,10 @@ namespace d3d12::content
                 depth.DepthEnable = TRUE;
                 depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
                 depth.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-                //depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-                //depth.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
                 depth.StencilEnable = FALSE;
                 depth.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
                 depth.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-                const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp =
-                { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
-                //{ D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
+                const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
                 depth.FrontFace = defaultStencilOp;
                 depth.BackFace = defaultStencilOp;
 
@@ -353,15 +288,12 @@ namespace d3d12::content
                     blend.RenderTarget[i] = defaultRenderTargetBlendDesc;
 
                 stream.blend = blend;
-                //stream.blend = d3dx::blend_state.disabled;
 
                 const shaders::shader_flags::flags flags{ material_header_ptr->flags };
 
                 const UINT key{ shaders::element_type_to_shader_id(elements_type) };
                 stream.vs = shaders::get_engine_shader(key);
                 stream.ps = D3D12_SHADER_BYTECODE{};
-                //stream.depth_stencil1 = d3dx::depth_state.reversed;
-
             }
 
             UINT pso_id = create_pso_if_needed(stream_ptr, aligned_stream_size);
@@ -432,46 +364,6 @@ namespace d3d12::content
             const UINT aligned_element_buffer_size{ (UINT)math::align_size_up<alignment>(element_buffer_size) };
             const UINT total_buffer_size{ aligned_position_buffer_size + aligned_element_buffer_size + index_buffer_size };
 
-            //// test with offset
-            //float* fptr = (float*)&data[sizeof(geometry_sub_mesh_header)];
-            //for (UINT i{ 0 }; i < vertex_count*3; i += 3)
-            //{
-            //    fptr[i] += 1.f;
-            //    fptr[i + 1] += 1.f;
-            //    fptr[i + 2] += 1.f;
-            //}
-
-
-            //// test flip dir
-            //FILE* stream;
-            //AllocConsole(); // Allocate a console
-            //freopen_s(&stream, "CONOUT$", "w", stdout); // Redirect stdout to the console
-
-            //// print the vertex buffer
-            //float* fptr = (float*)&data[sizeof(geometry_sub_mesh_header)];
-            //for (UINT i{ 0 }; i < vertex_count*3; i += 3)
-            //{
-            //    std::cout << "{ XMFLOAT3(" << fptr[i] << ", " << fptr[i + 1] << ", " << fptr[i + 2] << "), XMFLOAT3(1.0f, 0.0f, 0.0f) }," << std::endl;
-            //}
-
-            //// print the index buffer
-            //unsigned short* ptr = (unsigned short*)&data[sizeof(geometry_sub_mesh_header) + aligned_position_buffer_size + aligned_element_buffer_size];
-            //for (UINT i{ 0 }; i < index_count; i += 3)
-            //{
-            //    unsigned short v0 = ptr[i];
-            //    unsigned short v1 = ptr[i + 1];
-            //    unsigned short v2 = ptr[i + 2];
-            //    ptr[i] = v0;
-            //    ptr[i + 1] = v1;
-            //    ptr[i + 2] = v2;
-
-
-            //    std::cout << v0 << ", " << v1 << ", " << v2 << "," << std::endl;
-            //}
-
-            //fclose(stream);
-
-
             ID3D12Resource* resource{ buffers::create_buffer_default_with_upload((const void*)&data[sizeof(geometry_sub_mesh_header)], total_buffer_size) };
             data += total_buffer_size;
 
@@ -507,24 +399,6 @@ namespace d3d12::content
             core::deferred_release(sub_mesh_buffers[id]);
             sub_mesh_buffers.remove(id);
         }
-
-        //void get_views(const UINT* const gpu_ids, UINT id_count, const views_cache& cache)
-        //{
-        //    assert(gpu_ids && id_count);
-        //    assert(cache.position_buffers && cache.element_buffers && cache.index_buffer_views &&
-        //        cache.primitive_topologies && cache.elements_types);
-
-        //    std::lock_guard lock{ sub_mesh_mutex };
-        //    for (UINT i{ 0 }; i < id_count; ++i)
-        //    {
-        //        const sub_mesh_view& view{ sub_mesh_views[gpu_ids[i]] };
-        //        cache.position_buffers[i] = view.position_buffer_view.BufferLocation;
-        //        cache.element_buffers[i] = view.element_buffer_view.BufferLocation;
-        //        cache.index_buffer_views[i] = view.index_buffer_view;
-        //        cache.primitive_topologies[i] = view.primitive_topology;
-        //        cache.elements_types[i] = view.element_type;
-        //    }
-        //}
 
         void get_views(UINT id_count, const d3d12::graphic_pass::graphic_cache& cache)
         {

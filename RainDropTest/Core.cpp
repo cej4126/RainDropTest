@@ -73,16 +73,10 @@ namespace d3d12 {
         }
     } // anonymous namespace
 
-
-    //const float Core::Particle_Spread = 400.0f;
-    const float Core::Particle_Spread = 500.0f;
-
     Core::Core(UINT width, UINT height, std::wstring name) :
         DXSample(width, height, name),
         m_frame_index(0),
-        m_srv_uav_descriptor_size(0),
-        m_render_context_fence_value(0),
-        m_terminating(0)
+        m_render_context_fence_value(0)
     {
         srand(0);
 
@@ -90,7 +84,7 @@ namespace d3d12 {
         ZeroMemory(m_frame_fence_values, sizeof(m_frame_fence_values));
 
         m_render_context_fence_value1 = 0;
-        //m_thread_fence_value = 0;
+        m_rain_drop.set_rain_state(true);
 
         struct
         {
@@ -208,10 +202,6 @@ namespace d3d12 {
         camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, "camera_script");
         m_camera_id = camera::create(camera::perspective_camera_init_info(camera_entity.get_id()));
         camera::aspect_ratio(m_camera_id, (float)width / height);
-
-
-        //m_rain_drop.sync_compute_tread(m_command.command_queue());
-
     }
 
     // Load the rendering pipeline dependencies.
@@ -273,21 +263,6 @@ namespace d3d12 {
         }
 
         m_rain_drop.create_descriptor_heap();
-
-        //// descriptor heap
-        //{
-        //    // Describe and create a shader resource view (SRV) and unordered
-        //    // access view (UAV) descriptor heap.
-        //    D3D12_DESCRIPTOR_HEAP_DESC srv_uav_heap_desc = {};
-        //    srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;      // D3D12_DESCRIPTOR_HEAP_TYPE Type;
-        //    srv_uav_heap_desc.NumDescriptors = Descriptor_Count;                  // UINT NumDescriptors;
-        //    srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;    // D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
-        //    srv_uav_heap_desc.NodeMask = 0;                        // UINT NodeMask;
-        //    ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_uav_heap_desc, IID_PPV_ARGS(&m_srv_uav_heap)));
-        //    NAME_D3D12_COMPTR_OBJECT(m_srv_uav_heap);
-
-        //    m_srv_uav_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        //}
 
         if (!(graphic_pass::initialize() &&
             upload::initialize() &&
@@ -363,13 +338,7 @@ namespace d3d12 {
 
         const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, m_constant_buffers[m_frame_index], surface) };
 
-        // gpass::depth_prepass
-        //graphic_pass::depth_prepass(m_command.command_list(), d3d12_info);
         graphic_pass::render(m_command.command_list(), d3d12_info);
-
-        // gpass::render
-        //ID3D12DescriptorHeap* const heaps[]{ m_srv_desc_heap.heap() };
-
     }
 
     // Render the scene.
@@ -377,14 +346,12 @@ namespace d3d12 {
     {
         m_rain_drop.sync_compute_tread(m_command.command_queue());
 
-        //PIXBeginEvent(m_command.command_queue(), 0, L"Render");
         m_command.BeginFrame();
 
         if (deferred_releases_flag[m_frame_index])
         {
             process_deferred_releases(m_frame_index);
         }
-
 
         // Record all the commands we need to render the scene into the command list.
         PopulateCommandList();
@@ -418,8 +385,6 @@ namespace d3d12 {
         m_rain_drop.render(m_command.command_list());
 
         render();
-
-        //PIXEndEvent(m_command.command_list());
 
         // Indicate that the back buffer will now be used to present.
         barriers::transition_resource(m_command.command_list(), surface.back_buffer(),
@@ -458,101 +423,6 @@ namespace d3d12 {
         }
     }
 
-    //DWORD Core::AsyncComputeThreadProc(int thread_index)
-    //{
-    //    // Get the global resource to local resource
-    //    ID3D12CommandQueue* p_command_queue = m_compute_command_queue.Get();
-    //    ID3D12CommandAllocator* p_command_allocator = m_compute_command_allocator.Get();
-    //    ID3D12GraphicsCommandList* p_command_list = m_compute_command_list.Get();
-    //    ID3D12Fence* p_fence = m_thread_fence.Get();
-
-    //    while (0 == InterlockedGetValue(&m_terminating))
-    //    {
-
-    //        // Run the particle simulation.
-    //        Simulate();
-
-    //        // Close and execute the command list.
-    //        ThrowIfFailed(p_command_list->Close());
-    //        ID3D12CommandList* p_p_command_lists[] = { p_command_list };
-
-    //        PIXBeginEvent(p_command_queue, 0, L"Thread %d: Iterate on the particle simulation", thread_index);
-    //        p_command_queue->ExecuteCommandLists(1, p_p_command_lists);
-    //        PIXEndEvent(p_command_queue);
-
-    //        // Wait for the compute shader to complete the simulation.
-    //        UINT64 thread_fence_value = _InterlockedIncrement(&m_thread_fence_value);
-    //        ThrowIfFailed(p_command_queue->Signal(p_fence, thread_fence_value));
-    //        ThrowIfFailed(p_fence->SetEventOnCompletion(thread_fence_value, m_thread_fence_event));
-    //        WaitForSingleObject(m_thread_fence_event, INFINITE);
-
-    //        // Wait for the render thread to be done with the SRV so that
-    //        // the next frame in the simulation can run.
-    //        UINT64 render_context_fence_value = InterlockedGetValue(&m_render_context_fence_value1);
-    //        if (m_render_context_fence->GetCompletedValue() < render_context_fence_value)
-    //        {
-    //            ThrowIfFailed(p_command_queue->Wait(m_render_context_fence.Get(), render_context_fence_value));
-    //            InterlockedExchange(&m_render_context_fence_value1, 0);
-    //        }
-
-    //        // Swap the indices to the SRV and UAV.
-    //        m_srv_index = 1 - m_srv_index;
-
-    //        // Prepare for the next frame.
-    //        ThrowIfFailed(p_command_allocator->Reset());
-    //        ThrowIfFailed(p_command_list->Reset(p_command_allocator, m_compute_state.Get()));
-    //    }
-
-    //    return 0;
-    //}
-
-    //// Run the particle simulation using the compute shader.
-    //void Core::Simulate()
-    //{
-    //    id3d12_graphics_command_list* p_command_list = m_compute_command_list.Get();
-
-    //    UINT srv_index;
-    //    UINT uav_index;
-    //    ID3D12Resource* p_uav_resource;
-
-    //    // Flip the buffers
-    //    if (m_srv_index)
-    //    {
-    //        srv_index = Srv_Particle_Pos_Vel_0;
-    //        uav_index = Uav_Particle_Pos_Vel_1;
-    //        p_uav_resource = m_particle_buffer_1.Get();
-    //    }
-    //    else
-    //    {
-    //        srv_index = Srv_Particle_Pos_Vel_1;
-    //        uav_index = Uav_Particle_Pos_Vel_0;
-    //        p_uav_resource = m_particle_buffer_0.Get();
-    //    }
-
-    //    barriers::transition_resource(p_command_list, p_uav_resource,
-    //        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    //    p_command_list->SetPipelineState(m_compute_state.Get());
-    //    p_command_list->SetComputeRootSignature(m_compute_root_signature.Get());
-
-    //    ID3D12DescriptorHeap* p_p_heap[] = { m_srv_uav_heap.Get() };
-    //    p_command_list->SetDescriptorHeaps(_countof(p_p_heap), p_p_heap);
-
-    //    D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
-    //    srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
-    //    D3D12_GPU_DESCRIPTOR_HANDLE uav_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
-    //    uav_handle.ptr += (SIZE_T)(uav_index * m_srv_uav_descriptor_size);
-
-    //    p_command_list->SetComputeRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_cs->GetGPUVirtualAddress());
-    //    p_command_list->SetComputeRootDescriptorTable(Root_Parameter_SRV, srv_handle);
-    //    p_command_list->SetComputeRootDescriptorTable(Root_Parameter_UAV, uav_handle);
-
-    //    p_command_list->Dispatch(static_cast<int>(ceil(Particle_Count / 128.0f)), 1, 1);
-
-    //    barriers::transition_resource(p_command_list, p_uav_resource,
-    //        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    //}
-
     void remove_item(UINT& entity_id, UINT& item_id, UINT& model_id)
     {
         if (entity_id != Invalid_Index)
@@ -585,6 +455,8 @@ namespace d3d12 {
 
         camera::remove(m_camera_id);
 
+        m_rain_drop.shutdown();
+
         m_command.Release();
 
         // NOTE: we don't call process_deferred_releases at the end because
@@ -600,7 +472,7 @@ namespace d3d12 {
         upload::shutdown();
         graphic_pass::shutdown();
 
-        m_render_target.release();
+        //m_render_target.release();
 
         m_depth_buffer.release();
         surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
@@ -632,8 +504,6 @@ namespace d3d12 {
         {
             process_deferred_releases(i);
         }
-
-        m_rain_drop.shutdown();
 
         // Ensure that the GPU is no longer referencing resources that are about to be
         // cleaned up by the destructor.

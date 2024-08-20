@@ -116,7 +116,7 @@ namespace d3d12::camera {
         bool m_is_dirty{ false };
 
         UINT _id{ Invalid_Index };
-        void mouse_move(input::input_source::type type, input::input_code::code code, const input::input_value& mouse_pos);
+        //void mouse_move(input::input_source::type type, input::input_code::code code, const input::input_value& mouse_pos);
         input::input_system<Camera> m_input_system;
     };
 

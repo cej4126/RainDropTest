@@ -48,8 +48,6 @@ namespace d3d12::graphic_pass
                 hlsl::PerObjectData data{};
                 transform::get_transform_matrices(current_entity_id, data.World, data.InvWorld);
                 XMMATRIX world{ XMLoadFloat4x4(&data.World) };
-                //XMMATRIX wvp{ XMMatrixMultiply(world, d3d12_info };
-
             }
              
         }
@@ -64,7 +62,6 @@ namespace d3d12::graphic_pass
             cache.resize();
 
             const UINT item_count{ cache.size() };
-            //const content::render_item::items_cache items_cache{ cache.items_cache() };
             content::render_item::get_items(cache.d3d12_render_item_ids.data(), item_count, cache);
 
             content::sub_mesh::get_views(item_count, cache);

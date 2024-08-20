@@ -1,4 +1,5 @@
 #pragma once
+#include "stdafx.h"
 #include "string"
 #include "DXSampleHelper.h"
 #include "Win32Application.h"

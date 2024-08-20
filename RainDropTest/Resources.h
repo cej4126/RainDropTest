@@ -57,7 +57,7 @@ namespace d3d12 {
         constant_buffer() = default;
         explicit constant_buffer(UINT size, UINT alignment);
         DISABLE_COPY(constant_buffer);
-        constexpr constant_buffer(constant_buffer&& o)
+        constexpr constant_buffer(constant_buffer&& o) noexcept
             : m_buffer{o.m_buffer }, m_gpu_address{ o.m_gpu_address }, m_size{ o.m_size },
             m_cpu_address{ o.m_cpu_address }, m_cpu_offset{ o.m_cpu_offset }
 
@@ -65,7 +65,7 @@ namespace d3d12 {
             o.reset();
         }
 
-        constexpr constant_buffer& operator=(constant_buffer&& o)
+        constexpr constant_buffer& operator=(constant_buffer&& o) noexcept
         {
             assert(this != &o);
             if (this != &o)
@@ -95,7 +95,7 @@ namespace d3d12 {
 
         [[nodiscard]] constexpr ID3D12Resource* const buffer() const { return m_buffer; }
         [[nodiscard]] constexpr D3D12_GPU_VIRTUAL_ADDRESS gpu_address() const { return m_gpu_address; }
-        [[nodiscard]] constexpr UINT size() { return m_size; }
+        [[nodiscard]] constexpr UINT size() const { return m_size; }
         [[nodiscard]] constexpr UINT8* const cpu_address() const { return m_cpu_address; }
 
         template<typename T>
@@ -269,7 +269,11 @@ namespace d3d12 {
     public:
         Depth_Buffer() = default;
         explicit Depth_Buffer(UINT width, UINT height);
-        DISABLE_COPY(Depth_Buffer);
+
+        explicit Depth_Buffer(const Depth_Buffer&) = delete;
+        Depth_Buffer& operator=(const Depth_Buffer&) = delete;
+        //DISABLE_COPY(Depth_Buffer);
+
         constexpr Depth_Buffer(Depth_Buffer&& o) noexcept
             : m_texture{ std::move(o.m_texture) }, m_dsv{ o.m_dsv }
         {

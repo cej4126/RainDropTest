@@ -167,7 +167,7 @@ namespace utl {
         {
             if (new_capacity > _capacity)
             {
-                // NOTE: realoc() will automatically copy the data in the buffer
+                // NOTE: realloc() will automatically copy the data in the buffer
                 //       if a new region of memory is allocated.
                 void* new_buffer{ realloc(_data, new_capacity * sizeof(T)) };
                 assert(new_buffer);

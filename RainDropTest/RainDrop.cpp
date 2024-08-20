@@ -71,15 +71,10 @@ namespace d3d12::rain_drop {
     } // anonymous namespace
 
 
-    //const float RainDrop::Particle_Spread = 400.0f;
     const float RainDrop::Particle_Spread = 500.0f;
 
-    RainDrop::RainDrop() :
-        m_terminating(0)
-    {}
+    RainDrop::RainDrop() {}
 
-
-    //temp
     void RainDrop::create_descriptor_heap()
     {
         // descriptor heap
@@ -101,13 +96,9 @@ namespace d3d12::rain_drop {
 
     bool RainDrop::initialize(UINT width, UINT height)
     {
-        m_width = width;
-        m_height = height;
-
         m_particle_src_index = 0;
-        //ZeroMemory(m_frame_fence_values, sizeof(m_frame_fence_values));
 
-        //m_render_context_fence_value1 = 0;
+        m_render_context_fence_value1 = 0;
         m_thread_fence_value = 0;
 
         // Create the root signatures.
@@ -158,8 +149,6 @@ namespace d3d12::rain_drop {
             pso_desc.BlendState = d3dx::blend_state.blend_desc;                                            // D3D12_BLEND_DESC BlendState;
             pso_desc.SampleMask = UINT_MAX;                                                                // UINT SampleMask;
             pso_desc.RasterizerState = d3dx::rasterizer_state.face_cull;                                   // D3D12_RASTERIZER_DESC RasterizerState;
-            // depth test - pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
-            //pso_desc.DepthStencilState = d3dx::depth_desc_state.enable;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
             pso_desc.DepthStencilState = d3dx::depth_desc_state.reversed;                                    // D3D12_DEPTH_STENCIL_DESC DepthStencilState;
             pso_desc.InputLayout = { input_element_descriptors, _countof(input_element_descriptors) };     // D3D12_INPUT_LAYOUT_DESC InputLayout;
             pso_desc.IBStripCutValue = {};                                                                 // D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
@@ -208,13 +197,13 @@ namespace d3d12::rain_drop {
             constant_buffer_cs.param_float[0] = 0.1f;
             constant_buffer_cs.param_float[1] = 1.0f;
 
-            //command_list->Close();
             m_constant_buffer_cs.Attach(buffers::create_buffer_default_with_upload(&constant_buffer_cs, buffer_size));
         }
 
         // Create the geometry shader's constant buffer.
         {
-            const UINT constant_buffer_gs_size = sizeof(Constant_Buffer_GS) * Frame_Count;
+            //const UINT constant_buffer_gs_size = sizeof(Constant_Buffer_GS);
+            const UINT constant_buffer_gs_size = sizeof(hlsl::GlobalShaderData);
 
             D3D12_RESOURCE_DESC buffer_desc = {};
             buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;        // D3D12_RESOURCE_DIMENSION Dimension;
@@ -239,7 +228,6 @@ namespace d3d12::rain_drop {
             ZeroMemory(m_p_constant_buffer_gs_data, constant_buffer_gs_size);
         }
 
-        //CreateAsyncContexts();
         return true;
     }
 
@@ -262,12 +250,10 @@ namespace d3d12::rain_drop {
             {
                 vertices[i].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
             }
-            //vertices[i].color = XMFLOAT4(1.0f, 1.0f, 0.2f, 1.0f);
         }
 
         const UINT buffer_size = Particle_Count * sizeof(Particle_Vertex);
 
-        //command_list->Close();
         m_vertex_buffer.Attach(buffers::create_buffer_default_with_upload(&vertices[0], buffer_size));
 
         m_vertex_buffer_view.BufferLocation = m_vertex_buffer->GetGPUVirtualAddress();
@@ -372,16 +358,13 @@ namespace d3d12::rain_drop {
     {
         camera::Camera& camera{ camera::get(camera_id) };
 
-        Constant_Buffer_GS constant_buffer_gs = {};
-        //XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, XMMatrixMultiply(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspect_ratio, 1.0f, 5000.0f)));
-        //XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, m_camera.GetViewMatrix()));
+        hlsl::GlobalShaderData constant_buffer_gs = {};
 
+        XMStoreFloat4x4(&constant_buffer_gs.ViewProjection, camera.view_projection());
+        XMStoreFloat4x4(&constant_buffer_gs.InverseView, XMMatrixInverse(nullptr, camera.view()));
 
-        XMStoreFloat4x4(&constant_buffer_gs.world_view_projection, camera.view_projection());
-        XMStoreFloat4x4(&constant_buffer_gs.inverse_view, XMMatrixInverse(nullptr, camera.view()));
-
-        UINT8* destination = m_p_constant_buffer_gs_data + sizeof(Constant_Buffer_GS) * frame_index;
-        memcpy(destination, &constant_buffer_gs, sizeof(Constant_Buffer_GS));
+        UINT8* destination = m_p_constant_buffer_gs_data;
+        memcpy(destination, &constant_buffer_gs, sizeof(hlsl::GlobalShaderData));
 
     }
 
@@ -429,30 +412,35 @@ namespace d3d12::rain_drop {
 
     void RainDrop::populate_command_list(id3d12_graphics_command_list* command_list, UINT frame_index)
     {
-        // Set necessary state.
-        command_list->SetPipelineState(m_pipeline_state.Get());
-        command_list->SetGraphicsRootSignature(m_root_signature.Get());
+        if (m_rain_on)
+        {
+            // Set necessary state.
+            command_list->SetPipelineState(m_pipeline_state.Get());
+            command_list->SetGraphicsRootSignature(m_root_signature.Get());
 
-        command_list->SetGraphicsRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_gs->GetGPUVirtualAddress() + frame_index * sizeof(Constant_Buffer_GS));
+            command_list->SetGraphicsRootConstantBufferView(Root_Parameter_CB, m_constant_buffer_gs->GetGPUVirtualAddress());
 
-        ID3D12DescriptorHeap* p_p_heaps[] = { m_srv_uav_heap.Get() };
-        command_list->SetDescriptorHeaps(_countof(p_p_heaps), p_p_heaps);
+            ID3D12DescriptorHeap* p_p_heaps[] = { m_srv_uav_heap.Get() };
+            command_list->SetDescriptorHeaps(_countof(p_p_heaps), p_p_heaps);
 
-        command_list->IASetVertexBuffers(0, 1, &m_vertex_buffer_view);
-        command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+            command_list->IASetVertexBuffers(0, 1, &m_vertex_buffer_view);
+            command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+        }
     }
 
     void RainDrop::render(id3d12_graphics_command_list* command_list)
     {
-        // Render the particles.
-        const UINT srv_index = (m_particle_src_index == 0 ? Srv_Particle_Pos_Vel_0 : Srv_Particle_Pos_Vel_1);
+        if (m_rain_on)
+        {
+            // Render the particles.
+            const UINT srv_index = (m_particle_src_index == 0 ? Srv_Particle_Pos_Vel_0 : Srv_Particle_Pos_Vel_1);
 
-        D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
-        srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
-        command_list->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
+            D3D12_GPU_DESCRIPTOR_HANDLE srv_handle = m_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
+            srv_handle.ptr += (SIZE_T)(srv_index * m_srv_uav_descriptor_size);
+            command_list->SetGraphicsRootDescriptorTable(Root_Parameter_SRV, srv_handle);
 
-        //PIXBeginEvent(command_list, 0, L"Draw particles for thread");
-        command_list->DrawInstanced(Particle_Count, 1, 0, 0);
+            command_list->DrawInstanced(Particle_Count, 1, 0, 0);
+        }
     }
 
     DWORD RainDrop::AsyncComputeThreadProc(int thread_index)
@@ -465,39 +453,46 @@ namespace d3d12::rain_drop {
 
         while (0 == InterlockedGetValue(&m_terminating))
         {
-
-            // Run the particle simulation.
-            Simulate();
-
-            // Close and execute the command list.
-            ThrowIfFailed(p_command_list->Close());
-            ID3D12CommandList* p_p_command_lists[] = { p_command_list };
-
-            PIXBeginEvent(p_command_queue, 0, L"Thread %d: Iterate on the particle simulation", thread_index);
-            p_command_queue->ExecuteCommandLists(1, p_p_command_lists);
-            PIXEndEvent(p_command_queue);
-
-            // Wait for the compute shader to complete the simulation.
-            UINT64 thread_fence_value = _InterlockedIncrement(&m_thread_fence_value);
-            ThrowIfFailed(p_command_queue->Signal(p_fence, thread_fence_value));
-            ThrowIfFailed(p_fence->SetEventOnCompletion(thread_fence_value, m_thread_fence_event));
-            WaitForSingleObject(m_thread_fence_event, INFINITE);
-
-            // Wait for the render thread to be done with the SRV so that
-            // the next frame in the simulation can run.
-            UINT64 render_context_fence_value = core::get_render_context_fence_value();
-            if (core::render_context_fence()->GetCompletedValue() < render_context_fence_value)
+            if (m_rain_on)
             {
-                ThrowIfFailed(p_command_queue->Wait(core::render_context_fence(), render_context_fence_value));
-                InterlockedExchange(&m_render_context_fence_value1, 0);
+
+                // Run the particle simulation.
+                Simulate();
+
+                // Close and execute the command list.
+                ThrowIfFailed(p_command_list->Close());
+                ID3D12CommandList* p_p_command_lists[] = { p_command_list };
+
+                //PIXBeginEvent(p_command_queue, 0, L"Thread %d: Iterate on the particle simulation", thread_index);
+                p_command_queue->ExecuteCommandLists(1, p_p_command_lists);
+                //PIXEndEvent(p_command_queue);
+
+                // Wait for the compute shader to complete the simulation.
+                UINT64 thread_fence_value = _InterlockedIncrement(&m_thread_fence_value);
+                ThrowIfFailed(p_command_queue->Signal(p_fence, thread_fence_value));
+                ThrowIfFailed(p_fence->SetEventOnCompletion(thread_fence_value, m_thread_fence_event));
+                WaitForSingleObject(m_thread_fence_event, INFINITE);
+
+                // Wait for the render thread to be done with the SRV so that
+                // the next frame in the simulation can run.
+                UINT64 render_context_fence_value = core::get_render_context_fence_value();
+                if (core::render_context_fence()->GetCompletedValue() < render_context_fence_value)
+                {
+                    ThrowIfFailed(p_command_queue->Wait(core::render_context_fence(), render_context_fence_value));
+                    InterlockedExchange(&m_render_context_fence_value1, 0);
+                }
+
+                // Swap the indices to the SRV and UAV.
+                m_particle_src_index = 1 - m_particle_src_index;
+
+                // Prepare for the next frame.
+                ThrowIfFailed(p_command_allocator->Reset());
+                ThrowIfFailed(p_command_list->Reset(p_command_allocator, m_compute_state.Get()));
             }
-
-            // Swap the indices to the SRV and UAV.
-            m_particle_src_index = 1 - m_particle_src_index;
-
-            // Prepare for the next frame.
-            ThrowIfFailed(p_command_allocator->Reset());
-            ThrowIfFailed(p_command_list->Reset(p_command_allocator, m_compute_state.Get()));
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
         }
 
         return 0;
@@ -550,26 +545,26 @@ namespace d3d12::rain_drop {
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     }
 
-    void remove_item(UINT& entity_id, UINT& item_id, UINT& model_id)
-    {
-        if (entity_id != Invalid_Index)
-        {
-            game_entity::remove(entity_id);
-            entity_id = Invalid_Index;
-        }
+    //void remove_item(UINT& entity_id, UINT& item_id, UINT& model_id)
+    //{
+    //    if (entity_id != Invalid_Index)
+    //    {
+    //        game_entity::remove(entity_id);
+    //        entity_id = Invalid_Index;
+    //    }
 
-        if (item_id != Invalid_Index)
-        {
-            content::render_item::remove(item_id);
-            item_id = Invalid_Index;
-        }
+    //    if (item_id != Invalid_Index)
+    //    {
+    //        content::render_item::remove(item_id);
+    //        item_id = Invalid_Index;
+    //    }
 
-        if (model_id != Invalid_Index)
-        {
-            content::destroy_resource(model_id, content::asset_type::mesh);
-            model_id = Invalid_Index;
-        }
-    }
+    //    if (model_id != Invalid_Index)
+    //    {
+    //        content::destroy_resource(model_id, content::asset_type::mesh);
+    //        model_id = Invalid_Index;
+    //    }
+    //}
 
     void RainDrop::shutdown()
     {

@@ -96,7 +96,6 @@ namespace d3d12::upload {
         }
 
         upload_frame& frame{ upload_frames[m_frame_index] };
-        //frame.upload_buffer = buffers::create_buffer_upload(aligned_size);
         assert(aligned_size);
 
         // Create upload buffer
