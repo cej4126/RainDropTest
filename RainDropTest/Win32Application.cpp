@@ -1,10 +1,7 @@
 
 #include "stdafx.h"
 #include "Win32Application.h"
-#include "StepTimer.h"
 #include "Input.h"
-
-time_it timer{};
 
 HWND Win32Application::g_handler_window = nullptr;
 

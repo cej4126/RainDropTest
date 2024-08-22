@@ -2,7 +2,6 @@
 
 #include "stdafx.h"
 #include "DXSample.h"
-#include "StepTimer.h"
 #include "Resources.h"
 #include "Surface.h"
 #include "Command.h"

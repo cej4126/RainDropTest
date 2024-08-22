@@ -93,6 +93,9 @@
     <ClCompile Include="Scripts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Core.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -105,9 +108,6 @@
       <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="Win32Application.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="StepTimer.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="DXSampleHelper.h">
@@ -177,6 +177,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scripts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeProcess.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

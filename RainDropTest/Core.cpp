@@ -23,6 +23,7 @@
 #include "Input.h"
 #include "Scripts.h"
 #include "RainDrop.h"
+#include "TimeProcess.h"
 
 //extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 //extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
@@ -30,6 +31,8 @@
 namespace d3d12 {
 
     namespace {
+        time_process timer{};
+
         Depth_Buffer m_depth_buffer{};
 
         UINT cube_model_id{ Invalid_Index };
@@ -303,7 +306,12 @@ namespace d3d12 {
 
     void Core::run()
     {
-        OnUpdate(0.0165f);
+        timer.begin();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        const float dt{ timer.dt_avg() };
+
+        OnUpdate(dt);
+        timer.end();
     }
 
     // Update frame-based values.
