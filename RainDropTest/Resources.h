@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-#include "DXSample.h"
+#include "DXApp.h"
 
 namespace d3d12 {
 
@@ -28,7 +28,7 @@ namespace d3d12 {
         void release();
         void process_deferred_free(UINT frame_idx);
         [[nodiscard]] Descriptor_Handle allocate();
-        void free(Descriptor_Handle& handle);
+        void free_handle(Descriptor_Handle& handle);
 
         [[nodiscard]] constexpr bool is_shader_visible() const { return m_gpu_start.ptr != 0; }
         [[nodiscard]] ID3D12DescriptorHeap* const heap() const { return m_heap.Get(); }

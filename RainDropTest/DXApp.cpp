@@ -1,9 +1,9 @@
 #include "stdafx.h"
-#include "DXSample.h"
+#include "DXApp.h"
 
 using namespace Microsoft::WRL;
 
-DXSample::DXSample(UINT width, UINT height, std::wstring name) :
+dx_app::dx_app(UINT width, UINT height, std::wstring name) :
     m_width(width),
     m_height(height),
     m_title(name),
@@ -16,11 +16,11 @@ DXSample::DXSample(UINT width, UINT height, std::wstring name) :
     m_aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
 }
 
-DXSample::~DXSample()
+dx_app::~dx_app()
 {
 }
 
-std::wstring DXSample::GetAssetFullPath(LPCWSTR assetName)
+std::wstring dx_app::GetAssetFullPath(LPCWSTR assetName)
 {
     return m_assetsPath + assetName;
 }
@@ -28,7 +28,7 @@ std::wstring DXSample::GetAssetFullPath(LPCWSTR assetName)
 // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
 // If no such adapter can be found, *ppAdapter will be set to nullptr.
 _Use_decl_annotations_
-void DXSample::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_result_maybenull_ IDXGIAdapter1** ppAdapter)
+void dx_app::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_result_maybenull_ IDXGIAdapter1** ppAdapter)
 {
     ComPtr<IDXGIAdapter1> adapter;
     *ppAdapter = nullptr;
@@ -56,11 +56,11 @@ void DXSample::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_resu
     *ppAdapter = adapter.Detach();
 }
 
-void DXSample::SetCustomWindowText(LPCWSTR text)
+void dx_app::SetCustomWindowText(LPCWSTR text)
 {
 }
 
-void DXSample::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
+void dx_app::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
 {
     for (int i = 1; i < argc; ++i)
     {

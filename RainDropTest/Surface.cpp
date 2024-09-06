@@ -110,7 +110,7 @@ namespace d3d12::surface {
         {
             render_target& render_target_iterm{ m_render_targets[i] };
             core::release(render_target_iterm.resource);
-            core::rtv_heap().free(render_target_iterm.rtv);
+            core::rtv_heap().free_handle(render_target_iterm.rtv);
         }
 
         core::release(m_swap_chain);

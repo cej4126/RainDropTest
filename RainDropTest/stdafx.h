@@ -4,6 +4,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif // !WIN32_LEAN_AND_MEAN
 
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+
+
 #include <Windows.h>
 #include <dxgi1_6.h>
 #include <d3d12.h>

@@ -11,6 +11,7 @@
 //#include <iostream>
 //#include <Windows.h>
 
+
 namespace d3d12::content
 {
     using namespace DirectX;
@@ -216,7 +217,7 @@ namespace d3d12::content
             }
 
             UINT pso_id = create_pso_if_needed(stream_ptr, aligned_stream_size);
-
+            free(stream_ptr);
             return pso_id;
         }
 
@@ -298,6 +299,7 @@ namespace d3d12::content
 
             UINT pso_id = create_pso_if_needed(stream_ptr, aligned_stream_size);
 
+            free(stream_ptr);
             return pso_id;
         }
 
@@ -586,7 +588,8 @@ namespace d3d12::content
 
             // mark the end of ids list.
             item_ids[material_count] = Invalid_Index;
-
+            free(d3d12_items);
+            free(gpu_ids);
             return render_item_ids.add(std::move(items));
         }
 

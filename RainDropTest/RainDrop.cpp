@@ -72,9 +72,7 @@ namespace d3d12::rain_drop {
 
 
     const float RainDrop::Particle_Spread = 500.0f;
-
-    RainDrop::RainDrop() {}
-
+ 
     void RainDrop::create_descriptor_heap()
     {
         // descriptor heap

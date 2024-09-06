@@ -77,7 +77,7 @@ namespace d3d12 {
     } // anonymous namespace
 
     Core::Core(UINT width, UINT height, std::wstring name) :
-        DXSample(width, height, name),
+        dx_app(width, height, name),
         m_frame_index(0),
         m_render_context_fence_value(0)
     {
@@ -307,7 +307,7 @@ namespace d3d12 {
     void Core::run()
     {
         timer.begin();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
         const float dt{ timer.dt_avg() };
 
         OnUpdate(dt);

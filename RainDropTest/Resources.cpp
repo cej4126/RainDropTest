@@ -89,7 +89,7 @@ namespace d3d12 {
         return descriptor_handle;
     }
 
-    void Descriptor_Heap::free(Descriptor_Handle& handle)
+    void Descriptor_Heap::free_handle(Descriptor_Handle& handle)
     {
         if (!handle.is_valid()) return;
         std::lock_guard lock{ m_mutex };
@@ -238,9 +238,9 @@ namespace d3d12 {
     {
         for (UINT i{ 0 }; i < m_mip_count; ++i)
         {
-            core::rtv_heap().free(m_rtv[i]);
+            core::rtv_heap().free_handle(m_rtv[i]);
         }
-        core::srv_heap().free(m_srv);
+        core::srv_heap().free_handle(m_srv);
         core::deferred_release(m_resource);
 
     }
@@ -281,7 +281,7 @@ namespace d3d12 {
 
     void Depth_Buffer::release()
     {
-        core::dsv_heap().free(m_dsv);
+        core::dsv_heap().free_handle(m_dsv);
         m_texture.release();
     }
 }

@@ -5,12 +5,12 @@
 
 HWND Win32Application::g_handler_window = nullptr;
 
-int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show)
+int Win32Application::Run(dx_app* p_app, HINSTANCE hInstance, int m_cmd_show)
 {
     // Parse the command line parameters
     int argc{ 0 };
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    pSample->ParseCommandLineArgs(argv, argc);
+    p_app->ParseCommandLineArgs(argv, argc);
     LocalFree(argv);
 
     // Initialize the window class
@@ -29,10 +29,10 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
     window_class.hIconSm = 0;                           // HICON       hIconSm;
     RegisterClassEx(&window_class);
 
-    RECT window_rect = { 0, 0, static_cast<LONG>(pSample->GetWidth()), static_cast<LONG>(pSample->GetHeight()) };
+    RECT window_rect = { 0, 0, static_cast<LONG>(p_app->GetWidth()), static_cast<LONG>(p_app->GetHeight()) };
 
     // CreateWindowW(lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-    g_handler_window = CreateWindow(window_class.lpszClassName, pSample->GetTitle(),
+    g_handler_window = CreateWindow(window_class.lpszClassName, p_app->GetTitle(),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -40,12 +40,12 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
         window_rect.bottom - window_rect.top,
         nullptr, nullptr,
         hInstance,
-        pSample);
+        p_app);
 
-    // Initialize the sample. OnInit is defined in each child-implementation of DXSample.
-    pSample->OnInit(pSample->GetWidth(), pSample->GetHeight());
+    // Initialize the sample. OnInit is defined in each child-implementation of dx_app.
+    p_app->OnInit(p_app->GetWidth(), p_app->GetHeight());
 
-    pSample->create_surface(g_handler_window, pSample->GetWidth(), pSample->GetHeight());
+    p_app->create_surface(g_handler_window, p_app->GetWidth(), p_app->GetHeight());
 
     ShowWindow(g_handler_window, m_cmd_show);
 
@@ -62,10 +62,10 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
             DispatchMessage(&msg);
             is_running &= (msg.message != WM_QUIT);
         }
-        pSample->run();
+        p_app->run();
     }
 
-    pSample->OnDestroy();
+    p_app->OnDestroy();
 
     return static_cast<char>(msg.wParam);
 }
@@ -73,41 +73,17 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int m_cmd_show
 LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 
-    DXSample* pSample = reinterpret_cast<DXSample*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    dx_app* p_app = reinterpret_cast<dx_app*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
     switch (message)
     {
     case WM_CREATE:
     {
-        // Save the DXSample* passed in to CreateWindow.
+        // Save the dx_app* passed in to CreateWindow.
         LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
         SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
     }
     return 0;
-
-    //case WM_KEYDOWN:
-    //    if (pSample)
-    //    {
-    //        pSample->OnKeyDown(static_cast<UINT8>(wParam));
-    //    }
-    //    return 0;
-
-    //case WM_KEYUP:
-    //    if (pSample)
-    //    {
-    //        pSample->OnKeyUp(static_cast<UINT8>(wParam));
-    //    }
-    //    return 0;
-
-    //case WM_PAINT:
-    //    timer.begin();
-    //    if (pSample)
-    //    {
-    //        float dt{ timer.dt_avg() };
-    //        pSample->OnUpdate(dt);
-    //    }
-    //    timer.end();
-    //    return 0;
 
     case WM_DESTROY:
         PostQuitMessage(0);

@@ -18,6 +18,10 @@ std::filesystem::path set_current_directoyr_to_executable_path()
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
+#if _DEBUG
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     set_current_directoyr_to_executable_path();
 
     return Win32Application::Run(&g_core, hInstance, nCmdShow);

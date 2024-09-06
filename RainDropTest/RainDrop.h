@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stdafx.h"
-#include "DXSample.h"
+#include "DXApp.h"
 #include "Resources.h"
 #include "Surface.h"
 #include "Command.h"
@@ -13,7 +13,7 @@ namespace d3d12::rain_drop {
     class RainDrop
     {
     public:
-        RainDrop();
+        RainDrop() = default;
 
         bool initialize(UINT width, UINT height);
         void create_descriptor_heap();

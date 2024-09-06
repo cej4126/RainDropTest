@@ -5,11 +5,11 @@
 #include "Win32Application.h"
 #include <Windows.h>
 
-class DXSample
+class dx_app
 {
 public:
-    DXSample(UINT width, UINT height, std::wstring name);
-    virtual ~DXSample();
+    dx_app(UINT width, UINT height, std::wstring name);
+    virtual ~dx_app();
 
     virtual void OnInit(UINT width, UINT height) = 0;
     virtual void run() = 0;

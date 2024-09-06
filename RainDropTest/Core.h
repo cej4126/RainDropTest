@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stdafx.h"
-#include "DXSample.h"
+#include "DXApp.h"
 #include "Resources.h"
 #include "Surface.h"
 #include "Command.h"
@@ -32,7 +32,7 @@ namespace d3d12 {
         UINT surface_height{ 0 };
     };
 
-    class Core : public DXSample
+    class Core : public dx_app
     {
     public:
         Core(UINT width, UINT height, std::wstring name);
