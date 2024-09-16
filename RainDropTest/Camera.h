@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "Input.h"
 
-namespace d3d12::camera {
+namespace camera {
 
     struct camera_type {
         enum type : UINT {

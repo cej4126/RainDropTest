@@ -102,7 +102,7 @@ namespace d3d12::camera {
         m_is_dirty = true;
     }
 
-    UINT create(camera_init_info info)
+    Camera create(camera_init_info info)
     {
         return cameras.add(info);
     }

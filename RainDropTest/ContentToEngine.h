@@ -3,7 +3,7 @@
 #include "stdafx.h"
 #include "Shaders.h"
 
-namespace d3d12::content
+namespace content
 {
 
     struct primitive_topology {

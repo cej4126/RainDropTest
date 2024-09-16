@@ -92,7 +92,7 @@ namespace d3d12::rain_drop {
     }
 
 
-    bool RainDrop::initialize(UINT width, UINT height)
+    bool RainDrop::initialize()
     {
         m_particle_src_index = 0;
 

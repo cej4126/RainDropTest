@@ -1,6 +1,6 @@
 
 #include "stdafx.h"
-#include "Win32Application.h"
+#include "Application.h"
 #include "Input.h"
 
 HWND Win32Application::g_handler_window = nullptr;

@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "Resources.h"
 
-namespace d3d12::surface {
+namespace surface {
 
     class Surface
     {

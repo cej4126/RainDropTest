@@ -101,7 +101,7 @@ namespace d3d12::rain_drop {
         HANDLE m_thread_handle{ nullptr };
 
         // Indices of shader resources in the descriptor heap.
-        enum Root_Parameters : UINT32
+        enum Root_Parameters : UINT
         {
             Root_Parameter_CB = 0,
             Root_Parameter_SRV,
@@ -110,7 +110,7 @@ namespace d3d12::rain_drop {
             Root_Parameters_Count
         };
 
-        enum Descriptor_Heap_Index : UINT32
+        enum Descriptor_Heap_Index : UINT
         {
             Uav_Particle_Pos_Vel_0 = 0,
             Uav_Particle_Pos_Vel_1 = Uav_Particle_Pos_Vel_0 + 1,

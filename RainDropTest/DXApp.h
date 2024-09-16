@@ -2,28 +2,27 @@
 #include "stdafx.h"
 #include "string"
 #include "DXSampleHelper.h"
-#include "Win32Application.h"
+#include "Application.h"
 #include <Windows.h>
+#include "Entity.h"
 
 class dx_app
 {
 public:
-    dx_app(UINT width, UINT height, std::wstring name);
-    virtual ~dx_app();
+    bool initialize();
+    void run();
 
-    virtual void OnInit(UINT width, UINT height) = 0;
-    virtual void run() = 0;
-    virtual void create_surface(HWND hwnd, UINT width, UINT height) = 0;
+    void shutdown();
 
-    virtual void OnRender() = 0;
-    virtual void OnDestroy() = 0;
-
-    virtual void OnKeyDown(UINT8) {}
-    virtual void OnKeyUp(UINT8) {}
+    void OnKeyDown(UINT8) {}
+    void OnKeyUp(UINT8) {}
 
     UINT GetWidth() const { return m_width; }
     UINT GetHeight() const { return m_height; }
     const WCHAR* GetTitle() const { return m_title.c_str(); }
+
+    game_entity::entity create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name);
+    void create_render_items();
 
     void ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc);
 
@@ -31,6 +30,8 @@ protected:
     std::wstring GetAssetFullPath(LPCWSTR assetName);
     void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_result_maybenull_ IDXGIAdapter1** ppAdapter);
     void SetCustomWindowText(LPCWSTR text);
+
+
 
 
     UINT m_width;
@@ -42,5 +43,10 @@ protected:
 private:
     std::wstring m_assetsPath;
     std::wstring m_title;
+
+    UINT m_cube_entity_id{ Invalid_Index };
+    UINT m_cube_item_id{ Invalid_Index };
+
+    UINT m_material_id{ Invalid_Index };
 };
 

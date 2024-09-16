@@ -14,7 +14,7 @@
 #define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
 
 using Microsoft::WRL::ComPtr;
-namespace d3d12 {
+namespace core {
 
     struct frame_info
     {
@@ -105,4 +105,7 @@ namespace d3d12 {
         void WaitForRenderContext();
         void MoveToNextFrame();
     };
+
+    bool initialize();
+    void shutdown();
 }

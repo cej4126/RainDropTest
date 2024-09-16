@@ -8,7 +8,7 @@ namespace d3d12::graphic_pass {
     struct graphic_cache;
 }
 
-namespace d3d12::content
+namespace content
 {
     struct opaque_root_parameter {
         enum parameter : UINT {

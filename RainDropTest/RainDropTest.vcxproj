@@ -179,7 +179,8 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Upload.cpp" />
     <ClCompile Include="Utilities.cpp" />
-    <ClCompile Include="Win32Application.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Barriers.h" />
@@ -210,7 +211,8 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClInclude Include="Upload.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="Vector.h" />
-    <ClInclude Include="Win32Application.h" />
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="nBodyGravityCS.hlsl">
