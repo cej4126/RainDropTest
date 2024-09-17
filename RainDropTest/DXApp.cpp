@@ -8,6 +8,7 @@
 #include "Math.h"
 #include "Transform.h"
 #include "Scripts.h"
+#include "Geometry.h"
 #include "Utilities.h"
 #include "Content.h"
 
@@ -16,7 +17,7 @@ using namespace Microsoft::WRL;
 namespace {
     struct Scene {
         game_entity::entity entity{};
-        camera::Camera camera{};
+        camera::Camera scene_camera{};
         surface::Surface surface{};
         windows::Window window{};
     };
