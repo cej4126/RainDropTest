@@ -7,7 +7,7 @@ namespace d3d12 {
     struct d3d12_frame_info;
 }
 
-namespace d3d12::graphic_pass {
+namespace graphic_pass {
     struct opaque_root_parameter {
         enum parameter : UINT {
             global_shader_data,
@@ -112,6 +112,6 @@ namespace d3d12::graphic_pass {
     void shutdown();
 
     void set_size(DirectX::XMUINT2 size);
-    void depth_prepass(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info);
-    void render(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info);
+    void depth_prepass(id3d12_graphics_command_list* cmd_list, const core::d3d12_frame_info& d3d12_info);
+    void render(id3d12_graphics_command_list* cmd_list, const core::d3d12_frame_info& d3d12_info);
 }

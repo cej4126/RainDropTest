@@ -4,7 +4,7 @@
 
 class Descriptor_Heap;
 
-namespace d3d12::core {
+namespace resource {
     template<typename T>
     constexpr void release(T*& resource)
     {
@@ -38,7 +38,7 @@ namespace d3d12::core {
     [[nodiscard]] Descriptor_Heap& srv_heap();
     [[nodiscard]] Descriptor_Heap& uav_heap();
     [[nodiscard]] constant_buffer& cbuffer();
-    UINT64 get_render_context_fence_value();
-    void set_render_context_fence_value();
+    //UINT64 get_render_context_fence_value();
+    //void set_render_context_fence_value();
 
 }

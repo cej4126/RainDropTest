@@ -3,7 +3,7 @@
 #include "DXApp.h"
 #include "Surface.h"
 
-namespace d3d12::command {
+namespace command {
     class Command
     {
     public:

@@ -61,8 +61,8 @@ namespace camera {
     class Camera
     {
     public:
-        //Camera() = default;
-        //explicit Camera(UINT id) : _id{ id } {}
+        Camera() = default;
+        explicit Camera(UINT id) : _id{ id } {}
         explicit Camera(camera_init_info info);
         void update();
 
@@ -120,7 +120,7 @@ namespace camera {
         input::input_system<Camera> m_input_system;
     };
 
-    UINT create(camera_init_info info);
+    Camera create(camera_init_info info);
     void remove(UINT id);
     [[nodiscard]] Camera& get(UINT id);
 

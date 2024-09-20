@@ -1,7 +1,8 @@
 #include "Helpers.h"
 #include "Main.h"
+#include "Core.h"
 
-namespace d3d12::d3dx {
+namespace d3dx {
 
     ID3D12RootSignature* create_root_signature(const D3D12_ROOT_SIGNATURE_DESC1& desc)
     {

@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "Content.h"
 #include "Utilities.h"
+#include "Core.h"
 
 namespace app {
 
@@ -51,18 +52,18 @@ namespace app {
 
         utl::read_file(path, model, size);
 
-        const UINT model_id{ d3d12::content::create_resource(model.get(), d3d12::content::asset_type::mesh) };
+        const UINT model_id{ content::create_resource(model.get(), content::asset_type::mesh) };
         assert(model_id != Invalid_Index);
         return model_id;
     }
 
     void create_material()
     {
-        d3d12::content::material_init_info info{};
-        info.type = d3d12::content::material_type::opaque;
+        content::material_init_info info{};
+        info.type = content::material_type::opaque;
         info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::vertex_shader_vs;
         info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::pixel_shader_ps;
-        material_id = d3d12::content::create_resource(&info, d3d12::content::asset_type::material);
+        material_id = content::create_resource(&info, content::asset_type::material);
     }
 
     void create_render_items()
@@ -83,6 +84,6 @@ namespace app {
         create_material();
         UINT materials[]{ material_id };
 
-        cube_item_id = d3d12::content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
+        cube_item_id =  content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
     }
 }

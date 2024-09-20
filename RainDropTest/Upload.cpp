@@ -3,7 +3,7 @@
 #include "Main.h"
 #include "Helpers.h"
 
-namespace d3d12::upload {
+namespace upload {
 
     namespace {
         struct upload_frame

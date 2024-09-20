@@ -7,15 +7,21 @@
 #include "Command.h"
 #include "Camera.h"
 
+// InterlockedCompareExchange returns the object's value if the 
+// comparison fails.  If it is already 0, then its value won't 
+// change and 0 will be returned.
+#define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
+
+
 using Microsoft::WRL::ComPtr;
-namespace d3d12::rain_drop {
+namespace rain_drop {
 
     class RainDrop
     {
     public:
         RainDrop() = default;
 
-        bool initialize(UINT width, UINT height);
+        bool initialize();
         void create_descriptor_heap();
         void populate_command_list(id3d12_graphics_command_list* command_list, UINT frame_count);
         void update(UINT camera_id, UINT frame_index);

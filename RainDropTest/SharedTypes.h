@@ -2,7 +2,7 @@
 
 #include "stdafx.h"
 
-namespace d3d12::hlsl {
+namespace hlsl {
     using float4x4 = DirectX::XMFLOAT4X4A;
     using float4 = DirectX::XMFLOAT4;
     using float3 = DirectX::XMFLOAT3;

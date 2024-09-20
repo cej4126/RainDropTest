@@ -27,7 +27,7 @@
 //extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 //extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
-namespace d3d12::rain_drop {
+namespace rain_drop {
 
     namespace {
         UINT cube_model_id{ Invalid_Index };
@@ -41,7 +41,7 @@ namespace d3d12::rain_drop {
 
         utl::vector<UINT> surface_ids;
 
-        d3d12_frame_info get_d3d12_frame_info(const frame_info& info, constant_buffer& cbuffer, const surface::Surface& surface)
+        core::d3d12_frame_info get_d3d12_frame_info(const core::frame_info& info, resource::constant_buffer& cbuffer, const surface::Surface& surface)
         {
             camera::Camera& camera{ camera::get(info.camera_id) };
             camera.update();
@@ -60,7 +60,7 @@ namespace d3d12::rain_drop {
             // TODO: handle the case when cbuffer is full.
             memcpy(shader_data, &global_shader_data, sizeof(hlsl::GlobalShaderData));
 
-            d3d12_frame_info d3d12_info
+            core::d3d12_frame_info d3d12_info
             {
                 &info,
                 cbuffer.gpu_address(shader_data)
@@ -96,7 +96,7 @@ namespace d3d12::rain_drop {
     {
         m_particle_src_index = 0;
 
-        m_render_context_fence_value1 = 0;
+        //m_render_context_fence_value1 = 0;
         m_thread_fence_value = 0;
 
         // Create the root signatures.
@@ -473,7 +473,7 @@ namespace d3d12::rain_drop {
 
                 // Wait for the render thread to be done with the SRV so that
                 // the next frame in the simulation can run.
-                UINT64 render_context_fence_value = core::get_render_context_fence_value();
+                UINT64 render_context_fence_value = InterlockedGetValue(&m_render_context_fence_value1);
                 if (core::render_context_fence()->GetCompletedValue() < render_context_fence_value)
                 {
                     ThrowIfFailed(p_command_queue->Wait(core::render_context_fence(), render_context_fence_value));

@@ -7,12 +7,13 @@
 #include "Math.h"
 #include <unordered_map>
 #include "GraphicPass.h"
+#include "Core.h"
 
 //#include <iostream>
 //#include <Windows.h>
 
 
-namespace d3d12::content
+namespace content
 {
     using namespace DirectX;
     namespace {
@@ -402,7 +403,7 @@ namespace d3d12::content
             sub_mesh_buffers.remove(id);
         }
 
-        void get_views(UINT id_count, const d3d12::graphic_pass::graphic_cache& cache)
+        void get_views(UINT id_count, const graphic_pass::graphic_cache& cache)
         {
             assert(cache.sub_mesh_gpu_ids && id_count);
             assert(cache.position_buffer_views && cache.element_buffers && cache.index_buffer_views &&
@@ -451,14 +452,14 @@ namespace d3d12::content
             }
 
             UINT64 material_output_size{
-                (sizeof(d3d12::content::material::material_header) +
+                (sizeof(content::material::material_header) +
                  sizeof(UINT) * shader_count +
                  sizeof(UINT) * info.texture_count +
                  sizeof(UINT) * info.texture_count) };
             buffer = std::make_unique<UINT8[]>(material_output_size);
-            d3d12::content::material::material_header* header = (d3d12::content::material::material_header*)buffer.get();
-            UINT* const shader_ids = (UINT*)&buffer[(UINT)(sizeof(d3d12::content::material::material_header))];
-            UINT* const texture_ids = (UINT*)&buffer[(UINT)(sizeof(d3d12::content::material::material_header))];
+            content::material::material_header* header = (content::material::material_header*)buffer.get();
+            UINT* const shader_ids = (UINT*)&buffer[(UINT)(sizeof(content::material::material_header))];
+            UINT* const texture_ids = (UINT*)&buffer[(UINT)(sizeof(content::material::material_header))];
 
             header->type = info.type;
             header->flags = *(shaders::shader_flags::flags*)&shader_flags;
@@ -492,7 +493,7 @@ namespace d3d12::content
             materials.remove(id);
         }
 
-        //void get_materials(const UINT* const material_ids, UINT material_count, const d3d12::content::material::materials_cache& cache, UINT descriptor_index_count)
+        //void get_materials(const UINT* const material_ids, UINT material_count, const content::material::materials_cache& cache, UINT descriptor_index_count)
         //{
         //    assert(material_ids && material_count);
         //    assert(cache.root_signatures && cache.material_types);
@@ -513,7 +514,7 @@ namespace d3d12::content
         //    descriptor_index_count = total_index_count;
         //}
 
-        void get_materials(UINT id_count, const d3d12::graphic_pass::graphic_cache& cache)
+        void get_materials(UINT id_count, const graphic_pass::graphic_cache& cache)
         {
             assert(cache.material_ids && id_count);
             assert(cache.root_signatures && cache.material_types);
@@ -523,9 +524,9 @@ namespace d3d12::content
             for (UINT i{ 0 }; i < id_count; ++i)
             {
                 const UINT8* buffer{ materials[cache.material_ids[i]].get() };
-                d3d12::content::material::material_header* header = (d3d12::content::material::material_header*)buffer;
-                UINT* const shader_ids = (UINT*)&buffer[(UINT)(sizeof(d3d12::content::material::material_header))];
-                UINT* const texture_ids = (UINT*)&buffer[(UINT)(sizeof(d3d12::content::material::material_header))];
+                content::material::material_header* header = (content::material::material_header*)buffer;
+                UINT* const shader_ids = (UINT*)&buffer[(UINT)(sizeof(content::material::material_header))];
+                UINT* const texture_ids = (UINT*)&buffer[(UINT)(sizeof(content::material::material_header))];
 
                 cache.root_signatures[i] = root_signatures[header->root_signature_id];
                 cache.material_types[i] = header->type;
@@ -607,7 +608,7 @@ namespace d3d12::content
             render_item_ids.remove(id);
         }
 
-        void get_d3d12_render_item_ids(const frame_info& info, utl::vector<UINT>& d3d12_render_item_ids)
+        void get_d3d12_render_item_ids(const core::frame_info& info, utl::vector<UINT>& d3d12_render_item_ids)
         {
             assert(info.render_item_ids && info.render_item_count);
             assert(d3d12_render_item_ids.empty());

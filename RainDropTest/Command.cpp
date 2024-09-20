@@ -1,7 +1,7 @@
 #include "Command.h"
 #include "Main.h"
 
-namespace d3d12::command {
+namespace command {
     Command::Command(id3d12_device* const device, D3D12_COMMAND_LIST_TYPE type)
     {
         D3D12_COMMAND_QUEUE_DESC desc{};

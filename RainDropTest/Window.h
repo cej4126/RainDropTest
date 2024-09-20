@@ -20,13 +20,12 @@ namespace windows {
     public:
         constexpr explicit window(UINT id) : _id{ id } {};
         constexpr window() = default;
+        constexpr UINT get_id() const { return _id; }
+        constexpr bool is_valid() const { return _id != Invalid_Index; }
         
-
     private:
         UINT _id{ Invalid_Index };
     };
 
-    class Window
-    {
-    };
+    window create(const window_init_info* init_info);
 }

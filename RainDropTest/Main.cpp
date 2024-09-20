@@ -22,7 +22,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 #endif
     set_current_directoyr_to_executable_path();
 
-    dx_app app{};
+    app::dx_app app{};
     if (app.initialize())
     {
         MSG msg{};
@@ -44,7 +44,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     return 0;
 }
 
-//namespace d3d12::core{
+//namespace core{
 //
 //    id3d12_device* const device() { return g_core.device(); }
 //

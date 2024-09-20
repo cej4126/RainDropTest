@@ -4,7 +4,7 @@
 #include "FreeList.h"
 
 
-namespace d3d12::content
+namespace content
 {
     namespace {
 
@@ -34,7 +34,7 @@ namespace d3d12::content
         UINT create_material_resource(const void* const data)
         {
             assert(data);
-            return d3d12::content::material::add(*(const d3d12::content::material_init_info* const)data);
+            return content::material::add(*(const content::material_init_info* const)data);
         }
 
         UINT create_single_sub_mesh(const void* const data)

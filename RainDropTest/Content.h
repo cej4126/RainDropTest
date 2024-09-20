@@ -4,7 +4,7 @@
 #include "ContentToEngine.h"
 #include "Core.h"
 
-namespace d3d12::graphic_pass {
+namespace graphic_pass {
     struct graphic_cache;
 }
 
@@ -34,7 +34,7 @@ namespace content
         UINT add(const UINT8*& data);
         void remove(UINT id);
         //void get_views(const UINT* const gpu_ids, UINT id_count, const views_cache& cache);
-        void get_views(UINT id_count, const d3d12::graphic_pass::graphic_cache& cache);
+        void get_views(UINT id_count, const graphic_pass::graphic_cache& cache);
     } // namespace sub_mesh
 
     namespace material {
@@ -57,12 +57,12 @@ namespace content
             UINT* shader_count;
         };
 
-        //        return content::material::add(*(const d3d12::content::material_init_info* const)data);
+        //        return content::material::add(*(const content::material_init_info* const)data);
 
-        UINT add(d3d12::content::material_init_info info);
+        UINT add(content::material_init_info info);
         void remove(UINT id);
         //void get_materials(const UINT* const material_ids, UINT material_count, const materials_cache& cache, UINT descriptor_index_count);
-        void get_materials(UINT id_count, const d3d12::graphic_pass::graphic_cache& cache);
+        void get_materials(UINT id_count, const graphic_pass::graphic_cache& cache);
     } // namespace material
 
     namespace render_item {
@@ -77,9 +77,9 @@ namespace content
 
         UINT add(UINT entity_id, UINT geometry_content_id, UINT material_count, const UINT* const material_ids);
         void remove(UINT id);
-        void get_d3d12_render_item_ids(const frame_info& info, utl::vector<UINT>& d3d12_render_item_ids);
+        void get_d3d12_render_item_ids(const core::frame_info& info, utl::vector<UINT>& d3d12_render_item_ids);
         //void get_items(const UINT* const d3d12_render_item_ids, UINT id_count, const items_cache& cache);
-        void get_items(const UINT* const d3d12_render_item_ids, UINT id_count, const d3d12::graphic_pass::graphic_cache& cache);
+        void get_items(const UINT* const d3d12_render_item_ids, UINT id_count, const graphic_pass::graphic_cache& cache);
 
     }
 }

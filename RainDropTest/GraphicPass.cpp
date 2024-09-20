@@ -5,7 +5,7 @@
 #include "SharedTypes.h"
 #include "Transform.h"
 
-namespace d3d12::graphic_pass
+namespace graphic_pass
 {
     namespace {
 
@@ -34,7 +34,7 @@ namespace d3d12::graphic_pass
             }
         }
 
-        void fill_per_object_data(const d3d12_frame_info& d3d12_info)
+        void fill_per_object_data(const core::d3d12_frame_info& d3d12_info)
         {
             const graphic_cache& cache{ frame_cache };
             const UINT render_items_count{ (UINT)cache.size() };
@@ -52,7 +52,7 @@ namespace d3d12::graphic_pass
              
         }
 
-        void prepare_render_frame(const d3d12_frame_info& d3d12_info)
+        void prepare_render_frame(const core::d3d12_frame_info& d3d12_info)
         {
             assert(d3d12_info.info);
             graphic_cache& cache{ frame_cache };
@@ -83,7 +83,7 @@ namespace d3d12::graphic_pass
     void set_size(DirectX::XMUINT2 size)
     {}
 
-    void render(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info)
+    void render(id3d12_graphics_command_list* cmd_list, const core::d3d12_frame_info& d3d12_info)
     {
         prepare_render_frame(d3d12_info);
 

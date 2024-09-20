@@ -17,13 +17,19 @@ using namespace Microsoft::WRL;
 namespace {
     struct Scene {
         game_entity::entity entity{};
-        camera::Camera scene_camera{};
+        camera::Camera camera{};
         surface::Surface surface{};
-        windows::Window window{};
+        windows::window window{};
+    };
+
+    struct input_info
+    {
+        input::input_code::code code;
+        float multipler;
+        input::axis::type axis;
     };
 
     Scene m_scenes[1];
-
 
     [[nodiscard]] UINT load_model(const char* path)
     {
@@ -46,8 +52,20 @@ namespace {
         return content::create_resource(&info, content::asset_type::material);
     }
 
-    UINT cube_model_id;
+    UINT m_cube_model_id;
+    UINT m_cube_entity_id{ Invalid_Index };
+    UINT m_cube_item_id{ Invalid_Index };
 
+    UINT m_material_id{ Invalid_Index };
+    struct input_info m_input_data[] =
+    {
+        { input::input_code::key_a,  1.f, input::axis::x },
+        { input::input_code::key_d, -1.f, input::axis::x },
+        { input::input_code::key_w,  1.f, input::axis::z },
+        { input::input_code::key_s, -1.f, input::axis::z },
+        { input::input_code::key_q, -1.f, input::axis::y },
+        { input::input_code::key_e,  1.f, input::axis::y }
+    };
 
 } // anonymous namespace
 
@@ -62,21 +80,25 @@ LRESULT win_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-bool dx_app::initialize()
-{
-    WCHAR assetsPath[512];
-    GetAssetsPath(assetsPath, _countof(assetsPath));
-    m_assetsPath = assetsPath;
+//bool dx_app::initialize()
+//{
+//    WCHAR assetsPath[512];
+//    GetAssetsPath(assetsPath, _countof(assetsPath));
+//    //m_assetsPath = assetsPath;
+//
+//    return true;
+//}
+//
+//void dx_app::run()
+//{
+//
+//}
+//
+//void dx_app::shutdown()
+//{
+//}
 
-    return true;
-}
-
-void dx_app::shutdown()
-{
-}
-
-
-game_entity::entity dx_app::create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name)
+game_entity::entity create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name)
 {
     transform::init_info transform_info{};
     XMVECTOR quat{ XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&rotation)) };
@@ -99,89 +121,89 @@ game_entity::entity dx_app::create_entity_item(XMFLOAT3 position, XMFLOAT3 rotat
     assert(entity.is_valid());
     return entity;
 }
-
-void dx_app::create_render_items()
-{
-    m_cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "").get_id();
-
-    assert(std::filesystem::exists("../cube.model"));
-    std::thread threads[]{
-        std::thread{ [] { cube_model_id = load_model("../cube.model"); }},
-    };
-
-    for (auto& t : threads)
-    {
-        t.join();
-    }
-
-    m_material_id = create_material();
-    UINT materials[]{ m_material_id };
-
-    geometry::init_info geometry_info{};
-
-
-    m_cube_item_id = content::render_item::add(m_cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
-}
-
-
-std::wstring dx_app::GetAssetFullPath(LPCWSTR assetName)
-{
-    return m_assetsPath + assetName;
-}
+//
+//void create_render_items()
+//{
+//    m_cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "").get_id();
+//
+//    assert(std::filesystem::exists("../cube.model"));
+//    std::thread threads[]{
+//        std::thread{ [] { m_cube_model_id = load_model("../cube.model"); }},
+//    };
+//
+//    for (auto& t : threads)
+//    {
+//        t.join();
+//    }
+//
+//    m_material_id = create_material();
+//    UINT materials[]{ m_material_id };
+//
+//    geometry::init_info geometry_info{};
+//
+//
+//    m_cube_item_id = content::render_item::add(m_cube_entity_id, m_ cube_model_id, _countof(materials), &materials[0]);
+//}
+//
+//
+//std::wstring dx_app::GetAssetFullPath(LPCWSTR assetName)
+//{
+//    return m_assetsPath + assetName;
+//}
 
 // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
 // If no such adapter can be found, *ppAdapter will be set to nullptr.
-_Use_decl_annotations_
-void dx_app::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_result_maybenull_ IDXGIAdapter1** ppAdapter)
-{
-    ComPtr<IDXGIAdapter1> adapter;
-    *ppAdapter = nullptr;
-
-    for (UINT adapter_index = 0; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapters1(adapter_index, &adapter); ++adapter_index)
-    {
-        DXGI_ADAPTER_DESC1 desc;
-        adapter->GetDesc1(&desc);
-
-        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-        {
-            // Don't select the Basic Render Driver adapter.
-            // If you want a software adapter, pass in "/warp" on the command line.
-            continue;
-        }
-
-        // Check to see if the adapter supports Direct3D 12, but don't create the
-        // actual device yet.
-        if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-        {
-            break;
-        }
-    }
-
-    *ppAdapter = adapter.Detach();
-}
-
-void dx_app::SetCustomWindowText(LPCWSTR text)
-{
-
-}
-
-void dx_app::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
-{
-    for (int i = 1; i < argc; ++i)
-    {
-        if (_wcsnicmp(argv[i], L"-warp", wcslen(argv[i])) == 0 ||
-            _wcsnicmp(argv[i], L"/warp", wcslen(argv[i])) == 0)
-        {
-            m_use_warp_device = true;
-            m_title = m_title + L" (WARP)";
-        }
-    }
-}
+//_Use_decl_annotations_
+//void dx_app::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_result_maybenull_ IDXGIAdapter1** ppAdapter)
+//{
+//    ComPtr<IDXGIAdapter1> adapter;
+//    *ppAdapter = nullptr;
+//
+//    for (UINT adapter_index = 0; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapters1(adapter_index, &adapter); ++adapter_index)
+//    {
+//        DXGI_ADAPTER_DESC1 desc;
+//        adapter->GetDesc1(&desc);
+//
+//        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+//        {
+//            // Don't select the Basic Render Driver adapter.
+//            // If you want a software adapter, pass in "/warp" on the command line.
+//            continue;
+//        }
+//
+//        // Check to see if the adapter supports Direct3D 12, but don't create the
+//        // actual device yet.
+//        if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+//        {
+//            break;
+//        }
+//    }
+//
+//    *ppAdapter = adapter.Detach();
+//}
+//
+//void dx_app::SetCustomWindowText(LPCWSTR text)
+//{
+//
+//}
+//
+//void dx_app::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
+//{
+//    for (int i = 1; i < argc; ++i)
+//    {
+//        if (_wcsnicmp(argv[i], L"-warp", wcslen(argv[i])) == 0 ||
+//            _wcsnicmp(argv[i], L"/warp", wcslen(argv[i])) == 0)
+//        {
+//            m_use_warp_device = true;
+//            m_title = m_title + L" (WARP)";
+//        }
+//    }
+//}
 
 void create_scene(Scene& scene, windows::window_init_info info)
 {
-    scene.window = windows::create_window(&info);
-    scene.surface = surface::create_surface(scene.window);
+    scene.window = windows::create(&info);
+    scene.surface = surface::create(scene.window);
 
     // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
     scene.entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, "camera_script");
@@ -215,11 +237,41 @@ bool app_initialize()
 
     for (UINT i{ 0 }; i < _countof(m_scenes); ++i)
     {
-
+        create_scene(m_scenes[i], info[i]);
     }
+
+    app::create_render_items();
+
+    //generate_lights();
+
+    input::input_source source{};
+    source.binding = std::hash<std::string>()("move");
+    source.source_type = input::input_source::keyboard;
+
+    for (int i{ 0 }; i < _countof(input_data); ++i)
+    {
+        source.code = m_input_data[i].code;
+        source.multiplier = m_input_data[i].multipler;
+        source.axis = m_input_data[i].axis;
+        input::bind(source);
+    }
+}
+
+void app_shutdown()
+{
+
 }
 
 bool dx_app::initialize()
 {
     return app_initialize();
+}
+
+void dx_app::run()
+{
+}
+
+void dx_app::shutdown()
+{
+    app_shutdown();
 }

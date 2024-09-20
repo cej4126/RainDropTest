@@ -3,8 +3,9 @@
 #include "Resources.h"
 #include "Math.h"
 #include "Buffers.h"
+#include "Core.h"
 
-namespace d3d12 {
+namespace resource {
 
     bool Descriptor_Heap::initialize(UINT capacity, bool is_shader_visible)
     {
@@ -103,7 +104,7 @@ namespace d3d12 {
 
         const UINT frame_idx{ core::current_frame_index() };
         m_deferred_free_indicies[frame_idx].push_back(index);
-        core::set_deferred_release_flag();
+        core::set_deferred_releases_flag();
         handle = {};
     }
 
@@ -276,7 +277,7 @@ namespace d3d12 {
         depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D; //   D3D12_DSV_DIMENSION ViewDimension;
         depth_stencil_desc.Flags = D3D12_DSV_FLAG_NONE;                   //   D3D12_DSV_FLAGS Flags;
 
-        d3d12::core::device()->CreateDepthStencilView(resource(), &depth_stencil_desc, m_dsv.cpu);
+        core::device()->CreateDepthStencilView(resource(), &depth_stencil_desc, m_dsv.cpu);
     }
 
     void Depth_Buffer::release()

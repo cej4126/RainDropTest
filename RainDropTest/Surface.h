@@ -1,13 +1,18 @@
 #pragma once
 #include "stdafx.h"
 #include "Resources.h"
+#include "Window.h"
 
 namespace surface {
 
     class Surface
     {
     public:
-        Surface() {}
+        constexpr Surface() = default;
+        constexpr Surface(UINT id) : _id{ id } {}
+        constexpr UINT get_id() const { return _id; }
+        constexpr bool is_valid() const { return _id != Invalid_Index; }
+
         //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
         constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
         constexpr static UINT buffer_count{ 3 };
@@ -109,7 +114,7 @@ namespace surface {
         struct render_target
         {
             ID3D12Resource* resource{ nullptr };
-            Descriptor_Handle rtv{};
+            resource::Descriptor_Handle rtv{};
         };
 
         IDXGISwapChain4* m_swap_chain{ nullptr };
@@ -124,9 +129,11 @@ namespace surface {
         D3D12_VIEWPORT m_viewport{};
         D3D12_RECT m_scissor_rectangle{};
         HANDLE m_swap_chain_event{};
+
+        UINT _id{ Invalid_Index };
     };
 
-    UINT surface_create(HWND hwnd, UINT width, UINT height);
-    void surface_remove(UINT id);
+    Surface create(windows::window window);
+    void remove(UINT id);
     surface::Surface& get_surface(UINT id);
 }

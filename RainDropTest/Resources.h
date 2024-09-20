@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "DXApp.h"
 
-namespace d3d12 {
+namespace resource {
 
     struct Descriptor_Handle {
         D3D12_CPU_DESCRIPTOR_HANDLE cpu{};

@@ -2,8 +2,9 @@
 #include "Main.h"
 #include "FreeList.h"
 #include "Resources.h"
+#include "Window.h"
 
-namespace d3d12::surface {
+namespace surface {
     
     namespace {
 
@@ -116,13 +117,14 @@ namespace d3d12::surface {
         core::release(m_swap_chain);
     }
     
-    UINT surface_create(HWND hwnd, UINT width, UINT height)
+    Surface create(windows::window window)
     {
-        UINT id{ surfaces.add(hwnd, width, height) };
-        return id;
+        UINT id{ surfaces.add(window) };
+        surfaces[id].create_swap_chain(core::factory(), core::command_queue);
+        return Surface{ id };
     }
 
-    void surface_remove(UINT id)
+    void remove(UINT id)
     {
         surfaces.remove(id);
     }

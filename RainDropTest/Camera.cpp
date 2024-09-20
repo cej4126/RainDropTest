@@ -1,11 +1,10 @@
-#include "Camera.h"
-#pragma once
 #include "stdafx.h"
+#include "Camera.h"
 #include "FreeList.h"
 #include "Entity.h"
 #include "Transform.h"
 
-namespace d3d12::camera {
+namespace camera {
 
     namespace {
 
@@ -104,7 +103,7 @@ namespace d3d12::camera {
 
     Camera create(camera_init_info info)
     {
-        return cameras.add(info);
+        return Camera{ cameras.add(info) };
     }
 
     void remove(UINT id)
