@@ -181,7 +181,6 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Upload.cpp" />
     <ClCompile Include="Utilities.cpp" />
-    <ClCompile Include="Application.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -215,7 +214,6 @@ xcopy /Y /D $(SolutionDir)packages\DirectXShaderCompiler\bin\x64\dxil.dll $(OutD
     <ClInclude Include="Upload.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="Vector.h" />
-    <ClInclude Include="Application.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>

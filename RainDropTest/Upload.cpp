@@ -2,6 +2,7 @@
 #include "DXSampleHelper.h"
 #include "Main.h"
 #include "Helpers.h"
+#include "Core.h"
 
 namespace upload {
 

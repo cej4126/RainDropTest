@@ -3,6 +3,8 @@
 #include "FreeList.h"
 #include "Resources.h"
 #include "Window.h"
+#include "Core.h"
+
 
 namespace surface {
     
@@ -23,8 +25,8 @@ namespace surface {
 
         DXGI_SWAP_CHAIN_DESC1 desc{};
         desc.BufferCount = buffer_count;                                       // UINT BufferCount;
-        desc.Width = m_width;                                                  // UINT Width;
-        desc.Height = m_height;                                                // UINT Height;
+        desc.Width = m_window.width();                                                  // UINT Width;
+        desc.Height = m_window.height();                                                // UINT Height;
         desc.Format = default_back_buffer_format;                              // DXGI_FORMAT Format;
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
         desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
@@ -37,8 +39,9 @@ namespace surface {
         desc.Stereo = false;                                                   // BOOL Stereo;
 
         IDXGISwapChain1* swap_chain;
-        ThrowIfFailed(factory->CreateSwapChainForHwnd(command_queue, m_handle, &desc, nullptr, nullptr, &swap_chain));
-        ThrowIfFailed(factory->MakeWindowAssociation(m_handle, DXGI_MWA_NO_ALT_ENTER));
+        HWND hwnd{ (HWND)m_window.handle() };
+        ThrowIfFailed(factory->CreateSwapChainForHwnd(command_queue, hwnd, &desc, nullptr, nullptr, &swap_chain));
+        ThrowIfFailed(factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
         swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain));
         m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
 
@@ -58,12 +61,7 @@ namespace surface {
     {
         assert(m_swap_chain);
         m_swap_chain->Present(1, m_present_flag);
-    }
-
-    UINT Surface::set_current_bb_index()
-    {
         m_current_bb_index = m_swap_chain->GetCurrentBackBufferIndex();
-        return m_current_bb_index;
     }
 
     void Surface::resize()
@@ -99,10 +97,12 @@ namespace surface {
 
         DXGI_SWAP_CHAIN_DESC desc{};
         ThrowIfFailed(m_swap_chain->GetDesc(&desc));
-        assert(m_width == desc.BufferDesc.Width && m_height == desc.BufferDesc.Height);
+        UINT width{ m_window.width() };
+        UINT height{ m_window.height() };
+        assert(width == desc.BufferDesc.Width && height == desc.BufferDesc.Height);
 
-        m_viewport = { 0.0f, 0.0f, (float)m_width, (float)m_height, 0.0f, 1.0f };
-        m_scissor_rectangle = { 0, 0, (INT)m_width, (INT)m_height };
+        m_viewport = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
+        m_scissor_rectangle = { 0, 0, (INT)width, (INT)height };
     }
 
     void Surface::release()
@@ -120,8 +120,9 @@ namespace surface {
     Surface create(windows::window window)
     {
         UINT id{ surfaces.add(window) };
-        surfaces[id].create_swap_chain(core::factory(), core::command_queue);
-        return Surface{ id };
+        surfaces[id].create_swap_chain(core::factory(), core::command_queue());
+        return surfaces[id];
+//        return Surface{ id };
     }
 
     void remove(UINT id)

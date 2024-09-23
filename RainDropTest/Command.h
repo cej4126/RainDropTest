@@ -1,7 +1,11 @@
 #pragma once
 #include "stdafx.h"
 #include "DXApp.h"
-#include "Surface.h"
+//#include "Surface.h"
+
+namespace surface {
+    class Surface;
+}
 
 namespace command {
     class Command

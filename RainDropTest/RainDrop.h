@@ -95,7 +95,8 @@ namespace rain_drop {
 
         // Thread state.
         LONG volatile m_terminating{ 0 };
-        UINT64 volatile m_render_context_fence_value1{ 0 };
+        // TODO: why 2 m_render_context_fence_value?
+        UINT64 volatile m_render_context_fence_value2{ 0 };
         UINT64 volatile m_thread_fence_value{ 0 };
 
         struct ThreadData

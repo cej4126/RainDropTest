@@ -103,7 +103,9 @@ namespace camera {
 
     Camera create(camera_init_info info)
     {
-        return Camera{ cameras.add(info) };
+        UINT id = cameras.add(info);
+        return cameras[id];
+        //return Camera{ { cameras.add(info) } };
     }
 
     void remove(UINT id)

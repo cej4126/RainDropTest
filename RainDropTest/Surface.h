@@ -2,69 +2,55 @@
 #include "stdafx.h"
 #include "Resources.h"
 #include "Window.h"
+#include "Core.h"
 
 namespace surface {
+
+    //class surface_item  
+    //{
+    //public:
+    //    constexpr explicit surface_item(UINT id) : m_id{ id } {}
+    //    constexpr surface_item() = default;
+    //    constexpr UINT get_id() const { return m_id; }
+    //    constexpr bool is_valid() const { return m_id != Invalid_Index; }
+
+    //    void resize(UINT width, UINT height) const;
+    //    UINT width() const;
+    //    UINT height() const;
+    //    void render(core::frame_info info) const;
+    //private:
+    //    UINT m_id{ Invalid_Index };
+    //};
 
     class Surface
     {
     public:
+        constexpr explicit Surface(UINT id) : m_id{ id } {}
         constexpr Surface() = default;
-        constexpr Surface(UINT id) : _id{ id } {}
-        constexpr UINT get_id() const { return _id; }
-        constexpr bool is_valid() const { return _id != Invalid_Index; }
-
+        constexpr UINT get_id() const { return m_id; }
+        constexpr bool is_valid() const { return m_id != Invalid_Index; }
+            
         //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
         constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
         constexpr static UINT buffer_count{ 3 };
 
-        constexpr explicit Surface(HWND handle, UINT width, UINT height)
-            : m_handle{ handle }, m_width{ width }, m_height{ height }
+        explicit Surface(windows::window window)
+            : m_window{ window }
         {
-            assert(handle);
+            assert(m_window.handle());
         }
 
-        // disable copy
-        explicit Surface(const Surface&) = delete;
-        Surface& operator=(const Surface&) = delete;
-
-        // set the move
-        constexpr Surface(Surface&& o) noexcept :
-            m_swap_chain{ o.m_swap_chain }, m_width{ o.m_width }, m_height{ o.m_height }, m_handle{ o.m_handle },
-            m_current_bb_index{ o.m_current_bb_index },
-            m_allow_tearing{ o.m_allow_tearing }, m_present_flag{ o.m_present_flag },
-            m_viewport{ o.m_viewport }, m_scissor_rectangle{ o.m_scissor_rectangle }
-        {
-            for (UINT i{ 0 }; i < buffer_count; ++i)
-            {
-                m_render_targets[i].resource = o.m_render_targets[i].resource;
-                m_render_targets[i].rtv = o.m_render_targets[i].rtv;
-            }
-
-            o.reset();
-        }
-
-        constexpr Surface& operator=(Surface&& o) noexcept
-        {
-            assert(this != &o);
-            if (this != &o)
-            {
-                release();
-                move(o);
-            }
-
-            return *this;
-        }
-
+        //DISABLE_COPY_AND_MOVE(Surface);
         ~Surface() { release(); }
 
         void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue);
         void present() const;
         void resize();
-        UINT set_current_bb_index();
-        void release();
 
-        [[nodiscard]] constexpr UINT width() const { return m_width; }
-        [[nodiscard]] constexpr UINT height() const { return m_height; }
+        //UINT set_current_bb_index();
+
+        [[nodiscard]] constexpr UINT width() const { return (UINT)m_viewport.Width; }
+        [[nodiscard]] constexpr UINT height() const { return (UINT)m_viewport.Height; }
         [[nodiscard]] constexpr ID3D12Resource* const back_buffer() const { return m_render_targets[m_current_bb_index].resource; }
         [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv() const { return m_render_targets[m_current_bb_index].rtv.cpu; }
         [[nodiscard]] constexpr const D3D12_VIEWPORT& viewport() const { return m_viewport; }
@@ -73,43 +59,7 @@ namespace surface {
 
     private:
         void finalize();
-
-        constexpr void move(Surface& o)
-        {
-            m_swap_chain = o.m_swap_chain;
-            for (UINT i{ 0 }; i < buffer_count; ++i)
-            {
-                m_render_targets[i].resource = o.m_render_targets[i].resource;
-                m_render_targets[i].rtv = o.m_render_targets[i].rtv;
-            }
-            m_width = o.m_width;
-            m_height = o.m_height;
-            m_handle = o.m_handle;
-            m_current_bb_index = 0;
-            m_allow_tearing = o.m_allow_tearing;
-            m_present_flag = o.m_present_flag;
-            m_viewport = o.m_viewport;
-            m_scissor_rectangle = o.m_scissor_rectangle;
-
-            o.reset();
-        }
-
-        constexpr void reset()
-        {
-            m_swap_chain = nullptr;
-            for (UINT i{ 0 }; i < buffer_count; ++i)
-            {
-                m_render_targets[i] = {};
-            }
-            m_width = 0;
-            m_height = 0;
-            m_handle = nullptr;
-            m_current_bb_index = 0;
-            m_allow_tearing = 0;
-            m_present_flag = 0;
-            m_viewport = {};
-            m_scissor_rectangle = {};
-        }
+        void release();
 
         struct render_target
         {
@@ -119,18 +69,15 @@ namespace surface {
 
         IDXGISwapChain4* m_swap_chain{ nullptr };
         render_target m_render_targets[buffer_count]{};
-        UINT m_width{ 0 };
-        UINT m_height{ 0 };
-        HWND m_handle{ nullptr };
+        windows::window m_window{};
         mutable UINT m_current_bb_index{ 0 };
-
         UINT m_allow_tearing{ 0 };
         UINT m_present_flag{ 0 };
         D3D12_VIEWPORT m_viewport{};
         D3D12_RECT m_scissor_rectangle{};
         HANDLE m_swap_chain_event{};
 
-        UINT _id{ Invalid_Index };
+        UINT m_id{ Invalid_Index };
     };
 
     Surface create(windows::window window);

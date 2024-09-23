@@ -1,5 +1,6 @@
 #include "Command.h"
 #include "Main.h"
+#include "Surface.h"
 
 namespace command {
     Command::Command(id3d12_device* const device, D3D12_COMMAND_LIST_TYPE type)

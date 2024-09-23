@@ -2,7 +2,6 @@
 #include "stdafx.h"
 #include "string"
 #include "DXSampleHelper.h"
-#include "Application.h"
 #include <Windows.h>
 #include "Entity.h"
 
@@ -46,8 +45,4 @@ namespace app
         std::wstring m_title;
 
     };
-
-    //game_entity::entity create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name);
-    //void create_render_items();
-
 }

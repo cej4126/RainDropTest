@@ -49,7 +49,6 @@ namespace core {
     //    void set_deferred_releases_flag() { deferred_releases_flag[m_frame_index] = true; }
     //    void deferred_release(IUnknown* resource);
     //UINT64 get_render_context_fence_value();
-    //    void set_render_context_fence_value() { InterlockedExchange(&m_render_context_fence_value1, 0); }
 
     //    Descriptor_Heap& rtv_heap() { return m_rtv_desc_heap; }
     //    Descriptor_Heap& dsv_heap() { return m_dsv_desc_heap; }
@@ -127,7 +126,9 @@ namespace core {
         }
     }
 
-    [[nodiscard]] ID3D12Device14* const device();
+    [[nodiscard]] id3d12_device* const device();
+    [[nodiscard]] IDXGIFactory7* const factory();
+    [[nodiscard]] ID3D12CommandQueue* const command_queue();
     [[nodiscard]] resource::Descriptor_Heap& rtv_heap();
     [[nodiscard]] resource::Descriptor_Heap& dsv_heap();
     [[nodiscard]] resource::Descriptor_Heap& srv_heap();

@@ -24,6 +24,7 @@
 #include "Scripts.h"
 #include "RainDrop.h"
 #include "TimeProcess.h"
+//#include "Surface.h"
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -54,7 +55,7 @@ namespace core {
         constexpr D3D_FEATURE_LEVEL minimum_feature_level{ D3D_FEATURE_LEVEL_12_0 };
 
         IDXGIFactory7* m_dxgi_factory{ nullptr };
-        ID3D12Device14* m_device{ nullptr };
+        id3d12_device* m_device{ nullptr };
         command::Command m_command;
         resource::Descriptor_Heap m_rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };
         resource::Descriptor_Heap m_dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
@@ -125,7 +126,7 @@ namespace core {
             {
                 D3D_FEATURE_LEVEL_12_0,
                 D3D_FEATURE_LEVEL_12_1,
-                D3D_FEATURE_LEVEL_12_2,
+//                D3D_FEATURE_LEVEL_12_2,
             };
 
             D3D12_FEATURE_DATA_FEATURE_LEVELS feature_level_info{};
@@ -452,6 +453,16 @@ namespace core {
     //    }
     //}
 
+    namespace detail {
+        void deferred_release(IUnknown* resource)
+        {
+            const UINT frame_index{ current_frame_index() };
+            std::lock_guard lock{ m_deferred_releases_mutux };
+            m_deferred_releases[frame_index].push_back(resource);
+            set_deferred_releases_flag();
+        }
+    }
+
     void remove_item(UINT& entity_id, UINT& item_id, UINT& model_id)
     {
         if (entity_id != Invalid_Index)
@@ -620,13 +631,13 @@ namespace core {
 #pragma message("WARNING: GPU-based validation is enabled. This will considerably slow down the renderer!")
                 debug_interface->SetEnableGPUBasedValidation(1);
 #endif
-            }
+        }
             else
             {
                 OutputDebugStringA("Warning: D3D12 Debug interface is not available. Verify that Graphics Tools optional feature is installed on this system.\n");
             }
             dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
-        }
+    }
 #endif // _DEBUG
 
         ThrowIfFailed(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&m_dxgi_factory)));
@@ -635,7 +646,7 @@ namespace core {
         main_adapter.Attach(get_main_adapter());
         if (!main_adapter)
         {
-            failed_init();
+            return failed_init();
         }
 
         D3D_FEATURE_LEVEL max_feature_level{ get_max_feature_level(main_adapter.Get()) };
@@ -644,6 +655,8 @@ namespace core {
         {
             return failed_init();
         }
+
+        ThrowIfFailed(D3D12CreateDevice(main_adapter.Get(), max_feature_level, IID_PPV_ARGS(&m_device)));
 
 #ifdef _DEBUG
         {
@@ -659,7 +672,7 @@ namespace core {
         new (&m_command) command::Command(m_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
         if (!m_command.command_queue())
         {
-            throw;
+            return failed_init();
         }
 
         bool result{ true };
@@ -669,7 +682,7 @@ namespace core {
         result &= m_uav_desc_heap.initialize(512, false);
         if (!result)
         {
-            throw;
+            return failed_init();
         }
 
         NAME_D3D12_OBJECT(m_rtv_desc_heap.heap(), L"RTV Descriptor Heap");
@@ -690,13 +703,13 @@ namespace core {
             content::initialize() &&
             shaders::initialize()))
         {
-            throw;
+            return failed_init();
         }
 
         LoadAssets();
 
         return true;
-    }
+}
 
     void shutdown()
     {
@@ -729,8 +742,8 @@ namespace core {
         //m_render_target.release();
 
         m_depth_buffer.release();
-        surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-        surface.release();
+        //surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        //surface.release();
 
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
@@ -787,10 +800,19 @@ namespace core {
 
     //}
 
-
-    ID3D12Device14* const device()
+    id3d12_device* const device()
     {
         return m_device;
+    }
+
+    IDXGIFactory7* const factory()
+    {
+        return m_dxgi_factory;
+    }
+
+    ID3D12CommandQueue* const command_queue()
+    {
+        return m_command.command_queue();
     }
 
     resource::Descriptor_Heap& rtv_heap()

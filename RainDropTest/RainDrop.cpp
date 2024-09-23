@@ -96,7 +96,7 @@ namespace rain_drop {
     {
         m_particle_src_index = 0;
 
-        //m_render_context_fence_value1 = 0;
+        m_render_context_fence_value2 = 0;
         m_thread_fence_value = 0;
 
         // Create the root signatures.
@@ -395,7 +395,7 @@ namespace rain_drop {
     void RainDrop::sync_compute_tread(ID3D12CommandQueue* command_queue)
     {
         // Let the compute thread know that a new frame is being rendered.
-        InterlockedExchange(&m_render_context_fence_value1, m_render_context_fence_value);
+        InterlockedExchange(&m_render_context_fence_value2, m_render_context_fence_value);
 
         // Compute work must be completed before the frame can render or else the SRV 
         // will be in the wrong state.
@@ -473,11 +473,11 @@ namespace rain_drop {
 
                 // Wait for the render thread to be done with the SRV so that
                 // the next frame in the simulation can run.
-                UINT64 render_context_fence_value = InterlockedGetValue(&m_render_context_fence_value1);
+                UINT64 render_context_fence_value = InterlockedGetValue(&m_render_context_fence_value2);
                 if (core::render_context_fence()->GetCompletedValue() < render_context_fence_value)
                 {
                     ThrowIfFailed(p_command_queue->Wait(core::render_context_fence(), render_context_fence_value));
-                    InterlockedExchange(&m_render_context_fence_value1, 0);
+                    InterlockedExchange(&m_render_context_fence_value2, 0);
                 }
 
                 // Swap the indices to the SRV and UAV.

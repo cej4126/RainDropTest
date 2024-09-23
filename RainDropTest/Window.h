@@ -7,10 +7,10 @@ namespace windows {
     struct window_init_info
     {
         window_proc callback { nullptr };
-        HWND parent{ nullptr };
+        HWND parent_handle{ nullptr };
         const wchar_t* caption{ nullptr };
         INT32 left{ 0 };
-        INT32 right{ 0 };
+        INT32 top{ 0 };
         INT32 width{ 1920 };
         INT32 height{ 1080 };
     };
@@ -18,14 +18,21 @@ namespace windows {
     class window
     {
     public:
-        constexpr explicit window(UINT id) : _id{ id } {};
+        constexpr explicit window(UINT id) : m_id{ id } {};
         constexpr window() = default;
-        constexpr UINT get_id() const { return _id; }
-        constexpr bool is_valid() const { return _id != Invalid_Index; }
+        constexpr UINT get_id() const { return m_id; }
+        constexpr bool is_valid() const { return m_id != Invalid_Index; }
         
+        void* handle() const;
+        UINT width() const;
+        UINT height() const;
+
     private:
-        UINT _id{ Invalid_Index };
+        UINT m_id{ Invalid_Index };
     };
 
     window create(const window_init_info* init_info);
+
+    HWND get_window_handle(UINT id);
+    DirectX::XMUINT4 get_window_size(UINT id);
 }
