@@ -3,6 +3,8 @@
 #include "Entity.h"
 #include "FreeList.h"
 #include "SharedTypes.h"
+#include "Core.h"
+#include "Barriers.h"
 
 namespace lights
 {
@@ -53,9 +55,19 @@ namespace lights
     public:
     private:
         utl::free_list<light_owner> m_owners;
-        utl::vector<d3d12::hlsl::DirectionalLightParameters> m_non_cullable_lights;
+        utl::vector<hlsl::DirectionalLightParameters> m_non_cullable_lights;
         utl::vector<UINT32> m_non_cullable_owners;
     };
 
     void generate_lights();
+    void update_light_buffers(core::d3d12_frame_info d3d12_info);
+    void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier barriers);
+
+    D3D12_GPU_VIRTUAL_ADDRESS non_cullable_light_buffer(UINT frame_index);
+    D3D12_GPU_VIRTUAL_ADDRESS cullable_light_buffer(UINT frame_index);
+    D3D12_GPU_VIRTUAL_ADDRESS culling_info_buffer(UINT frame_index);
+
+    D3D12_GPU_VIRTUAL_ADDRESS frustums(UINT light_culling_id, UINT frame_index);
+    D3D12_GPU_VIRTUAL_ADDRESS light_grid_opaque(UINT light_culling_id, UINT frame_index);
+    D3D12_GPU_VIRTUAL_ADDRESS light_index_list_opaque(UINT light_culling_id, UINT frame_index);
 }

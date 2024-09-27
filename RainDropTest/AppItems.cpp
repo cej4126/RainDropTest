@@ -8,11 +8,11 @@
 #include "Content.h"
 #include "Utilities.h"
 #include "Core.h"
+#include "Vector.h"
 
 namespace app {
 
     namespace {
-
         UINT cube_model_id{ Invalid_Index };
         UINT cube_entity_id{ Invalid_Index };
         UINT cube_item_id{ Invalid_Index };
@@ -68,10 +68,6 @@ namespace app {
 
     void create_render_items()
     {
-        cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "").get_id();
-
-        assert(std::filesystem::exists("../cube.model"));
-
         std::thread threads[]{
             std::thread{ [] { cube_model_id = load_model("../cube.model"); }},
         };
@@ -80,10 +76,17 @@ namespace app {
         {
             t.join();
         }
+        cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "").get_id();
 
         create_material();
         UINT materials[]{ material_id };
 
         cube_item_id =  content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
+    }
+
+    void get_render_item_ids(UINT* const item_ids, UINT count)
+    {
+        assert(render_item_ids.size() >= count);
+        memcpy(item_ids, render_item_ids.data(), count * sizeof(UINT));
     }
 }

@@ -22,10 +22,10 @@ namespace command {
 
         ~Command();
 
-        void BeginFrame();
-        void EndFrame(const surface::Surface& surface);
-        void Flush();
-        void Release();
+        void begin_frame();
+        void end_frame(const surface::Surface& surface);
+        void flush();
+        void release();
 
         [[nodiscard]] ID3D12CommandQueue* const command_queue() const { return m_command_queue.Get(); }
         [[nodiscard]] ID3D12GraphicsCommandList6* const command_list() const { return m_command_list.Get(); }

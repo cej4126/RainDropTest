@@ -4,6 +4,11 @@
 #include "Window.h"
 #include "Core.h"
 
+
+namespace core {
+    struct frame_info;
+}
+
 namespace surface {
 
     //class surface_item  
@@ -46,6 +51,7 @@ namespace surface {
         void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue);
         void present() const;
         void resize();
+        void render(core::frame_info info) const;
 
         //UINT set_current_bb_index();
 
@@ -56,6 +62,7 @@ namespace surface {
         [[nodiscard]] constexpr const D3D12_VIEWPORT& viewport() const { return m_viewport; }
         [[nodiscard]] constexpr const D3D12_RECT& scissor_rect() const { return m_scissor_rectangle; }
         [[nodiscard]] constexpr HANDLE swap_chain_event() const { return m_swap_chain_event; }
+        [[nodiscard]] constexpr UINT light_id() const { return m_light_id; }
 
     private:
         void finalize();
@@ -76,7 +83,7 @@ namespace surface {
         D3D12_VIEWPORT m_viewport{};
         D3D12_RECT m_scissor_rectangle{};
         HANDLE m_swap_chain_event{};
-
+        UINT m_light_id{ Invalid_Index };
         UINT m_id{ Invalid_Index };
     };
 

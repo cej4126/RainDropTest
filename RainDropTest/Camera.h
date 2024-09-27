@@ -62,8 +62,9 @@ namespace camera {
     {
     public:
         Camera() = default;
-        explicit Camera(UINT id) : _id{ id } {}
+        explicit Camera(UINT id) : m_id{ id } {}
         explicit Camera(camera_init_info info);
+        constexpr UINT get_id() const { return m_id; }
         void update();
 
         void field_of_view(float fov);
@@ -115,7 +116,7 @@ namespace camera {
         UINT m_entity_id{ Invalid_Index };
         bool m_is_dirty{ false };
 
-        UINT _id{ Invalid_Index };
+        UINT m_id{ Invalid_Index };
         //void mouse_move(input::input_source::type type, input::input_code::code code, const input::input_value& mouse_pos);
         input::input_system<Camera> m_input_system;
     };

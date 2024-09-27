@@ -79,6 +79,11 @@ namespace surface {
         finalize();
     }
 
+    void Surface::render(core::frame_info info) const
+    {
+        core::render(m_id, info);
+    }
+
     void Surface::finalize()
     {
         // create RTVs for back-buffers

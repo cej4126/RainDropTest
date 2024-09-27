@@ -3,27 +3,27 @@
 #include <string>
 #include <filesystem>
 #include "stdafx.h"
-#include "Helpers.h"
+//#include "Helpers.h"
 #include "Command.h"
-#include "Main.h"
+//#include "Main.h"
 #include "Barriers.h"
 #include "Upload.h"
-#include "Buffers.h"
-#include "Utilities.h"
-#include "ContentToEngine.h"
-#include "Shaders.h"
-#include "Content.h"
-#include "Transform.h"
-#include "Entity.h"
-#include "Shaders.h"
+//#include "Buffers.h"
+//#include "Utilities.h"
+//#include "ContentToEngine.h"
+//#include "Shaders.h"
+//#include "Content.h"
+//#include "Transform.h"
+//#include "Entity.h"
+//#include "Shaders.h"
 #include "Resources.h"
 #include "GraphicPass.h"
 #include "SharedTypes.h"
 #include "FreeList.h"
-#include "Input.h"
-#include "Scripts.h"
+//#include "Input.h"
+//#include "Scripts.h"
 #include "RainDrop.h"
-#include "TimeProcess.h"
+#include "Lights.h"
 //#include "Surface.h"
 
 // InterlockedCompareExchange returns the object's value if the 
@@ -37,7 +37,6 @@
 namespace core {
 
     namespace {
-        time_process timer{};
 
         resource::Depth_Buffer m_depth_buffer{};
 
@@ -75,7 +74,7 @@ namespace core {
         UINT64 m_render_context_fence_value{ 0 };
         HANDLE m_render_context_fence_event{ nullptr };
 
-        d3d12_frame_info get_d3d12_frame_info(const frame_info& info, resource::constant_buffer& cbuffer, const surface::Surface& surface)
+        d3d12_frame_info get_d3d12_frame_info(const frame_info& info, resource::constant_buffer& cbuffer, const surface::Surface& surface, UINT frame_index, float delta_time)
         {
             camera::Camera& camera{ camera::get(info.camera_id) };
             camera.update();
@@ -98,7 +97,13 @@ namespace core {
             d3d12_frame_info d3d12_info
             {
                 &info,
-                cbuffer.gpu_address(shader_data)
+                &camera,
+                cbuffer.gpu_address(shader_data),
+                surface.width(),
+                surface.height(),
+                surface.light_id(),
+                frame_index,
+                delta_time
             };
 
             return d3d12_info;
@@ -126,7 +131,7 @@ namespace core {
             {
                 D3D_FEATURE_LEVEL_12_0,
                 D3D_FEATURE_LEVEL_12_1,
-//                D3D_FEATURE_LEVEL_12_2,
+                //                D3D_FEATURE_LEVEL_12_2,
             };
 
             D3D12_FEATURE_DATA_FEATURE_LEVELS feature_level_info{};
@@ -631,13 +636,13 @@ namespace core {
 #pragma message("WARNING: GPU-based validation is enabled. This will considerably slow down the renderer!")
                 debug_interface->SetEnableGPUBasedValidation(1);
 #endif
-        }
+            }
             else
             {
                 OutputDebugStringA("Warning: D3D12 Debug interface is not available. Verify that Graphics Tools optional feature is installed on this system.\n");
             }
             dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
-    }
+        }
 #endif // _DEBUG
 
         ThrowIfFailed(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&m_dxgi_factory)));
@@ -709,7 +714,7 @@ namespace core {
         LoadAssets();
 
         return true;
-}
+    }
 
     void shutdown()
     {
@@ -724,7 +729,7 @@ namespace core {
 
         m_rain_drop.shutdown();
 
-        m_command.Release();
+        m_command.release();
 
         // NOTE: we don't call process_deferred_releases at the end because
         //       some resources (such as swap chains) can't be released before
@@ -855,4 +860,63 @@ namespace core {
         return m_render_context_fence.Get();
     }
 
+    void render(UINT id, frame_info info)
+    {
+        // Wait for GPU
+        m_command.begin_frame();
+        id3d12_graphics_command_list* const cmd_list{ m_command.command_list() };
+
+        const UINT frame_index{ current_frame_index() };
+
+        // Clear constant buffers
+        resource::constant_buffer& cbuffer{ m_constant_buffers[frame_index] };
+        cbuffer.clear();
+
+        if (m_deferred_releasees_flags[frame_index])
+        {
+            process_deferred_releases(frame_index);
+        }
+
+        const surface::Surface& surface{ surface::get_surface(id) };
+        ID3D12Resource* const current_back_buffer{ surface.back_buffer() };
+        const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, cbuffer, surface, frame_index, 16.7f) };
+
+        graphic_pass::set_size({ d3d12_info.surface_width, d3d12_info.surface_height });
+        barriers::resource_barrier& barriers{ resource_barriers };
+
+        ID3D12DescriptorHeap* const heaps[]{ m_srv_desc_heap.heap() };
+
+        cmd_list->RSSetViewports(1, &surface.viewport());
+        cmd_list->RSSetScissorRects(1, &surface.scissor_rect());
+
+        barriers.add(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY);
+
+        graphic_pass::depth_process(cmd_list, d3d12_info, barriers);
+
+        lights::update_light_buffers(d3d12_info);
+        lights::cull_lights(cmd_list, d3d12_info, barriers);
+
+        graphic_pass::render_targets(cmd_list, d3d12_info, barriers);
+
+
+
+
+
+
+        // Indicate that the back buffer will be used as a render target.
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ surface.rtv().ptr };
+        D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_depth_buffer.dsv();
+        m_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
+
+        // Record commands.
+        const float clearColor[] = { 0.3f, 0.3f, 0.3f, 0.0f };
+        m_command.command_list()->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
+        m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
+
+
+        //m_rain_drop.render(m_command.command_list());
+         
+        graphic_pass::
+
+    }
 }

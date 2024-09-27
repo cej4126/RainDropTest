@@ -6,5 +6,5 @@ namespace app {
 
     void create_render_items();
     game_entity::entity create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name);
-
+    void get_render_item_ids(UINT* const item_ids, UINT count);
 }

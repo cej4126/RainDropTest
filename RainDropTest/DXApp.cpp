@@ -12,6 +12,7 @@
 #include "Utilities.h"
 #include "Content.h"
 #include "AppItems.h"
+#include "TimeProcess.h"
 
 using namespace Microsoft::WRL;
 namespace app {
@@ -31,6 +32,9 @@ namespace app {
         };
 
         Scene m_scenes[1];
+        time_process timer{};
+
+        utl::vector<UINT> render_item_id_cache; 
 
         [[nodiscard]] UINT load_model(const char* path)
         {
@@ -245,6 +249,9 @@ namespace app {
 
         //generate_lights();
 
+        render_item_id_cache.resize(1);
+        geometry::get_render_item_ids(render_item_id_cache.data(), (UINT)render_item_id_cache.size());
+
         input::input_source source{};
         source.binding = std::hash<std::string>()("move");
         source.source_type = input::input_source::keyboard;
@@ -270,6 +277,40 @@ namespace app {
 
     void dx_app::run()
     {
+        timer.begin();
+        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        const float dt{ timer.dt_avg() };
+
+        script::update(dt);
+
+        for (UINT i{ 0 }; i < _countof(m_scenes); ++i)
+        {
+            if (m_scenes[i].surface.is_valid())
+            {
+                float thresholds[1];
+
+                core::frame_info info{};
+                info.render_item_ids = render_item_id_cache.data();
+                info.render_item_count = 1;
+                info.thresholds = &thresholds[0];
+                info.camera_id = m_scenes[i].camera.get_id();
+
+                assert(_countof(thresholds) >= info.render_item_count);
+                m_scenes[i].surface.render(info);
+            }
+        }
+
+        //surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
+        //// Wait for the previous Present to complete.
+        //WaitForSingleObjectEx(surface.swap_chain_event(), 100, FALSE);
+
+        //camera::Camera& camera{ camera::get(m_camera_id) };
+        //camera.update();
+
+        //m_rain_drop.update(m_camera_id, m_frame_index);
+
+        //OnRender();
+        timer.end();
     }
 
     void dx_app::shutdown()

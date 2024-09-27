@@ -8,7 +8,6 @@
 #include "Camera.h"
 #include "RainDrop.h"
 
-
 using Microsoft::WRL::ComPtr;
 
 namespace core {
@@ -24,9 +23,13 @@ namespace core {
     struct d3d12_frame_info
     {
         const frame_info* info{ nullptr };
+        camera::Camera* camera{ nullptr };
         D3D12_GPU_VIRTUAL_ADDRESS global_shader_data{ 0 };
         UINT surface_width{ 0 };
         UINT surface_height{ 0 };
+        UINT light_id{ Invalid_Index };
+        UINT frame_index{ 0 };
+        float delta_time{ 16.7f };
     };
 
     //class Core
@@ -136,6 +139,5 @@ namespace core {
     [[nodiscard]] resource::constant_buffer& cbuffers();
     [[nodiscard]] UINT current_frame_index();
     void set_deferred_releases_flag();
-
-
+    void render(UINT id, frame_info info);
 }

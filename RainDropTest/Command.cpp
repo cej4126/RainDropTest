@@ -39,7 +39,7 @@ namespace command {
     {
     }
 
-    void Command::BeginFrame()
+    void Command::begin_frame()
     {
         command_frame& frame{ m_command_frame[m_frame_index] };
         frame.wait(m_fence_event, m_fence.Get());
@@ -47,7 +47,7 @@ namespace command {
         m_command_list->Reset(frame.command_allocator.Get(), nullptr);
     }
 
-    void Command::EndFrame(const surface::Surface& surface)
+    void Command::end_frame(const surface::Surface& surface)
     {
         m_command_list->Close();
         ID3D12CommandList* const command_lists[]{ m_command_list.Get() };
@@ -57,7 +57,7 @@ namespace command {
         surface.present();
     }
 
-    void Command::Flush()
+    void Command::flush()
     {
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
@@ -66,9 +66,9 @@ namespace command {
         m_frame_index = 0;
     }
 
-    void Command::Release()
+    void Command::release()
     {
-        Flush();
+        flush();
         m_fence_value = 0;
 
         CloseHandle(m_fence_event);

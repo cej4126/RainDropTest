@@ -4,12 +4,104 @@
 #include "RainDrop.h"
 #include "SharedTypes.h"
 #include "Transform.h"
+#include "Resources.h"
+#include "Lights.h"
 
 namespace graphic_pass
 {
     namespace {
 
-        graphic_cache frame_cache;
+        constexpr DXGI_FORMAT main_buffer_format{ DXGI_FORMAT_R16G16B16A16_FLOAT };
+        constexpr DXGI_FORMAT depth_buffer_format{ DXGI_FORMAT_D32_FLOAT };
+
+        resource::Render_Target graphic_buffer{};
+        resource::Depth_Buffer depth_buffer{};
+        XMUINT2 initial_dimensions{ 100, 100 };
+        XMUINT2 dimensions{ initial_dimensions };
+
+#if _DEBUG
+        constexpr float clear_value[4]{ 0.5f, 0.5f, 0.5f, 1.f };
+#else
+        constexpr float clear_value[4]{ };
+#endif
+
+        void fill_per_object_data(const core::d3d12_frame_info& d3d12_info)
+        {
+            const graphic_cache& cache{ frame_cache };
+            const UINT render_items_count{ (UINT)cache.size() };
+            UINT current_entity_id{ Invalid_Index };
+
+            hlsl::PerObjectData* current_data_pointer{ nullptr };
+
+            for (UINT i{ 0 }; i < render_items_count; ++i)
+            {
+                current_entity_id = cache.entity_ids[i];
+                hlsl::PerObjectData data{};
+                transform::get_transform_matrices(current_entity_id, data.World, data.InvWorld);
+                XMMATRIX world{ XMLoadFloat4x4(&data.World) };
+            }
+
+        }
+
+        void prepare_render_frame(const core::d3d12_frame_info& d3d12_info)
+        {
+            graphic_cache& cache{ frame_cache };
+            cache.clear();
+
+            content::render_item::get_d3d12_render_item_ids(*d3d12_info.info, cache.d3d12_render_item_ids);
+            cache.resize();
+
+            const UINT items_count{ cache.size() };
+            content::render_item::get_items(cache.d3d12_render_item_ids.data(), items_count, cache);
+
+            content::sub_mesh::get_views(items_count, cache);
+
+            content::material::get_materials(items_count, cache);
+
+            fill_per_object_data(d3d12_info);
+
+            if (cache.descriptor_index_count)
+            {
+                resource::constant_buffer& cbuffer{ core::cbuffers() };
+                const UINT size{ cache.descriptor_index_count * sizeof(UINT) };
+                UINT* const srv_indices{ (UINT* const)cbuffer.allocate(size) };
+                UINT srv_index_offset{ 0 };
+
+                for (UINT i{ 0 }; i < items_count; ++i)
+                {
+                    const UINT texture_count{ cache.texture_counts[i] };
+                    cache.srv_indices[i] = 0;
+
+                    if (texture_count)
+                    {
+                        const UINT* const descriptor_indices{ cache.descriptor_indices[i] };
+                        memcpy(&srv_indices[srv_index_offset], descriptor_indices, texture_count * sizeof(UINT));
+                        cache.srv_indices[i] = cbuffer.gpu_address(srv_indices + srv_index_offset);
+                        srv_index_offset += texture_count;
+                    }
+                }
+            }
+        }
+
+        void create_graphic_buffer(XMUINT2 size)
+        {
+            graphic_buffer.release();
+
+            D3D12_RESOURCE_DESC desc{};
+
+            desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // D3D12_RESOURCE_DIMENSION Dimension;
+            desc.Alignment = 0;                                   // UINT64 Alignment;
+            desc.Width = size.x;                                  // UINT64 Width;
+            desc.Height = size.y;                                 // UINT Height;
+            desc.DepthOrArraySize = 1;                            // UINT16 DepthOrArraySize;
+            desc.MipLevels = 0;                                   // UINT16 MipLevels;
+            desc.Format = main_buffer_format;                     // DXGI_FORMAT Format;
+            desc.SampleDesc = { 1, 0 };                           // DXGI_SAMPLE_DESC SampleDesc;
+            desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;           // D3D12_TEXTURE_LAYOUT Layout;
+            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // D3D12_RESOURCE_FLAGS Flags;
+
+            graphic_buffer = resource::Render_Target{ desc };
+        }
 
         void set_root_parameters(id3d12_graphics_command_list* const cmd_list, UINT cache_index)
         {
@@ -21,70 +113,109 @@ namespace graphic_pass
             {
             case content::material_type::opaque:
             {
-                //using params = opaque_root_parameter;
-                //cmd_list->SetGraphicsRootShaderResourceView(params::position_buffer, cache.position_buffers[cache_index]);
-                //cmd_list->SetGraphicsRootShaderResourceView(params::element_buffer, cache.element_buffers[cache_index]);
-                //cmd_list->SetGraphicsRootConstantBufferView(params::per_object_data, cache.per_object_data[cache_index]);
-                //if (cache.texture_counts[cache_index])
-                //{
-                //    cmd_list->SetGraphicsRootShaderResourceView(params::srv_indices, cache.srv_indices[cache_index]);
-                //}
+                using params = opaque_root_parameter;
+                cmd_list->SetGraphicsRootShaderResourceView(params::position_buffer, cache.position_buffers[cache_index]);
+                cmd_list->SetGraphicsRootShaderResourceView(params::element_buffer, cache.element_buffers[cache_index]);
+                cmd_list->SetGraphicsRootConstantBufferView(params::per_object_data, cache.per_object_data[cache_index]);
+                if (cache.texture_counts[cache_index])
+                {
+                    cmd_list->SetGraphicsRootShaderResourceView(params::srv_indices, cache.srv_indices[cache_index]);
+                }
             }
             break;
             }
         }
 
-        void fill_per_object_data(const core::d3d12_frame_info& d3d12_info)
-        {
-            const graphic_cache& cache{ frame_cache };
-            const UINT render_items_count{ (UINT)cache.size() };
-            UINT current_entity_id{ Invalid_Index };
-            
-            hlsl::PerObjectData* current_data_pointer{ nullptr };
+    }
 
-            for (UINT i{ 0 }; i < render_items_count; ++i)
-            {
-                current_entity_id = cache.entity_ids[i];
-                hlsl::PerObjectData data{};
-                transform::get_transform_matrices(current_entity_id, data.World, data.InvWorld);
-                XMMATRIX world{ XMLoadFloat4x4(&data.World) };
-            }
-             
+    void create_depth_buffer(XMUINT2 size)
+    {
+        depth_buffer = resource::Depth_Buffer{ size.x, size.y };
+    }
+
+
+    constexpr UINT graphic_cache::size() const
+    {
+        return (UINT)d3d12_render_item_ids.size();
+    }
+
+    constexpr void graphic_cache::clear()
+    {
+        d3d12_render_item_ids.clear();
+        descriptor_index_count = 0;
+    }
+
+    constexpr void graphic_cache::resize()
+    {
+        const UINT64 items_count{ d3d12_render_item_ids.size() };
+        const UINT64 new_buffer_size{ items_count * struct_size };
+        const UINT64 old_buffer_size{ m_buffer.size() };
+        if (new_buffer_size > old_buffer_size)
+        {
+            m_buffer.resize(new_buffer_size);
         }
 
-        void prepare_render_frame(const core::d3d12_frame_info& d3d12_info)
+        if (new_buffer_size != old_buffer_size)
         {
-            assert(d3d12_info.info);
-            graphic_cache& cache{ frame_cache };
-            cache.clear();
-
-            content::render_item::get_d3d12_render_item_ids(*d3d12_info.info, cache.d3d12_render_item_ids);
-            cache.resize();
-
-            const UINT item_count{ cache.size() };
-            content::render_item::get_items(cache.d3d12_render_item_ids.data(), item_count, cache);
-
-            content::sub_mesh::get_views(item_count, cache);
-
-            content::material::get_materials(item_count, cache);
-
-            fill_per_object_data(d3d12_info);
+            entity_ids = (UINT*)m_buffer.data();
+            sub_mesh_gpu_ids = (UINT*)&entity_ids[items_count];
+            material_ids = (UINT*)&sub_mesh_gpu_ids[items_count];
+            graphic_pass_pipeline_states = (ID3D12PipelineState**)&material_ids[items_count];
+            depth_pipeline_states = (ID3D12PipelineState**)&graphic_pass_pipeline_states[items_count];
+            root_signatures = (ID3D12RootSignature**)&depth_pipeline_states[items_count];
+            material_types = (content::material_type::type*)&root_signatures[items_count];
+            descriptor_indices = (UINT**)&material_types[items_count];
+            texture_counts = (UINT*)&descriptor_indices[items_count];
+            position_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&texture_counts[items_count];
+            element_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&position_buffers[items_count];
+            index_buffer_views = (D3D12_INDEX_BUFFER_VIEW*)&element_buffers[items_count];
+            primitive_topologies = (D3D_PRIMITIVE_TOPOLOGY*)&index_buffer_views[items_count];
+            elements_types = (UINT*)&primitive_topologies[items_count];
+            per_object_data = (D3D12_GPU_VIRTUAL_ADDRESS*)&elements_types[items_count];
+            srv_indices = (D3D12_GPU_VIRTUAL_ADDRESS*)&per_object_data[items_count];
         }
     }
 
     bool initialize()
     {
+        create_graphic_buffer(initial_dimensions);
+        create_depth_buffer(initial_dimensions);
         return true;
     }
 
     void shutdown()
-    {}
+    {
+        graphic_buffer.release();
+        depth_buffer.release();
+        dimensions = initial_dimensions;
+    }
 
     void set_size(DirectX::XMUINT2 size)
-    {}
-
-    void render(id3d12_graphics_command_list* cmd_list, const core::d3d12_frame_info& d3d12_info)
     {
+        XMUINT2& d{ dimensions };
+        if (size.x > d.x || size.y > d.y)
+        {
+            d = { (size.x > d.x) ? size.x : d.x, (size.y, d.y) ? size.y : d.y };
+            create_graphic_buffer(d);
+            create_depth_buffer(d);
+        }
+    }
+
+    void depth_process(id3d12_graphics_command_list* cmd_list, const core::d3d12_frame_info& d3d12_info, barriers::resource_barrier& barriers)
+    {
+        // add_transitions_for_depth_pre-pass
+        barriers.add(graphic_buffer.resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY);
+        barriers.add(depth_buffer.resource(),
+            D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+        barriers.apply(cmd_list);
+
+        // set_render_targets_for_depth_pre-pass
+        const D3D12_CPU_DESCRIPTOR_HANDLE dsv{ depth_buffer.dsv() };
+        cmd_list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.f, 0, 0, nullptr);
+        cmd_list->OMSetRenderTargets(0, nullptr, 0, &dsv);
+
+        // depth_pre-pass
         prepare_render_frame(d3d12_info);
 
         const graphic_cache& cache{ frame_cache };
@@ -97,73 +228,82 @@ namespace graphic_pass
         {
             if (current_root_signature != cache.root_signatures[i])
             {
+                current_root_signature = cache.root_signatures[i];
+                cmd_list->SetGraphicsRootSignature(current_root_signature);
+                cmd_list->SetGraphicsRootConstantBufferView(opaque_root_parameter::global_shader_data, d3d12_info.global_shader_data);
+            }
+
+            if (current_pipeline_state != cache.depth_pipeline_states[i])
+            {
+                current_pipeline_state = cache.depth_pipeline_states[i];
+                cmd_list->SetPipelineState(current_pipeline_state);
+            }
+
+            set_root_parameters(cmd_list, i);
+
+            const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
+            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT) ? 1 : 2 };
+
+            cmd_list->IASetIndexBuffer(&ibv);
+            cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
+            cmd_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
+        }
+    }
+
+    void render_targets(id3d12_graphics_command_list* cmd_list, const core::d3d12_frame_info& d3d12_info, barriers::resource_barrier& barriers)
+    {
+        // add_transitions_for_gpass
+        barriers.add(graphic_buffer.resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_END_ONLY);
+        barriers.add(depth_buffer.resource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+        barriers.apply(cmd_list);
+
+        // set_render_targets_for_gpass
+        const D3D12_CPU_DESCRIPTOR_HANDLE rtv{ graphic_buffer.rtv(0) };
+        const D3D12_CPU_DESCRIPTOR_HANDLE dsv{ depth_buffer.dsv() };
+        cmd_list->ClearRenderTargetView(rtv, clear_value, 0, nullptr);
+        cmd_list->OMSetRenderTargets(1, &rtv, 0, &dsv);
+
+
+        // render
+        const graphic_cache& cache{ frame_cache };
+        const UINT items_count{ cache.size() };
+        const UINT frame_index{ d3d12_info.frame_index };
+        const UINT light_culling_id{ d3d12_info.light_id };
+
+        ID3D12RootSignature* current_root_signature{ nullptr };
+        ID3D12PipelineState* current_pipeline_state{ nullptr };
+
+        for (UINT i{ 0 }; i < items_count; ++i)
+        {
+            if (current_root_signature != cache.root_signatures[i])
+            {
                 using idx = opaque_root_parameter;
 
                 current_root_signature = cache.root_signatures[i];
                 cmd_list->SetGraphicsRootSignature(current_root_signature);
+                cmd_list->SetGraphicsRootSignature(current_root_signature);
                 cmd_list->SetGraphicsRootConstantBufferView(idx::global_shader_data, d3d12_info.global_shader_data);
-                //cmd_list->SetGraphicsRootShaderResourceView(idx::directional_lights, light::non_cullable_light_buffer(frame_index));
-                //cmd_list->SetGraphicsRootShaderResourceView(idx::cullable_lights, light::cullable_light_buffer(frame_index));
-                //cmd_list->SetGraphicsRootShaderResourceView(idx::light_grid, delight::light_grid_opaque(light_culling_id, frame_index));
-                //cmd_list->SetGraphicsRootShaderResourceView(idx::light_index_list, delight::light_index_list_opaque(light_culling_id, frame_index));
+                cmd_list->SetGraphicsRootShaderResourceView(idx::directional_lights, lights::non_cullable_light_buffer(frame_index));
+                cmd_list->SetGraphicsRootShaderResourceView(idx::cullable_lights, lights::cullable_light_buffer(frame_index));
+                cmd_list->SetGraphicsRootShaderResourceView(idx::light_grid, lights::light_grid_opaque(light_culling_id, frame_index));
+                cmd_list->SetGraphicsRootShaderResourceView(idx::light_index_list, lights::light_index_list_opaque(light_culling_id, frame_index));
             }
 
-            if (current_pipeline_state != cache.graphic_pass_pipeline_states[i])
+            if (current_pipeline_state != cache.depth_pipeline_states[i])
             {
-                current_pipeline_state = cache.graphic_pass_pipeline_states[i];
+                current_pipeline_state = cache.depth_pipeline_states[i];
                 cmd_list->SetPipelineState(current_pipeline_state);
             }
 
-            //set_root_parameters(cmd_list, i);
+            set_root_parameters(cmd_list, i);
 
             const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
-            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT ? 1 : 2) };
+            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT) ? 1 : 2 };
 
             cmd_list->IASetIndexBuffer(&ibv);
-
-            const D3D12_VERTEX_BUFFER_VIEW vbv{ cache.position_buffer_views[i] };
-            cmd_list->IASetVertexBuffers(0, 1, &vbv);
-            
             cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
-            
             cmd_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
         }
-
     }
-
-    //void depth_prepass(id3d12_graphics_command_list* cmd_list, const d3d12_frame_info& d3d12_info)
-    //{
-    //    prepare_render_frame(d3d12_info);
-
-    //    const graphic_cache& cache{ frame_cache };
-    //    const UINT items_count{ cache.size() };
-
-    //    ID3D12RootSignature* current_root_signature{ nullptr };
-    //    ID3D12PipelineState* current_pipeline_state{ nullptr };
-
-    //    for (UINT i{ 0 }; i < items_count; ++i)
-    //    {
-    //        if (current_root_signature != cache.root_signatures[i])
-    //        {
-    //            current_root_signature = cache.root_signatures[i];
-    //            cmd_list->SetGraphicsRootSignature(current_root_signature);
-    //            //cmd_list->SetGraphicsRootConstantBufferView(opaque_root_parameter::global_shader_data, d3d12_info.global_shader_data);
-    //        }
-
-    //        if (current_pipeline_state != cache.depth_pipeline_states[i])
-    //        {
-    //            current_pipeline_state = cache.depth_pipeline_states[i];
-    //            cmd_list->SetPipelineState(current_pipeline_state);
-    //        }
-
-    //        set_root_parameters(cmd_list, i);
-
-    //        const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
-    //        const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT ? 1 : 2) };
-
-    //        cmd_list->IASetIndexBuffer(&ibv);
-    //        cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
-    //        cmd_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
-    //    }
-    //}
 }
