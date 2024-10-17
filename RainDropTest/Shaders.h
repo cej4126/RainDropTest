@@ -36,18 +36,17 @@ namespace shaders {
 
     struct engine_shader {
         enum index : UINT {
-            vertex_shader_vs,
-            //full_screen_triangle_vs,
-            //post_process_ps,
-            //grid_frustums_cs,
-            //light_culling_cs,
-            pixel_shader_ps,
-            //normal_shader_vs,
-            //normal_texture_shader_vs,
+            full_screen_triangle_vs,
+            post_process_ps,
+            grid_frustums_cs,
+            light_culling_cs,
             n_body_gravity_cs,
             particle_draw_vs,
             particle_draw_gs,
             particle_draw_ps,
+            pixel_shader_ps,
+            normal_shader_vs,
+            normal_texture_shader_vs,
 
             count
         };

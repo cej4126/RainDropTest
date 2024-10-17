@@ -54,8 +54,8 @@ namespace transform {
 
     component create(init_info info, game_entity::entity entity);
     void remove(component c);
-
     void get_transform_matrices(UINT id, XMFLOAT4X4 world, XMFLOAT4X4 inverse_world);
+    void get_updated_components_flags(const UINT* const ids, UINT count, UINT8* const flags);
     void update(const component_cache* const cache, UINT count);
 
 }

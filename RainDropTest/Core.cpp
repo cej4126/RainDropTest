@@ -25,6 +25,7 @@
 #include "RainDrop.h"
 #include "Lights.h"
 //#include "Surface.h"
+#include "PostProcess.h"
 
 // InterlockedCompareExchange returns the object's value if the 
 // comparison fails.  If it is already 0, then its value won't 
@@ -266,7 +267,7 @@ namespace core {
     //    create_render_items();
 
     //    // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
-    //    camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, "camera_script");
+    //    camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, nullptr, "camera_script");
     //    m_camera_id = camera::create(camera::perspective_camera_init_info(camera_entity.get_id()));
     //    camera::aspect_ratio(m_camera_id, (float)width / height);
     //}
@@ -703,10 +704,11 @@ namespace core {
 
         m_rain_drop.create_descriptor_heap();
 
-        if (!(graphic_pass::initialize() &&
+        if (!(shaders::initialize() &&
+            post_process::initialize() &&
+            graphic_pass::initialize() &&
             upload::initialize() &&
-            content::initialize() &&
-            shaders::initialize()))
+            content::initialize()))
         {
             return failed_init();
         }
@@ -743,6 +745,7 @@ namespace core {
         content::shutdown();
         upload::shutdown();
         graphic_pass::shutdown();
+        post_process::shutdown();
 
         //m_render_target.release();
 
@@ -898,25 +901,14 @@ namespace core {
 
         graphic_pass::render_targets(cmd_list, d3d12_info, barriers);
 
+        barriers.add(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_END_ONLY);
+        barriers.apply(cmd_list);
 
+        // Post process
+        post_process::post_process(cmd_list, d3d12_info, surface.rtv());
 
+        barriers::transition_resource(cmd_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-
-
-        // Indicate that the back buffer will be used as a render target.
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ surface.rtv().ptr };
-        D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_depth_buffer.dsv();
-        m_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
-
-        // Record commands.
-        const float clearColor[] = { 0.3f, 0.3f, 0.3f, 0.0f };
-        m_command.command_list()->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
-        m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
-
-
-        //m_rain_drop.render(m_command.command_list());
-         
-        graphic_pass::
-
+        m_command.end_frame(surface);
     }
 }

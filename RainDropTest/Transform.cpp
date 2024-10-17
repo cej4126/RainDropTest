@@ -6,32 +6,32 @@ namespace transform
 {
     namespace {
 
-        utl::vector<XMFLOAT4X4> to_worlds;
-        utl::vector<XMFLOAT4X4> inverse_worlds;
-        utl::vector<XMFLOAT4> rotations;
-        utl::vector<XMFLOAT3> orientations;
-        utl::vector<XMFLOAT3> positions;
-        utl::vector<XMFLOAT3> scales;
-        utl::vector<UINT> has_transform;
-        utl::vector<UINT> changes_from_previous_frame;
-        UINT write_flag;
+        utl::vector<XMFLOAT4X4> m_to_worlds;
+        utl::vector<XMFLOAT4X4> m_inverse_worlds;
+        utl::vector<XMFLOAT4> m_rotations;
+        utl::vector<XMFLOAT3> m_orientations;
+        utl::vector<XMFLOAT3> m_positions;
+        utl::vector<XMFLOAT3> m_scales;
+        utl::vector<UINT> m_has_transform;
+        utl::vector<UINT> m_changes_from_previous_frame;
+        UINT m_write_flag;
 
         void calculate_transform_matrices(UINT id)
         {
-            XMVECTOR r{ XMLoadFloat4(&rotations[id]) };
-            XMVECTOR t{ XMLoadFloat3(&positions[id]) };
-            XMVECTOR s{ XMLoadFloat3(&scales[id]) };
+            XMVECTOR r{ XMLoadFloat4(&m_rotations[id]) };
+            XMVECTOR t{ XMLoadFloat3(&m_positions[id]) };
+            XMVECTOR s{ XMLoadFloat3(&m_scales[id]) };
 
             XMMATRIX world{ XMMatrixAffineTransformation(s, XMQuaternionIdentity(), r, t) };
-            XMStoreFloat4x4(&to_worlds[id], world);
+            XMStoreFloat4x4(&m_to_worlds[id], world);
 
             // NOTE: (F. Luna) Intro to DirectX 12, section 8.2.2
             // https://terrorgum.com/tfox/books/introductionto3dgameprogrammingwithdirectx12.pdf
             world.r[3] = XMVectorSet(0.f, 0.f, 0.f, 1.f);
             XMMATRIX inverse_world{ XMMatrixInverse(nullptr, world) };
-            XMStoreFloat4x4(&inverse_worlds[id], inverse_world);
+            XMStoreFloat4x4(&m_inverse_worlds[id], inverse_world);
 
-            has_transform[id] = 1;
+            m_has_transform[id] = 1;
         }
 
         XMFLOAT3 calculate_orientation(XMFLOAT4 rotation)
@@ -45,31 +45,31 @@ namespace transform
 
         void set_rotation(UINT id, const XMFLOAT4& rotation_quaternion)
         {
-            rotations[id] = rotation_quaternion;
-            orientations[id] = calculate_orientation(rotation_quaternion);
-            has_transform[id] = 0;
-            changes_from_previous_frame[id] |= component_flags::rotation;
+            m_rotations[id] = rotation_quaternion;
+            m_orientations[id] = calculate_orientation(rotation_quaternion);
+            m_has_transform[id] = 0;
+            m_changes_from_previous_frame[id] |= component_flags::rotation;
         }
 
         void set_orientation(UINT id, const XMFLOAT3& orientation)
         {
-            orientations[id] = orientation;
-            has_transform[id] = 0;
-            changes_from_previous_frame[id] |= component_flags::orientation;
+            m_orientations[id] = orientation;
+            m_has_transform[id] = 0;
+            m_changes_from_previous_frame[id] |= component_flags::orientation;
         }
 
         void set_position(UINT id, const XMFLOAT3& position)
         {
-            positions[id] = position;
-            has_transform[id] = 0;
-            changes_from_previous_frame[id] |= component_flags::position;
+            m_positions[id] = position;
+            m_has_transform[id] = 0;
+            m_changes_from_previous_frame[id] |= component_flags::position;
         }
 
         void set_scale(UINT id, const XMFLOAT3& scale)
         {
-            scales[id] = scale;
-            has_transform[id] = 0;
-            changes_from_previous_frame[id] |= component_flags::scale;
+            m_scales[id] = scale;
+            m_has_transform[id] = 0;
+            m_changes_from_previous_frame[id] |= component_flags::scale;
         }
 
     } // anonymous namespace
@@ -79,30 +79,30 @@ namespace transform
         assert(entity.is_valid());
         const UINT entity_id{ entity.get_id() };
 
-        if (positions.size() > entity_id)
+        if (m_positions.size() > entity_id)
         {
             // Reuse this id
             XMFLOAT4 rotation{ info.rotation };
-            rotations[entity_id] = rotation;
-            orientations[entity_id] = calculate_orientation(rotation);
-            positions[entity_id] = XMFLOAT3{ info.position };
-            scales[entity_id] = XMFLOAT3{ info.scale };
-            has_transform[entity_id] = 0;
-            changes_from_previous_frame[entity_id] = component_flags::all;
+            m_rotations[entity_id] = rotation;
+            m_orientations[entity_id] = calculate_orientation(rotation);
+            m_positions[entity_id] = XMFLOAT3{ info.position };
+            m_scales[entity_id] = XMFLOAT3{ info.scale };
+            m_has_transform[entity_id] = 0;
+            m_changes_from_previous_frame[entity_id] = component_flags::all;
         }
         else
         {
             // Need to add a new entity
-            assert(positions.size() == entity_id);
+            assert(m_positions.size() == entity_id);
 
-            to_worlds.emplace_back();
-            inverse_worlds.emplace_back();
-            rotations.emplace_back(info.rotation);
-            orientations.emplace_back(calculate_orientation(XMFLOAT4{ info.rotation }));
-            positions.emplace_back(info.position);
-            scales.emplace_back(info.scale);
-            has_transform.emplace_back(0);
-            changes_from_previous_frame.emplace_back(component_flags::all);
+            m_to_worlds.emplace_back();
+            m_inverse_worlds.emplace_back();
+            m_rotations.emplace_back(info.rotation);
+            m_orientations.emplace_back(calculate_orientation(XMFLOAT4{ info.rotation }));
+            m_positions.emplace_back(info.position);
+            m_scales.emplace_back(info.scale);
+            m_has_transform.emplace_back(0);
+            m_changes_from_previous_frame.emplace_back(component_flags::all);
         }
 
         // NOTE: each entity has a transform component. Therefor, id's for transform components
@@ -110,18 +110,34 @@ namespace transform
         return component{ entity_id };
     }
 
+    void remove(component c)
+    {
+        assert(c.is_valid());
+    }
 
     void get_transform_matrices(UINT id, XMFLOAT4X4 world, XMFLOAT4X4 inverse_world)
     {
         assert(id != Invalid_Index);
 
-        if (!has_transform[id])
+        if (!m_has_transform[id])
         {
             calculate_transform_matrices(id);
         }
 
-        world = to_worlds[id];
-        inverse_world = inverse_worlds[id];
+        world = m_to_worlds[id];
+        inverse_world = m_inverse_worlds[id];
+    }
+
+    void get_updated_components_flags(const UINT* const ids, UINT count, UINT8* const flags)
+    {
+        assert(ids && count && flags);
+        m_write_flag = 1;
+
+        for (UINT i{ 0 }; i < count; ++i)
+        {
+            assert(ids[i] != Invalid_Index);
+            flags[i] = m_changes_from_previous_frame[ids[i]];
+        }
     }
 
     void update(const component_cache* const cache, UINT count)
@@ -130,10 +146,10 @@ namespace transform
 
         // NOTE: clearing "changes_from_previous_frame" happens once every frame when there will be no reads and the caches are
         //       about to be applied by calling this function (i.e. the rest of the current frame will only have writes).
-        if (write_flag)
+        if (m_write_flag)
         {
-            memset(changes_from_previous_frame.data(), 0, changes_from_previous_frame.size());
-            write_flag = 0;
+            memset(m_changes_from_previous_frame.data(), 0, m_changes_from_previous_frame.size());
+            m_write_flag = 0;
         }
 
         for (UINT i{ 0 }; i < count; ++i)
@@ -163,28 +179,23 @@ namespace transform
         }
     }
 
-    void remove(component c)
-    {
-        assert(c.is_valid());
-    }
-
     XMFLOAT4 component::rotation() const
     {
-        return rotations[_id];
+        return m_rotations[_id];
     }
 
     XMFLOAT3 component::orientation() const
     {
-        return orientations[_id];
+        return m_orientations[_id];
     }
 
     XMFLOAT3 component::position() const
     {
-        return positions[_id];
+        return m_positions[_id];
     }
 
     XMFLOAT3 component::scale() const
     {
-        return scales[_id];
+        return m_scales[_id];
     }
 }

@@ -33,8 +33,7 @@ namespace d3dx {
         return signature;
     }
 
-    ID3D12PipelineState*
-        create_pipeline_state(D3D12_PIPELINE_STATE_STREAM_DESC desc)
+    ID3D12PipelineState* create_pipeline_state(D3D12_PIPELINE_STATE_STREAM_DESC desc)
     {
         assert(desc.pPipelineStateSubobjectStream && desc.SizeInBytes);
         ID3D12PipelineState* pso{ nullptr };
@@ -44,8 +43,7 @@ namespace d3dx {
     }
 
 
-    ID3D12PipelineState*
-        create_pipeline_state(void* stream, UINT64 stream_size)
+    ID3D12PipelineState* create_pipeline_state(void* stream, UINT64 stream_size)
     {
         assert(stream && stream_size);
         D3D12_PIPELINE_STATE_STREAM_DESC desc{};

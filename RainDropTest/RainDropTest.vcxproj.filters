@@ -105,6 +105,9 @@
     <ClCompile Include="Lights.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PostProcess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -203,6 +206,9 @@
     <ClInclude Include="Lights.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PostProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="nBodyGravityCS.hlsl">
@@ -216,12 +222,36 @@
     <None Include="PixelShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </None>
-    <None Include="VertexShader.hlsl">
+    <None Include="AppShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </None>
     <None Include="CommonTypes.hlsli">
       <Filter>Assets\Shaders</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="FullScreenTriangle.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="CullLights.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="Common.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="CommonConstants.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="CommonFunctions.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="BRDF.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="GridFrustums.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="PostProcess.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@
 
 namespace buffers {
 
+    // cpu_accessible false
     ID3D12Resource* create_buffer_default_with_upload(const void* data, UINT size, D3D12_RESOURCE_FLAGS flags /* = D3D12_RESOURCE_FLAG_NONE */)
     {
         assert(data && size);
@@ -27,10 +28,13 @@ namespace buffers {
         ThrowIfFailed(core::device()->CreateCommittedResource(&d3dx::heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON,
             nullptr, IID_PPV_ARGS(&resource)));
 
-        upload::Upload_Context context{ size };
-        memcpy(context.cpu_address(), data, size);
-        context.command_list()->CopyResource(resource, context.upload_buffer());
-        context.end_upload();
+        if (data)
+        {
+            upload::Upload_Context context{ size };
+            memcpy(context.cpu_address(), data, size);
+            context.command_list()->CopyResource(resource, context.upload_buffer());
+            context.end_upload();
+        }
 
         assert(resource);
         return resource;
@@ -41,6 +45,7 @@ namespace buffers {
         return math::align_size_up<D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT>(size);
     }
 
+    // cpu_accessible true
     ID3D12Resource* create_buffer_default_without_upload(UINT size)
     {
         assert(size);

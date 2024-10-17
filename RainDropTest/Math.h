@@ -8,6 +8,13 @@ namespace math {
     constexpr float two_pi{ 2.f * pi };
     constexpr float epsilon{ 1e-5f };
 
+    [[nodiscard]] constexpr bool is_equal(float a, float b, float eps = epsilon)
+    {
+        float diff{ a - b };
+        if (diff < 0.f) diff = -diff;
+        return diff < eps;
+    }
+
     constexpr float dtor(float deg)
     {
         return deg / 180.f * pi;

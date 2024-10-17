@@ -5,9 +5,19 @@
 #include "SharedTypes.h"
 #include "Core.h"
 #include "Barriers.h"
+#include "Resources.h"
 
 namespace lights
 {
+    constexpr UINT light_culling_tile_size{ 32 };
+
+    struct spot_light_params
+    {
+        // Umbra angle in radians [0, pi)
+        float         umbra{};
+        // Penumbra angle in radians [umbra, pi)
+        float         penumbra{};
+    };
 
     struct light_type {
         enum type : UINT32
@@ -18,14 +28,6 @@ namespace lights
 
             count
         };
-    };
-
-    struct spot_light_params
-    {
-        // Umbra angle in radians [0, pi)
-        float         umbra{};
-        // Penumbra angle in radians [umbra, pi)
-        float         penumbra{};
     };
 
     struct light_init_info
@@ -40,24 +42,37 @@ namespace lights
         float range;
         // spot only
         spot_light_params spot_params;
+        bool is_enabled{ true };
     };
 
     struct light_owner
     { 
         UINT32 entity_id{ Invalid_Index };
-        UINT32 data_index{ Invalid_Index };
+        UINT32 light_index{ Invalid_Index }; // data_index
         light_type::type type;
         bool is_enabled;
     };
-
-    class light_set
+ 
+    class Light
     {
     public:
+
+        constexpr explicit Light(UINT id, UINT64 light_set_key) : m_light_set_key{ light_set_key }, m_id{ id } {}
+        constexpr Light() = default;
+        constexpr UINT get_id() const { return m_id; }
+        constexpr UINT64 get_sst_key() const { return m_light_set_key; }
+        constexpr bool is_valid() const { return m_id != Invalid_Index; }
+
     private:
-        utl::free_list<light_owner> m_owners;
-        utl::vector<hlsl::DirectionalLightParameters> m_non_cullable_lights;
-        utl::vector<UINT32> m_non_cullable_owners;
+
+
+        UINT64 m_light_set_key{ 0 };
+        UINT m_id{ Invalid_Index };
     };
+
+
+    bool initialize();
+    void shutdown();
 
     void generate_lights();
     void update_light_buffers(core::d3d12_frame_info d3d12_info);
@@ -66,6 +81,7 @@ namespace lights
     D3D12_GPU_VIRTUAL_ADDRESS non_cullable_light_buffer(UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS cullable_light_buffer(UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS culling_info_buffer(UINT frame_index);
+    D3D12_GPU_VIRTUAL_ADDRESS bounding_sphere_buffer(UINT frame_index);
 
     D3D12_GPU_VIRTUAL_ADDRESS frustums(UINT light_culling_id, UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS light_grid_opaque(UINT light_culling_id, UINT frame_index);

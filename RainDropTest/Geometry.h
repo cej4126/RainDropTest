@@ -27,5 +27,5 @@ namespace geometry {
 
     component create(init_info info, game_entity::entity entity);
     void remove(component c);
-    void get_render_item_ids(UINT* const item_ids, UINT count);
+    void get_geometry_item_ids(UINT* const item_ids, UINT count);
 }

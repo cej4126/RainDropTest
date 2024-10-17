@@ -11,13 +11,11 @@ namespace graphic_pass
 {
     namespace {
 
-        constexpr DXGI_FORMAT main_buffer_format{ DXGI_FORMAT_R16G16B16A16_FLOAT };
-        constexpr DXGI_FORMAT depth_buffer_format{ DXGI_FORMAT_D32_FLOAT };
-
         resource::Render_Target graphic_buffer{};
         resource::Depth_Buffer depth_buffer{};
         XMUINT2 initial_dimensions{ 100, 100 };
         XMUINT2 dimensions{ initial_dimensions };
+        graphic_cache frame_cache;
 
 #if _DEBUG
         constexpr float clear_value[4]{ 0.5f, 0.5f, 0.5f, 1.f };
@@ -45,6 +43,8 @@ namespace graphic_pass
 
         void prepare_render_frame(const core::d3d12_frame_info& d3d12_info)
         {
+            assert(d3d12_info.info && d3d12_info.camera);
+            assert(d3d12_info.info->render_item_ids && d3d12_info.info->render_item_count);
             graphic_cache& cache{ frame_cache };
             cache.clear();
 
@@ -133,7 +133,6 @@ namespace graphic_pass
         depth_buffer = resource::Depth_Buffer{ size.x, size.y };
     }
 
-
     constexpr UINT graphic_cache::size() const
     {
         return (UINT)d3d12_render_item_ids.size();
@@ -166,7 +165,8 @@ namespace graphic_pass
             material_types = (content::material_type::type*)&root_signatures[items_count];
             descriptor_indices = (UINT**)&material_types[items_count];
             texture_counts = (UINT*)&descriptor_indices[items_count];
-            position_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&texture_counts[items_count];
+            material_surfaces = (content::material_surface**)&texture_counts[items_count];
+            position_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&material_surfaces[items_count];
             element_buffers = (D3D12_GPU_VIRTUAL_ADDRESS*)&position_buffers[items_count];
             index_buffer_views = (D3D12_INDEX_BUFFER_VIEW*)&element_buffers[items_count];
             primitive_topologies = (D3D_PRIMITIVE_TOPOLOGY*)&index_buffer_views[items_count];
@@ -242,7 +242,7 @@ namespace graphic_pass
             set_root_parameters(cmd_list, i);
 
             const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
-            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT) ? 1 : 2 };
+            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT ? 1 : 2) };
 
             cmd_list->IASetIndexBuffer(&ibv);
             cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
@@ -299,11 +299,25 @@ namespace graphic_pass
             set_root_parameters(cmd_list, i);
 
             const D3D12_INDEX_BUFFER_VIEW& ibv{ cache.index_buffer_views[i] };
-            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT) ? 1 : 2 };
+            const UINT index_count{ ibv.SizeInBytes >> (ibv.Format == DXGI_FORMAT_R16_UINT ? 1 : 2) };
 
             cmd_list->IASetIndexBuffer(&ibv);
             cmd_list->IASetPrimitiveTopology(cache.primitive_topologies[i]);
             cmd_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
         }
+
+        // add_transitions_for_post_process
+        barriers.add(graphic_buffer.resource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    }
+
+
+    const resource::Render_Target& get_graphic_buffer()
+    {
+        return graphic_buffer;
+    }
+
+    const resource::Depth_Buffer& get_depth_buffer()
+    {
+        return depth_buffer;
     }
 }

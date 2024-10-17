@@ -1,6 +1,7 @@
 #include "Entity.h"
 #include "Transform.h"
 #include "Scripts.h"
+#include "Geometry.h"
 #include "Vector.h"
 #include <deque>
 
@@ -8,6 +9,7 @@ namespace game_entity {
     namespace {
         utl::vector<transform::component> transforms;
         utl::vector<script::component> scripts;
+        utl::vector<geometry::component> geometries;
 
         utl::vector<UINT> ids;
         std::deque<UINT> free_ids;
@@ -73,6 +75,14 @@ namespace game_entity {
             assert(scripts[id].is_valid());
         }
 
+        // Create geometry component
+        if (info.geometry)
+        {
+            assert(!geometries[id].is_valid());
+            geometries[id] = geometry::create(*info.geometry, new_entity);
+            assert(geometries[id].is_valid());
+        }
+
         return new_entity;
     }
 
@@ -108,4 +118,11 @@ namespace game_entity {
         assert(is_alive(_id));
         return scripts[_id];
     }
+
+    geometry::component entity::geometry() const
+    {
+        assert(is_alive(_id));
+        return geometries[_id];
+    }
+
 }

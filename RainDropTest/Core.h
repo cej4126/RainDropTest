@@ -16,6 +16,9 @@ namespace core {
     {
         UINT* render_item_ids{ nullptr };
         float* thresholds{ nullptr };
+        UINT64 light_set_key{ 0 };
+        float last_frame_time{ 16.7f };
+        float average_frame_time{ 16.7f };
         UINT render_item_count{ 0 };
         UINT camera_id{ Invalid_Index };
     };

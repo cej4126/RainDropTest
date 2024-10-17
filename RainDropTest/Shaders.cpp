@@ -55,19 +55,17 @@ namespace shaders {
 
         shader_file_info shader_files[]
         {
-            { engine_shader::vertex_shader_vs,           "VertexShader.hlsl",       "main",              shader_type::vertex,   L""},
-            { engine_shader::pixel_shader_ps,            "PixelShader.hlsl",        "main",              shader_type::pixel,    L""},
-            { engine_shader::n_body_gravity_cs,          "nBodyGravityCS.hlsl",     "CSMain",            shader_type::compute,  L""},
-            { engine_shader::particle_draw_vs,           "ParticleDraw.hlsl",       "VSParticleDraw",    shader_type::vertex,   L""},
-            { engine_shader::particle_draw_gs,           "ParticleDraw.hlsl",       "GSParticleDraw",    shader_type::geometry, L""},
-            { engine_shader::particle_draw_ps,           "ParticleDraw.hlsl",       "PSParticleDraw",    shader_type::pixel,    L""},
-            //{ engine_shader::full_screen_triangle_vs,  "FullScreenTriangle.hlsl", "FullScreenTriangleVS", shader_type::vertex,  L""},
-            //{ engine_shader::post_process_ps,          "PostProcess.hlsl",        "PostProcessPS",        shader_type::pixel,   L""},
-            //{ engine_shader::grid_frustums_cs,         "GridFrustums.hlsl",       "GridFrustumsCS",       shader_type::compute, L"TILE_SIZE = 32"},
-            //{ engine_shader::light_culling_cs,         "LightCulling.hlsl",       "LightCullingCS",       shader_type::compute, L"TILE_SIZE = 32"},
-            //{ engine_shader::pixel_shader_ps,          "PixelShader.hlsl",        "PixelShaderPS",        shader_type::pixel,   L""},
-            //{ engine_shader::normal_shader_vs,         "NormalShader.hlsl",       "NormalShaderVS",       shader_type::vertex,  L"ELEMENTS_TYPE=1"},
-            //{ engine_shader::normal_texture_shader_vs, "NormaTextureShader.hlsl", "NormaTextureShaderVS", shader_type::vertex,  L"ELEMENTS_TYPE=3"},
+            { engine_shader::full_screen_triangle_vs,    "FullScreenTriangle.hlsl", "FullScreenTriangleVS",  shader_type::vertex,   L""},
+            { engine_shader::post_process_ps,            "PostProcess.hlsl",        "PostProcessPS",         shader_type::pixel,    L""},
+            { engine_shader::grid_frustums_cs,           "GridFrustums.hlsl",       "ComputeGridFrustumsCS", shader_type::compute,  L"-D TILE_SIZE=32"},
+            { engine_shader::light_culling_cs,           "CullLights.hlsl",         "CullLightsCS",          shader_type::compute,  L"-D TILE_SIZE=32"},
+            { engine_shader::n_body_gravity_cs,          "nBodyGravityCS.hlsl",     "CSMain",                shader_type::compute,  L""},
+            { engine_shader::particle_draw_vs,           "ParticleDraw.hlsl",       "VSParticleDraw",        shader_type::vertex,   L""},
+            { engine_shader::particle_draw_gs,           "ParticleDraw.hlsl",       "GSParticleDraw",        shader_type::geometry, L""},
+            { engine_shader::particle_draw_ps,           "ParticleDraw.hlsl",       "PSParticleDraw",        shader_type::pixel,    L""},
+            { engine_shader::pixel_shader_ps,            "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L""},
+            { engine_shader::normal_shader_vs,           "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"ELEMENTS_TYPE=1"},
+            { engine_shader::normal_texture_shader_vs,   "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"ELEMENTS_TYPE=3"},
         };
 
         static_assert(_countof(shader_files) == engine_shader::count);
@@ -75,26 +73,32 @@ namespace shaders {
         std::unordered_map<UINT, UINT>shader_shader_map
         {
            
-            { elements_type::static_normal, engine_shader::vertex_shader_vs },
-            { elements_type::static_normal_texture, engine_shader::vertex_shader_vs },
-            //{ elements_type::static_normal, engine_shader::normal_shader_vs },
-            //{ elements_type::static_normal_texture, engine_shader::normal_texture_shader_vs },
+            { elements_type::static_normal, engine_shader::normal_shader_vs },
+            { elements_type::static_normal_texture, engine_shader::normal_texture_shader_vs },
         };
         std::mutex shader_mutex;
 
         bool compiled_shaders_are_up_to_date()
         {
-            if (!std::filesystem::exists(engine_shader_file)) return false;
+            if (!std::filesystem::exists(engine_shader_file))
+            {
+                return false;
+            }
          
             auto shaders_compilation_time = std::filesystem::last_write_time(engine_shader_file);
 
             for (const auto& entity : std::filesystem::directory_iterator{ shader_source_path })
             {
-                if (entity.last_write_time() > shaders_compilation_time)
+                auto ext = entity.path().extension();
+                if (ext == L".hlsl" || ext == L".hlsli")
                 {
-                    return false;
+                    if (entity.last_write_time() > shaders_compilation_time)
+                    {
+                        return false;
+                    }
                 }
             }
+
             return true;
         }
 
@@ -157,13 +161,18 @@ namespace shaders {
     dxc_compiled_shader shader_compiler::compile(shader_file_info info)
     {
         assert(m_compiler && m_utils && m_include_handler);
-        
+
         // Load the source file using Utils interface
         std::filesystem::path full_path = shader_source_path;
         full_path += info.file_name;
         ComPtr<IDxcBlobEncoding> source_blob{ nullptr };
         HRESULT hr{ S_OK };
         hr = m_utils->LoadFile(full_path.c_str(), nullptr, &source_blob);
+        if (FAILED(hr))
+        {
+            return {};
+        }
+
         //ThrowIfFailed(m_utils->LoadFile(full_path.c_str(), nullptr, &source_blob));
         assert(source_blob && source_blob->GetBufferSize());
 
@@ -309,10 +318,15 @@ namespace shaders {
         return { shader->byte_code(), shader->byte_code_size() };
     }
 
+
+    // ShaderCompilation.cpp
     bool compile_shaders()
     {
         std::lock_guard lock{ shader_mutex };
-        if (compiled_shaders_are_up_to_date()) return true;
+        if (compiled_shaders_are_up_to_date())
+        {
+            return true;
+        }
 
         shader_compiler compiler{};
         utl::vector<dxc_compiled_shader> shaders;

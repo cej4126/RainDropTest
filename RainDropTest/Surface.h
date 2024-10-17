@@ -36,7 +36,8 @@ namespace surface {
         constexpr bool is_valid() const { return m_id != Invalid_Index; }
             
         //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
-        constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
+        //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
+        constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R16G16B16A16_FLOAT };
         constexpr static UINT buffer_count{ 3 };
 
         explicit Surface(windows::window window)

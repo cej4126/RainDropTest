@@ -13,6 +13,7 @@
 #include "Content.h"
 #include "AppItems.h"
 #include "TimeProcess.h"
+#include "Lights.h"
 
 using namespace Microsoft::WRL;
 namespace app {
@@ -34,7 +35,7 @@ namespace app {
         Scene m_scenes[1];
         time_process timer{};
 
-        utl::vector<UINT> render_item_id_cache; 
+        utl::vector<UINT> render_item_id_cache;
 
         [[nodiscard]] UINT load_model(const char* path)
         {
@@ -48,14 +49,14 @@ namespace app {
             return model_id;
         }
 
-        UINT create_material()
-        {
-            content::material_init_info info{};
-            info.type = content::material_type::opaque;
-            info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::vertex_shader_vs;
-            info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::pixel_shader_ps;
-            return content::create_resource(&info, content::asset_type::material);
-        }
+        //UINT create_material()
+        //{
+        //    content::material_init_info info{};
+        //    info.type = content::material_type::opaque;
+        //    info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::vertex_shader_vs;
+        //    info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::pixel_shader_ps;
+        //    return content::create_resource(&info, content::asset_type::material);
+        //}
 
         UINT m_cube_model_id;
         UINT m_cube_entity_id{ Invalid_Index };
@@ -211,7 +212,7 @@ namespace app {
         scene.surface = surface::create(scene.window);
 
         // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
-        scene.entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, "camera_script");
+        scene.entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, { 1.f, 1.f, 1.f }, nullptr, "camera_script");
         scene.camera = camera::create(camera::perspective_camera_init_info(scene.entity.get_id()));
         scene.camera.aspect_ratio((float)(scene.surface.width() / scene.surface.height()));
     }
@@ -247,10 +248,10 @@ namespace app {
 
         app::create_render_items();
 
-        //generate_lights();
+        lights::generate_lights();
 
         render_item_id_cache.resize(1);
-        geometry::get_render_item_ids(render_item_id_cache.data(), (UINT)render_item_id_cache.size());
+        geometry::get_geometry_item_ids(render_item_id_cache.data(), (UINT)render_item_id_cache.size());
 
         input::input_source source{};
         source.binding = std::hash<std::string>()("move");
@@ -263,6 +264,8 @@ namespace app {
             source.axis = m_input_data[i].axis;
             input::bind(source);
         }
+
+        return true;
     }
 
     void app_shutdown()
@@ -287,7 +290,7 @@ namespace app {
         {
             if (m_scenes[i].surface.is_valid())
             {
-                float thresholds[1];
+                float thresholds[1]{};
 
                 core::frame_info info{};
                 info.render_item_ids = render_item_id_cache.data();

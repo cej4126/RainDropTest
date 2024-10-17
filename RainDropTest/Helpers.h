@@ -220,6 +220,69 @@ namespace d3dx {
         };
     } blend_state;
 
+    constexpr struct {
+        const D3D12_STATIC_SAMPLER_DESC static_point
+        {
+           D3D12_FILTER_MIN_MAG_MIP_POINT,         // Filter
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressU
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressV
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressW
+           0.f,                                    // MipLODBias
+           1,                                      // MaxAnisotropy
+           D3D12_COMPARISON_FUNC_ALWAYS,           // ComparisonFunc
+           D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, // BorderColor
+           0.f,                                    // MinLOD
+           D3D12_FLOAT32_MAX,                      // MaxLOD
+           0,                                      // ShaderRegister
+           0,                                      // RegisterSpace
+           D3D12_SHADER_VISIBILITY_PIXEL,          // ShaderVisibility
+        };
+
+        const D3D12_STATIC_SAMPLER_DESC static_linear
+        {
+           D3D12_FILTER_MIN_MAG_MIP_LINEAR,        // Filter
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressU
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressV
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressW
+           0.f,                                    // MipLODBias
+           1,                                      // MaxAnisotropy
+           D3D12_COMPARISON_FUNC_ALWAYS,           // ComparisonFunc
+           D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, // BorderColor
+           0.f,                                    // MinLOD
+           D3D12_FLOAT32_MAX,                      // MaxLOD
+           0,                                      // ShaderRegister
+           0,                                      // RegisterSpace
+           D3D12_SHADER_VISIBILITY_PIXEL,          // ShaderVisibility
+        };
+
+        const D3D12_STATIC_SAMPLER_DESC static_anisotropic
+        {
+           D3D12_FILTER_ANISOTROPIC,               // Filter
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressU
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressV
+           D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // AddressW
+           0.f,                                    // MipLODBias
+           1,                                      // MaxAnisotropy
+           D3D12_COMPARISON_FUNC_ALWAYS,           // ComparisonFunc
+           D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, // BorderColor
+           0.f,                                    // MinLOD
+           D3D12_FLOAT32_MAX,                      // MaxLOD
+           0,                                      // ShaderRegister
+           0,                                      // RegisterSpace
+           D3D12_SHADER_VISIBILITY_PIXEL,          // ShaderVisibility
+        };
+    } sampler_state;
+
+    constexpr D3D12_STATIC_SAMPLER_DESC static_sampler(D3D12_STATIC_SAMPLER_DESC static_sampler, UINT shader_register, UINT register_space, D3D12_SHADER_VISIBILITY visibility)
+    {
+        D3D12_STATIC_SAMPLER_DESC sampler{ static_sampler };
+        sampler.ShaderRegister = shader_register;
+        sampler.RegisterSpace = register_space;
+        sampler.ShaderVisibility = visibility;
+
+        return sampler;
+    }
+
     ID3D12RootSignature* create_root_signature(const D3D12_ROOT_SIGNATURE_DESC1& desc);
 
     struct d3d12_descriptor_range : public D3D12_DESCRIPTOR_RANGE1
@@ -293,16 +356,15 @@ namespace d3dx {
     struct d3d12_root_signature_desc : public D3D12_ROOT_SIGNATURE_DESC1
     {
         constexpr static D3D12_ROOT_SIGNATURE_FLAGS default_flags{
-            //D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-            //D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS
-            //D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
-            //D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
-            //D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
         };
 
         constexpr explicit d3d12_root_signature_desc(const d3d12_root_parameter* parameters,
