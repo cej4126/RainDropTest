@@ -12,21 +12,21 @@ namespace command {
         desc.NodeMask = 0;
 
         ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_command_queue)));
-        NAME_D3D12_COMPTR_OBJECT(m_command_queue);
+        NAME_D3D12_OBJECT(m_command_queue, L"Command Queue");
 
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
             command_frame& frame{ m_command_frame[i] };
             ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&frame.command_allocator)));
-            NAME_D3D12_COMPTR_OBJECT(frame.command_allocator);
+            NAME_D3D12_OBJECT(frame.command_allocator, L"Command Allocator");
         }
 
-        ThrowIfFailed(device->CreateCommandList(0, type, m_command_frame[0].command_allocator.Get(), nullptr, IID_PPV_ARGS(&m_command_list)));
-        NAME_D3D12_COMPTR_OBJECT(m_command_list);
-        //m_command_list->Close();
+        ThrowIfFailed(device->CreateCommandList(0, type, m_command_frame[0].command_allocator, nullptr, IID_PPV_ARGS(&m_command_list)));
+        NAME_D3D12_OBJECT(m_command_list, L"Command List");
+        m_command_list->Close();
 
         ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-        NAME_D3D12_COMPTR_OBJECT(m_fence);
+        NAME_D3D12_OBJECT(m_fence, L"Fence");
 
         m_fence_event = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
         if (!m_fence_event)
@@ -37,31 +37,39 @@ namespace command {
 
     Command::~Command()
     {
+        assert(!m_command_queue && !m_command_list && m_fence);
     }
 
     void Command::begin_frame()
     {
         command_frame& frame{ m_command_frame[m_frame_index] };
-        frame.wait(m_fence_event, m_fence.Get());
+        frame.wait(m_fence_event, m_fence);
         ThrowIfFailed(frame.command_allocator->Reset());
-        m_command_list->Reset(frame.command_allocator.Get(), nullptr);
+        m_command_list->Reset(frame.command_allocator, nullptr);
     }
 
     void Command::end_frame(const surface::Surface& surface)
     {
         m_command_list->Close();
-        ID3D12CommandList* const command_lists[]{ m_command_list.Get() };
+        ID3D12CommandList* const command_lists[]{ m_command_list };
         m_command_queue->ExecuteCommandLists(_countof(command_lists), &command_lists[0]);
 
         // Presenting swap chain buffers happens in lockstep with frame buffers.
         surface.present();
+
+        const UINT64 fence_value{ ++m_fence_value };
+        command_frame& frame{ m_command_frame[m_frame_index] };
+        frame.fence_value = fence_value;
+        ThrowIfFailed(m_command_queue->Signal(m_fence, fence_value));
+
+        m_frame_index = (m_frame_index + 1) % Frame_Count;
     }
 
     void Command::flush()
     {
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
-            m_command_frame[i].wait(m_fence_event, m_fence.Get());
+            m_command_frame[i].wait(m_fence_event, m_fence);
         }
         m_frame_index = 0;
     }
@@ -74,11 +82,13 @@ namespace command {
         CloseHandle(m_fence_event);
         m_fence_event = nullptr;
 
+        core::release(m_command_queue);
+        core::release(m_command_list);
+
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
             m_command_frame[i].release();
         }
-
     }
 
     void Command::command_frame::wait(HANDLE fence_event, ID3D12Fence1* fence) const
@@ -93,6 +103,7 @@ namespace command {
 
     void Command::command_frame::release()
     {
+        core::release(command_allocator);
         fence_value = 0;
     }
 

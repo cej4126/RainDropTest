@@ -3,28 +3,15 @@
 #include <string>
 #include <filesystem>
 #include "stdafx.h"
-//#include "Helpers.h"
 #include "Command.h"
-//#include "Main.h"
 #include "Barriers.h"
 #include "Upload.h"
-//#include "Buffers.h"
-//#include "Utilities.h"
-//#include "ContentToEngine.h"
-//#include "Shaders.h"
-//#include "Content.h"
-//#include "Transform.h"
-//#include "Entity.h"
-//#include "Shaders.h"
 #include "Resources.h"
 #include "GraphicPass.h"
 #include "SharedTypes.h"
 #include "FreeList.h"
-//#include "Input.h"
-//#include "Scripts.h"
 #include "RainDrop.h"
 #include "Lights.h"
-//#include "Surface.h"
 #include "PostProcess.h"
 
 // InterlockedCompareExchange returns the object's value if the 
@@ -32,8 +19,8 @@
 // change and 0 will be returned.
 #define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
 
-//extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
-//extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
 namespace core {
 
@@ -888,6 +875,7 @@ namespace core {
         barriers::resource_barrier& barriers{ resource_barriers };
 
         ID3D12DescriptorHeap* const heaps[]{ m_srv_desc_heap.heap() };
+        cmd_list->SetDescriptorHeaps(1, &heaps[0]);
 
         cmd_list->RSSetViewports(1, &surface.viewport());
         cmd_list->RSSetScissorRects(1, &surface.scissor_rect());
@@ -901,12 +889,13 @@ namespace core {
 
         graphic_pass::render_targets(cmd_list, d3d12_info, barriers);
 
+        // Post-process
         barriers.add(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_END_ONLY);
         barriers.apply(cmd_list);
 
         // Post process
         post_process::post_process(cmd_list, d3d12_info, surface.rtv());
-
+        // after post process
         barriers::transition_resource(cmd_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
         m_command.end_frame(surface);

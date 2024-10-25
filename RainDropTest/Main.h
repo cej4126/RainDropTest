@@ -38,7 +38,4 @@ namespace resource {
     [[nodiscard]] Descriptor_Heap& srv_heap();
     [[nodiscard]] Descriptor_Heap& uav_heap();
     [[nodiscard]] constant_buffer& cbuffer();
-    //UINT64 get_render_context_fence_value();
-    //void set_render_context_fence_value();
-
 }

@@ -21,7 +21,7 @@ namespace app {
         struct Scene {
             game_entity::entity entity{};
             camera::Camera camera{};
-            surface::Surface surface{};
+            UINT surface_id{ Invalid_Index };
             windows::window window{};
         };
 
@@ -86,135 +86,16 @@ namespace app {
         return DefWindowProc(hwnd, msg, wparam, lparam);
     }
 
-    //bool dx_app::initialize()
-    //{
-    //    WCHAR assetsPath[512];
-    //    GetAssetsPath(assetsPath, _countof(assetsPath));
-    //    //m_assetsPath = assetsPath;
-    //
-    //    return true;
-    //}
-    //
-    //void dx_app::run()
-    //{
-    //
-    //}
-    //
-    //void dx_app::shutdown()
-    //{
-    //}
-
-    //game_entity::entity create_entity_item(XMFLOAT3 position, XMFLOAT3 rotation, const char* script_name)
-    //{
-    //    transform::init_info transform_info{};
-    //    XMVECTOR quat{ XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&rotation)) };
-    //    XMFLOAT4A rot_quat;
-    //    XMStoreFloat4A(&rot_quat, quat);
-    //    memcpy(&transform_info.rotation[0], &rot_quat.x, sizeof(transform_info.rotation));
-    //    memcpy(&transform_info.position[0], &position.x, sizeof(transform_info.position));
-
-    //    script::init_info script_info{};
-    //    if (strlen(script_name) > 0)
-    //    {
-    //        script_info.script_creator = script::detail::get_script_creator(std::hash<std::string>()(script_name));
-    //        assert(script_info.script_creator);
-    //    }
-
-    //    game_entity::entity_info entity_info{};
-    //    entity_info.transform = &transform_info;
-    //    entity_info.script = &script_info;
-    //    game_entity::entity entity = game_entity::create(entity_info).get_id();
-    //    assert(entity.is_valid());
-    //    return entity;
-    //}
-    //
-    //void create_render_items()
-    //{
-    //    m_cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, "").get_id();
-    //
-    //    assert(std::filesystem::exists("../cube.model"));
-    //    std::thread threads[]{
-    //        std::thread{ [] { m_cube_model_id = load_model("../cube.model"); }},
-    //    };
-    //
-    //    for (auto& t : threads)
-    //    {
-    //        t.join();
-    //    }
-    //
-    //    m_material_id = create_material();
-    //    UINT materials[]{ m_material_id };
-    //
-    //    geometry::init_info geometry_info{};
-    //
-    //
-    //    m_cube_item_id = content::render_item::add(m_cube_entity_id, m_ cube_model_id, _countof(materials), &materials[0]);
-    //}
-    //
-    //
-    //std::wstring dx_app::GetAssetFullPath(LPCWSTR assetName)
-    //{
-    //    return m_assetsPath + assetName;
-    //}
-
-    // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
-    // If no such adapter can be found, *ppAdapter will be set to nullptr.
-    //_Use_decl_annotations_
-    //void dx_app::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_opt_result_maybenull_ IDXGIAdapter1** ppAdapter)
-    //{
-    //    ComPtr<IDXGIAdapter1> adapter;
-    //    *ppAdapter = nullptr;
-    //
-    //    for (UINT adapter_index = 0; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapters1(adapter_index, &adapter); ++adapter_index)
-    //    {
-    //        DXGI_ADAPTER_DESC1 desc;
-    //        adapter->GetDesc1(&desc);
-    //
-    //        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-    //        {
-    //            // Don't select the Basic Render Driver adapter.
-    //            // If you want a software adapter, pass in "/warp" on the command line.
-    //            continue;
-    //        }
-    //
-    //        // Check to see if the adapter supports Direct3D 12, but don't create the
-    //        // actual device yet.
-    //        if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-    //        {
-    //            break;
-    //        }
-    //    }
-    //
-    //    *ppAdapter = adapter.Detach();
-    //}
-    //
-    //void dx_app::SetCustomWindowText(LPCWSTR text)
-    //{
-    //
-    //}
-    //
-    //void dx_app::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
-    //{
-    //    for (int i = 1; i < argc; ++i)
-    //    {
-    //        if (_wcsnicmp(argv[i], L"-warp", wcslen(argv[i])) == 0 ||
-    //            _wcsnicmp(argv[i], L"/warp", wcslen(argv[i])) == 0)
-    //        {
-    //            m_use_warp_device = true;
-    //            m_title = m_title + L" (WARP)";
-    //        }
-    //    }
-    //}
-
     void create_scene(Scene& scene, windows::window_init_info info)
     {
         scene.window = windows::create(&info);
-        scene.surface = surface::create(scene.window);
+        scene.surface_id = surface::create(scene.window);
 
         // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
         scene.entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, { 1.f, 1.f, 1.f }, nullptr, "camera_script");
         scene.camera = camera::create(camera::perspective_camera_init_info(scene.entity.get_id()));
-        scene.camera.aspect_ratio((float)(scene.surface.width() / scene.surface.height()));
+        const surface::Surface& surface{ surface::get_surface(scene.surface_id) };
+        scene.camera.aspect_ratio((float)(surface.width() / surface.height()));
     }
 
     bool app_initialize()
@@ -288,7 +169,7 @@ namespace app {
 
         for (UINT i{ 0 }; i < _countof(m_scenes); ++i)
         {
-            if (m_scenes[i].surface.is_valid())
+            if (m_scenes[i].surface_id != Invalid_Index)
             {
                 float thresholds[1]{};
 
@@ -299,7 +180,8 @@ namespace app {
                 info.camera_id = m_scenes[i].camera.get_id();
 
                 assert(_countof(thresholds) >= info.render_item_count);
-                m_scenes[i].surface.render(info);
+                const surface::Surface& surface{ surface::get_surface(m_scenes[i].surface_id) };
+                surface.render(info);
             }
         }
 

@@ -75,6 +75,10 @@ namespace lights
     void shutdown();
 
     void generate_lights();
+
+    [[nodiscard]] UINT add_cull_light();
+    void remove_cull_light();
+
     void update_light_buffers(core::d3d12_frame_info d3d12_info);
     void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier barriers);
 

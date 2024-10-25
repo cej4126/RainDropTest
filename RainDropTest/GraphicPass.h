@@ -40,7 +40,7 @@ namespace graphic_pass {
         UINT* entity_ids{ nullptr };
         UINT* sub_mesh_gpu_ids{ nullptr };
         UINT* material_ids{ nullptr };
-        ID3D12PipelineState** graphic_pass_pipeline_states{ nullptr };
+        ID3D12PipelineState** graphic_pipeline_states{ nullptr };
         ID3D12PipelineState** depth_pipeline_states{ nullptr };
         // material_cache
         ID3D12RootSignature** root_signatures{ nullptr };
@@ -67,7 +67,7 @@ namespace graphic_pass {
             sizeof(UINT) +                                   // entity_ids
             sizeof(UINT) +                                   // sub_mesh_gpu_ids
             sizeof(UINT) +                                   // material_ids
-            sizeof(ID3D12PipelineState*) +                   // graphic_pass_pipeline_states
+            sizeof(ID3D12PipelineState*) +                   // graphic_pipeline_states
             sizeof(ID3D12PipelineState*) +                   // depth_pipeline_states
             sizeof(ID3D12RootSignature*) +                   // root_signatures
             sizeof(content::material_type::type) +           // material_types

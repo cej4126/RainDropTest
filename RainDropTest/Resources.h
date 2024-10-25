@@ -52,11 +52,23 @@ namespace resource {
 
     // --- buffer ---------------------------------------------------------------
 
+    struct buffer_init_info
+    {
+        //ID3D12Heap1* heap{ nullptr };
+        const void* data{ nullptr };
+        //D3D12_RESOURCE_ALLOCATION_INFO1 allocation_info{};
+        D3D12_RESOURCE_STATES initial_state{ D3D12_RESOURCE_STATE_COMMON };
+        D3D12_RESOURCE_FLAGS flags{ D3D12_RESOURCE_FLAG_NONE };
+        UINT size{ 0 };
+        UINT alignment{ 0 };
+        bool cpu_accessible{ false };
+    };
+
     class Buffer
     {
     public:
         Buffer() = default;
-        explicit Buffer(UINT size, UINT alignment, D3D12_RESOURCE_FLAGS flag, bool cpu_accessible);
+        explicit Buffer(const buffer_init_info& info);
         DISABLE_COPY(Buffer);
         constexpr Buffer(Buffer&& o)
             : m_buffer{ o.m_buffer }, m_gpu_address{ o.m_gpu_address }, m_size{ o.m_size }
@@ -209,7 +221,7 @@ namespace resource {
     {
     public:
         uav_buffer() = default;
-        explicit uav_buffer(UINT size, UINT alignment, D3D12_RESOURCE_FLAGS flag);
+        explicit uav_buffer(const buffer_init_info& info);
         DISABLE_COPY(uav_buffer);
         constexpr uav_buffer(uav_buffer&& o)
             : m_buffer{ std::move(o.m_buffer) }, m_uav{ o.m_uav }, m_uav_shader_visible{ o.m_uav_shader_visible }
@@ -264,7 +276,7 @@ namespace resource {
 
     // --- texture -----------------------------------------------------
 
-    struct d3d12_texture_init_info
+    struct texture_init_info
     {
         ID3D12Resource* resource{ nullptr };
         D3D12_SHADER_RESOURCE_VIEW_DESC* srv_desc{ nullptr };
@@ -273,20 +285,21 @@ namespace resource {
         D3D12_CLEAR_VALUE clear_value{};
     };
 
-    class d3d12_texture
+    class Texture_Buffer
     {
     public:
         constexpr static UINT max_mips{ 14 };
-        d3d12_texture() = default;
-        explicit d3d12_texture(d3d12_texture_init_info info);
-        DISABLE_COPY(d3d12_texture);
-        constexpr d3d12_texture(d3d12_texture&& o) noexcept
+
+        Texture_Buffer() = default;
+        explicit Texture_Buffer(texture_init_info info);
+        DISABLE_COPY(Texture_Buffer);
+        constexpr Texture_Buffer(Texture_Buffer&& o) noexcept
             : m_resource{ o.m_resource }, m_srv{ o.m_srv }
         {
             o.reset();
         }
 
-        constexpr d3d12_texture& operator=(d3d12_texture&& o) noexcept
+        constexpr Texture_Buffer& operator=(Texture_Buffer&& o) noexcept
         {
             assert(this != &o);
             if (this != &o)
@@ -297,14 +310,14 @@ namespace resource {
             return *this;
         }
 
-        ~d3d12_texture() { release(); }
+        ~Texture_Buffer() { release(); }
 
         void release();
         [[nodiscard]] constexpr ID3D12Resource* const resource() const { return m_resource; }
         [[nodiscard]] constexpr Descriptor_Handle srv() const { return m_srv; }
 
     private:
-        constexpr void move(d3d12_texture& o)
+        constexpr void move(Texture_Buffer& o)
         {
             m_resource = o.m_resource;
             m_srv = o.m_srv;
@@ -397,16 +410,13 @@ namespace resource {
     {
     public:
         Depth_Buffer() = default;
-        explicit Depth_Buffer(UINT width, UINT height);
+        explicit Depth_Buffer(texture_init_info info);
+        DISABLE_COPY(Depth_Buffer);
 
-        explicit Depth_Buffer(const Depth_Buffer&) = delete;
-        Depth_Buffer& operator=(const Depth_Buffer&) = delete;
-        //DISABLE_COPY(Depth_Buffer);
-
-        constexpr Depth_Buffer(Depth_Buffer&& o) noexcept
-            : m_dsv{o.m_dsv}, m_resource{ o.m_resource }, m_srv{ o.m_srv }
+        constexpr Depth_Buffer(Depth_Buffer&& o)
+            : m_texture{ std::move(o.m_texture) }, m_dsv{ o.m_dsv }
         {
-            o.reset();
+            o.m_dsv = {};
         }
 
         constexpr Depth_Buffer& operator=(Depth_Buffer&& o) noexcept
@@ -414,8 +424,9 @@ namespace resource {
             assert(this != &o);
             if (this != &o)
             {
-                release();
-                move(o);
+                m_texture = std::move(o.m_texture);
+                m_dsv = o.m_dsv;
+                o.m_dsv = {};
             }
             return *this;
         }
@@ -427,32 +438,11 @@ namespace resource {
 
         void release();
         [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE dsv() const { return m_dsv.cpu; }
-        [[nodiscard]] constexpr Descriptor_Handle srv() const { return m_srv; }
-        [[nodiscard]] constexpr ID3D12Resource* const resource() const { return m_resource; }
+        [[nodiscard]] constexpr Descriptor_Handle srv() const { return m_texture.srv(); }
+        [[nodiscard]] constexpr ID3D12Resource* const resource() const { return m_texture.resource(); }
 
     private:
-        constexpr void move(Depth_Buffer& o)
-        {
-            m_dsv = o.m_dsv;
-            m_srv = o.m_srv;
-            m_resource = std::move(o.m_resource);
-            o.reset();
-        }
-
-        constexpr void reset()
-        {
-            m_dsv = {};
-            m_srv = {};
-            m_resource = nullptr;
-        }
-
-        //d3d12_texture m_texture{};
+        Texture_Buffer m_texture{};
         Descriptor_Handle m_dsv{};
-        ID3D12Resource* m_resource{ nullptr };
-        Descriptor_Handle m_srv;
-
-
-
-
     };
 }

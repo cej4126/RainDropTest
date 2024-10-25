@@ -103,6 +103,34 @@ namespace graphic_pass
             graphic_buffer = resource::Render_Target{ desc };
         }
 
+        void create_depth_buffer(XMUINT2 size)
+        {
+            depth_buffer.release();
+
+            D3D12_RESOURCE_DESC desc{};
+
+            desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // D3D12_RESOURCE_DIMENSION Dimension;
+            desc.Alignment = 0;                                   // UINT64 Alignment;
+            desc.Width = size.x;                                  // UINT64 Width;
+            desc.Height = size.y;                                 // UINT Height;
+            desc.DepthOrArraySize = 1;                            // UINT16 DepthOrArraySize;
+            desc.MipLevels = 1;                                   // UINT16 MipLevels;
+            desc.Format = depth_buffer_format;                     // DXGI_FORMAT Format;
+            desc.SampleDesc = { 1, 0 };                           // DXGI_SAMPLE_DESC SampleDesc;
+            desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;           // D3D12_TEXTURE_LAYOUT Layout;
+            desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL; // D3D12_RESOURCE_FLAGS Flags;
+
+            resource::texture_init_info info{};
+            info.desc = &desc;
+            info.initial_state = D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            info.clear_value.Format = desc.Format;
+            info.clear_value.DepthStencil.Depth = 0.f;
+            info.clear_value.DepthStencil.Stencil = 0;
+
+            depth_buffer = resource::Depth_Buffer{ info };
+            NAME_D3D12_OBJECT(depth_buffer.resource(), L"Graphic Depth Buffer");
+        }
+
         void set_root_parameters(id3d12_graphics_command_list* const cmd_list, UINT cache_index)
         {
             const graphic_cache& cache{ frame_cache };
@@ -126,11 +154,6 @@ namespace graphic_pass
             }
         }
 
-    }
-
-    void create_depth_buffer(XMUINT2 size)
-    {
-        depth_buffer = resource::Depth_Buffer{ size.x, size.y };
     }
 
     constexpr UINT graphic_cache::size() const
@@ -159,8 +182,8 @@ namespace graphic_pass
             entity_ids = (UINT*)m_buffer.data();
             sub_mesh_gpu_ids = (UINT*)&entity_ids[items_count];
             material_ids = (UINT*)&sub_mesh_gpu_ids[items_count];
-            graphic_pass_pipeline_states = (ID3D12PipelineState**)&material_ids[items_count];
-            depth_pipeline_states = (ID3D12PipelineState**)&graphic_pass_pipeline_states[items_count];
+            graphic_pipeline_states = (ID3D12PipelineState**)&material_ids[items_count];
+            depth_pipeline_states = (ID3D12PipelineState**)&graphic_pipeline_states[items_count];
             root_signatures = (ID3D12RootSignature**)&depth_pipeline_states[items_count];
             material_types = (content::material_type::type*)&root_signatures[items_count];
             descriptor_indices = (UINT**)&material_types[items_count];
@@ -195,7 +218,7 @@ namespace graphic_pass
         XMUINT2& d{ dimensions };
         if (size.x > d.x || size.y > d.y)
         {
-            d = { (size.x > d.x) ? size.x : d.x, (size.y, d.y) ? size.y : d.y };
+            d = { (size.x > d.x) ? size.x : d.x, (size.y > d.y) ? size.y : d.y };
             create_graphic_buffer(d);
             create_depth_buffer(d);
         }
@@ -205,8 +228,7 @@ namespace graphic_pass
     {
         // add_transitions_for_depth_pre-pass
         barriers.add(graphic_buffer.resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY);
-        barriers.add(depth_buffer.resource(),
-            D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+        barriers.add(depth_buffer.resource(), D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
         barriers.apply(cmd_list);
 
@@ -264,7 +286,6 @@ namespace graphic_pass
         cmd_list->ClearRenderTargetView(rtv, clear_value, 0, nullptr);
         cmd_list->OMSetRenderTargets(1, &rtv, 0, &dsv);
 
-
         // render
         const graphic_cache& cache{ frame_cache };
         const UINT items_count{ cache.size() };
@@ -273,7 +294,7 @@ namespace graphic_pass
 
         ID3D12RootSignature* current_root_signature{ nullptr };
         ID3D12PipelineState* current_pipeline_state{ nullptr };
-
+         
         for (UINT i{ 0 }; i < items_count; ++i)
         {
             if (current_root_signature != cache.root_signatures[i])
@@ -282,7 +303,6 @@ namespace graphic_pass
 
                 current_root_signature = cache.root_signatures[i];
                 cmd_list->SetGraphicsRootSignature(current_root_signature);
-                cmd_list->SetGraphicsRootSignature(current_root_signature);
                 cmd_list->SetGraphicsRootConstantBufferView(idx::global_shader_data, d3d12_info.global_shader_data);
                 cmd_list->SetGraphicsRootShaderResourceView(idx::directional_lights, lights::non_cullable_light_buffer(frame_index));
                 cmd_list->SetGraphicsRootShaderResourceView(idx::cullable_lights, lights::cullable_light_buffer(frame_index));
@@ -290,9 +310,9 @@ namespace graphic_pass
                 cmd_list->SetGraphicsRootShaderResourceView(idx::light_index_list, lights::light_index_list_opaque(light_culling_id, frame_index));
             }
 
-            if (current_pipeline_state != cache.depth_pipeline_states[i])
+            if (current_pipeline_state != cache.graphic_pipeline_states[i])
             {
-                current_pipeline_state = cache.depth_pipeline_states[i];
+                current_pipeline_state = cache.graphic_pipeline_states[i];
                 cmd_list->SetPipelineState(current_pipeline_state);
             }
 

@@ -46,7 +46,7 @@ namespace content
         std::mutex sub_mesh_mutex{};
 
         // textures
-        utl::free_list<resource::d3d12_texture> textures;
+        utl::free_list<resource::Texture_Buffer> textures;
         utl::free_list<UINT> descriptor_indices;
         std::mutex texture_mutex{};
 
@@ -419,7 +419,7 @@ namespace content
             return pso_id;
         }
 
-        resource::d3d12_texture create_resource_from_texture_data(const UINT8* const data)
+        resource::Texture_Buffer create_resource_from_texture_data(const UINT8* const data)
         {
             // struct {
             //     u32 width, height, array_size (or depth), flags, mip_levels, format,
@@ -440,10 +440,10 @@ namespace content
             const DXGI_FORMAT format{ (DXGI_FORMAT)blob.read<UINT>() };
             const bool is_3d{ (flags & content::texture_flags::is_volume_map) != 0 };
 
-            assert(mip_levels <= resource::d3d12_texture::max_mips);
+            assert(mip_levels <= resource::Texture_Buffer::max_mips);
 
-            UINT depth_per_mip_level[resource::d3d12_texture::max_mips]{};
-            for (UINT i{ 0 }; i < resource::d3d12_texture::max_mips; ++i)
+            UINT depth_per_mip_level[resource::Texture_Buffer::max_mips]{};
+            for (UINT i{ 0 }; i < resource::Texture_Buffer::max_mips; ++i)
             {
                 depth_per_mip_level[i] = 1;
             }
@@ -576,7 +576,7 @@ namespace content
 
             // Create the shader view
             D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
-            resource::d3d12_texture_init_info info{};
+            resource::texture_init_info info{};
             info.resource = resource;
 
             if (flags * content::texture_flags::is_cube_map)
@@ -603,7 +603,7 @@ namespace content
                 info.srv_desc = &srv_desc;
             }
 
-            return resource::d3d12_texture{ info };
+            return resource::Texture_Buffer{ info };
         }
 
         // ContentToEngine.cpp
@@ -969,7 +969,7 @@ namespace content
         UINT add(const UINT8* const data)
         {
             assert(data);
-            resource::d3d12_texture texture{ create_resource_from_texture_data(data) };
+            resource::Texture_Buffer texture{ create_resource_from_texture_data(data) };
 
             std::lock_guard lock{ texture_mutex };
             const UINT id{ textures.add(std::move(texture)) };
@@ -1191,7 +1191,7 @@ namespace content
         {
             assert(d3d12_render_item_ids && id_count);
             assert(cache.entity_ids && cache.sub_mesh_gpu_ids && cache.material_ids &&
-                cache.graphic_pass_pipeline_states && cache.depth_pipeline_states);
+                cache.graphic_pipeline_states && cache.depth_pipeline_states);
 
             std::lock_guard lock1{ render_item_mutex };
             std::lock_guard lock2{ pso_mutex };
@@ -1203,7 +1203,7 @@ namespace content
                 cache.entity_ids[i] = item.entity_id;
                 cache.sub_mesh_gpu_ids[i] = item.sub_mesh_gpu_id;
                 cache.material_ids[i] = item.material_id;
-                cache.graphic_pass_pipeline_states[i] = pipeline_states[item.graphic_pass_pso_id];
+                cache.graphic_pipeline_states[i] = pipeline_states[item.graphic_pass_pso_id];
                 cache.depth_pipeline_states[i] = pipeline_states[item.depth_pso_id];
             }
         }

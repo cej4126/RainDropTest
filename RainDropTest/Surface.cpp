@@ -4,7 +4,7 @@
 #include "Resources.h"
 #include "Window.h"
 #include "Core.h"
-
+#include "Lights.h"
 
 namespace surface {
     
@@ -17,6 +17,7 @@ namespace surface {
     void Surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue)
     {
         assert(factory && command_queue);
+        release();
 
         if (SUCCEEDED(factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_allow_tearing, sizeof(UINT))) && m_allow_tearing)
         {
@@ -31,9 +32,11 @@ namespace surface {
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;                    // DXGI_USAGE BufferUsage;
         desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;                       // DXGI_SWAP_EFFECT SwapEffect;
         desc.SampleDesc = { 1, 0 };                                            // DXGI_SAMPLE_DESC SampleDesc;
-        desc.Flags = m_allow_tearing
-            ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
-            : DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT; // UINT Flags;
+        desc.Flags = m_allow_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+        // maybe need to the compute raindrop?
+        //desc.Flags = m_allow_tearing
+        //    ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+        //    : DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT; // UINT Flags;
         desc.Scaling = DXGI_SCALING_STRETCH;                                   // DXGI_SCALING Scaling;
         desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;                          // DXGI_ALPHA_MODE AlphaMode;
         desc.Stereo = false;                                                   // BOOL Stereo;
@@ -43,7 +46,7 @@ namespace surface {
         ThrowIfFailed(factory->CreateSwapChainForHwnd(command_queue, hwnd, &desc, nullptr, nullptr, &swap_chain));
         ThrowIfFailed(factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
         swap_chain->QueryInterface(IID_PPV_ARGS(&m_swap_chain));
-        m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
+        //m_swap_chain_event = m_swap_chain->GetFrameLatencyWaitableObject();
 
         core::release(swap_chain);
 
@@ -55,6 +58,9 @@ namespace surface {
         }
 
         finalize();
+
+        assert(m_light_id == Invalid_Index);
+        m_light_id = lights::add_cull_light();
     }
 
     void Surface::present() const
@@ -87,17 +93,17 @@ namespace surface {
     void Surface::finalize()
     {
         // create RTVs for back-buffers
-        D3D12_RENDER_TARGET_VIEW_DESC render_target_desc{};
-        render_target_desc.Format = default_back_buffer_format;
-        render_target_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
         for (UINT i{ 0 }; i < buffer_count; ++i)
         {
-            render_target& render_target_iterm{ m_render_targets[i] };
-            assert(!render_target_iterm.resource);
-            ThrowIfFailed(m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_target_iterm.resource)));
+            render_target& render_target_items{ m_render_targets[i] };
+            assert(!render_target_items.resource);
+            ThrowIfFailed(m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_target_items.resource)));
 
-            core::device()->CreateRenderTargetView(render_target_iterm.resource, &render_target_desc, render_target_iterm.rtv.cpu);
+            D3D12_RENDER_TARGET_VIEW_DESC render_target_desc{};
+            render_target_desc.Format = default_back_buffer_format;
+            render_target_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            core::device()->CreateRenderTargetView(render_target_items.resource, &render_target_desc, render_target_items.rtv.cpu);
         }
 
         DXGI_SWAP_CHAIN_DESC desc{};
@@ -122,12 +128,12 @@ namespace surface {
         core::release(m_swap_chain);
     }
     
-    Surface create(windows::window window)
+    UINT create(windows::window window)
     {
         UINT id{ surfaces.add(window) };
         surfaces[id].create_swap_chain(core::factory(), core::command_queue());
-        return surfaces[id];
-//        return Surface{ id };
+        surfaces[id].set_id(id);
+        return id;
     }
 
     void remove(UINT id)

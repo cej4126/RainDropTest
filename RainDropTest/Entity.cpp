@@ -59,6 +59,7 @@ namespace game_entity {
             // NOTE: we don't call resize(), so the number of memory allocations stays low
             transforms.emplace_back();
             scripts.emplace_back();
+            geometries.emplace_back();
         }
 
         const entity new_entity{ id };

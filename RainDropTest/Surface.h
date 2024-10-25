@@ -30,10 +30,15 @@ namespace surface {
     class Surface
     {
     public:
-        constexpr explicit Surface(UINT id) : m_id{ id } {}
+        //constexpr explicit Surface(UINT id) : m_id{ id } {}
+        constexpr explicit Surface(UINT id) { m_id = id; }
         constexpr Surface() = default;
         constexpr UINT get_id() const { return m_id; }
-        constexpr bool is_valid() const { return m_id != Invalid_Index; }
+        void set_id(UINT id) { m_id = id; }
+        constexpr bool is_valid() const
+        {
+            return m_id != Invalid_Index;
+        }
             
         //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB };
         //constexpr static DXGI_FORMAT default_back_buffer_format{ DXGI_FORMAT_R8G8B8A8_UNORM };
@@ -55,10 +60,12 @@ namespace surface {
         void render(core::frame_info info) const;
 
         //UINT set_current_bb_index();
-
         [[nodiscard]] constexpr UINT width() const { return (UINT)m_viewport.Width; }
         [[nodiscard]] constexpr UINT height() const { return (UINT)m_viewport.Height; }
-        [[nodiscard]] constexpr ID3D12Resource* const back_buffer() const { return m_render_targets[m_current_bb_index].resource; }
+        [[nodiscard]] constexpr ID3D12Resource* const back_buffer() const
+        {
+            return m_render_targets[m_current_bb_index].resource;
+        }
         [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv() const { return m_render_targets[m_current_bb_index].rtv.cpu; }
         [[nodiscard]] constexpr const D3D12_VIEWPORT& viewport() const { return m_viewport; }
         [[nodiscard]] constexpr const D3D12_RECT& scissor_rect() const { return m_scissor_rectangle; }
@@ -88,7 +95,7 @@ namespace surface {
         UINT m_id{ Invalid_Index };
     };
 
-    Surface create(windows::window window);
+    UINT create(windows::window window);
     void remove(UINT id);
     surface::Surface& get_surface(UINT id);
 }

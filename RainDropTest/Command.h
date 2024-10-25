@@ -27,22 +27,22 @@ namespace command {
         void flush();
         void release();
 
-        [[nodiscard]] ID3D12CommandQueue* const command_queue() const { return m_command_queue.Get(); }
-        [[nodiscard]] ID3D12GraphicsCommandList6* const command_list() const { return m_command_list.Get(); }
+        [[nodiscard]] ID3D12CommandQueue* const command_queue() const { return m_command_queue; }
+        [[nodiscard]] ID3D12GraphicsCommandList6* const command_list() const { return m_command_list; }
         [[nodiscard]] constexpr UINT frame_index() const { return m_frame_index; }
 
     private:
         struct command_frame
         {
-            ComPtr<ID3D12CommandAllocator> command_allocator;
+            ID3D12CommandAllocator* command_allocator;
             UINT64 fence_value{ 0 };
             void wait(HANDLE fence_event, ID3D12Fence1* fence) const;
             void release();
         };
 
-        ComPtr<ID3D12CommandQueue> m_command_queue;
-        ComPtr<id3d12_graphics_command_list> m_command_list;
-        ComPtr<ID3D12Fence1> m_fence;
+        ID3D12CommandQueue* m_command_queue;
+        id3d12_graphics_command_list* m_command_list;
+        ID3D12Fence1* m_fence;
         UINT64 m_fence_value{ 0 };
         command_frame m_command_frame[Frame_Count]{};
         HANDLE m_fence_event{ nullptr };

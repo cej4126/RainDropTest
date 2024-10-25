@@ -113,10 +113,15 @@ namespace app {
         {
             t.join();
         }
-        cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, nullptr, nullptr).get_id();
 
         create_material();
         UINT materials[]{ material_id };
+
+        geometry::init_info geometry_info{};
+        geometry_info.material_count = _countof(materials);
+        geometry_info.material_ids = &materials[0];
+        geometry_info.geometry_content_id = cube_model_id;
+        cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, &geometry_info, nullptr).get_id();
 
         cube_item_id =  content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
     }

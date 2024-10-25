@@ -65,6 +65,7 @@ namespace camera {
         explicit Camera(UINT id) : m_id{ id } {}
         explicit Camera(camera_init_info info);
         constexpr UINT get_id() const { return m_id; }
+        void set_id(UINT id) { m_id = id; }
         void update();
 
         void field_of_view(float fov);

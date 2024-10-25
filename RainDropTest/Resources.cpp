@@ -109,17 +109,17 @@ namespace resource {
     }
     // --- buffer ---------------------------------------------------------------
 
-    Buffer::Buffer(UINT size, UINT alignment, D3D12_RESOURCE_FLAGS flag, bool cpu_accessible)
+    Buffer::Buffer(const buffer_init_info& info)
     {
-        assert(!m_buffer && size && alignment);
-        m_size = (UINT)math::align_size_up(size, alignment);
-        if (cpu_accessible)
+        assert(!m_buffer && info.size && info.alignment);
+        m_size = (UINT)math::align_size_up(info.size, info.alignment);
+        if (info.cpu_accessible)
         {
-            m_buffer = buffers::create_buffer_default_without_upload(size);
+            m_buffer = buffers::create_buffer_default_without_upload(m_size);
         }
         else
         {
-            m_buffer = buffers::create_buffer_default_with_upload(nullptr, size);
+            m_buffer = buffers::create_buffer_default_with_upload(nullptr, m_size, info.flags);
         }
         m_gpu_address = m_buffer->GetGPUVirtualAddress();
         NAME_D3D12_OBJECT_INDEXED(m_buffer, m_size, L"Buffer - size");
@@ -176,21 +176,20 @@ namespace resource {
     }
 
     // --- uav_buffer --------------------------------------------
-    uav_buffer::uav_buffer(UINT size, UINT alignment, D3D12_RESOURCE_FLAGS flag)
-        : m_buffer{ size, alignment, flag, false }
+    uav_buffer::uav_buffer(const buffer_init_info& info)
+        : m_buffer{ info }
     {
-        assert(size && alignment);
-        NAME_D3D12_OBJECT_INDEXED(buffer(), size, L"UAV buffer - size");
+        assert(info.size && info.alignment);
+        NAME_D3D12_OBJECT_INDEXED(buffer(), info.size, L"UAV buffer - size");
 
-        assert(flag & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        assert(info.flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         m_uav = core::uav_heap().allocate();
         m_uav_shader_visible = core::srv_heap().allocate();
         D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
         desc.Format = DXGI_FORMAT_R32_UINT;
         desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-
         desc.Buffer.FirstElement = 0;                    //  UINT64 FirstElement;
-        desc.Buffer.NumElements = size / sizeof(UINT);   //  UINT NumElements;
+        desc.Buffer.NumElements = m_buffer.size() / sizeof(UINT);   //  UINT NumElements;
         desc.Buffer.StructureByteStride = 0;             //  UINT StructureByteStride;
         desc.Buffer.CounterOffsetInBytes = 0;            //  UINT64 CounterOffsetInBytes;
         desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;  //  D3D12_BUFFER_UAV_FLAGS Flags;
@@ -221,7 +220,7 @@ namespace resource {
     }
 
     // --- texture -----------------------------------------------------
-    d3d12_texture::d3d12_texture(d3d12_texture_init_info info)
+    Texture_Buffer::Texture_Buffer(texture_init_info info)
     {
         auto* const device{ core::device() };
         assert(device);
@@ -250,7 +249,7 @@ namespace resource {
         device->CreateShaderResourceView(m_resource, info.srv_desc, m_srv.cpu);
     }
 
-    void d3d12_texture::release()
+    void Texture_Buffer::release()
     {
         core::deferred_release(m_resource);
     }
@@ -259,34 +258,8 @@ namespace resource {
     // --- render texture ----------------------------------------------
     Render_Target::Render_Target(D3D12_RESOURCE_DESC desc)
     {
-        //heap 0
-        //resource 0
-        //srv_desc 0
-        // desc fill in
-        // allocation_info fill in
-        // D3D12_RESOURCE_STATES  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-        // D3D12_CLEAR_VALUE
-
-        //D3D12_RESOURCE_DESC desc{};
-        //desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        //desc.Alignment = 0; // NOTE: 0 is the same as 64KB (or 4MB for MSAA)       
-        //desc.Width = size.x;
-        //desc.Height = size.y;
-        //desc.DepthOrArraySize = 1;
-        //desc.MipLevels = 0; // make space for all mip levels     
-        //desc.Format = main_buffer_format;
-        //desc.SampleDesc = { 1, 0 };
-        //desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        //desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-        //d3d12_texture_init_info info{};
-        //info.desc = &desc;
-        //info.initial_state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        //info.clear_value.Format = desc.Format;
-        //memcpy(&info.clear_value.Color, &clear_value[0], sizeof(clear_value));
 
         constexpr float default_clear_value[4]{ 0.5f, 0.5f, 0.5f, 1.f };
-
 
         // d3d12_texture
         id3d12_device* const device{ core::device() };
@@ -334,70 +307,43 @@ namespace resource {
     }
 
     // --- depth buffer ----------------------------------------
-    Depth_Buffer::Depth_Buffer(UINT width, UINT height)
+    Depth_Buffer::Depth_Buffer(texture_init_info info)
     {
-        auto* const device{ core::device() };
-        assert(device);
 
-        D3D12_RESOURCE_DESC buffer_desc = {};
-        buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // D3D12_RESOURCE_DIMENSION Dimension;
-        buffer_desc.Alignment = 0;                                   // UINT64 Alignment;
-        buffer_desc.Width = width;                                   // UINT64 Width;
-        buffer_desc.Height = height;                                 // UINT Height;
-        buffer_desc.DepthOrArraySize = 1;                            // UINT16 DepthOrArraySize;
-        buffer_desc.MipLevels = 1;                                   // UINT16 MipLevels;
-        buffer_desc.Format = DXGI_FORMAT_R32_TYPELESS;                  // DXGI_FORMAT Format;
-        buffer_desc.SampleDesc = { 1, 0 };                           // DXGI_SAMPLE_DESC SampleDesc;
-        buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;           // D3D12_TEXTURE_LAYOUT Layout;
-        buffer_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL; // D3D12_RESOURCE_FLAGS Flags;
-
-
-        D3D12_CLEAR_VALUE clear_value{};
-        clear_value.Format = DXGI_FORMAT_D32_FLOAT;
-        // depth test - clear_value.DepthStencil.Depth = 1.0f;
-        clear_value.DepthStencil.Depth = 0.0f;
-        clear_value.DepthStencil.Stencil = 0;
-        
-        // d3d12_texture
-        //d3d12_texture_init_info info{};
-        //m_texture = d3d12_texture(buffer_desc, clear_value, dsv_desc);
-        ThrowIfFailed(device->CreateCommittedResource(&d3dx::heap_properties.default_heap,
-            D3D12_HEAP_FLAG_NONE, &buffer_desc, D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-            &clear_value, IID_PPV_ARGS(&m_resource)));
-        assert(m_resource);
-
+        // save the format for the dsv
+        const DXGI_FORMAT dsv_format{ info.desc->Format };
         D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
-        srv_desc.Format = DXGI_FORMAT_R32_FLOAT;
+        if (info.desc->Format == DXGI_FORMAT_D32_FLOAT)
+        {
+            info.desc->Format = DXGI_FORMAT_R32_TYPELESS;
+            srv_desc.Format = DXGI_FORMAT_R32_FLOAT;
+        }
+
         srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srv_desc.Texture2D.MipLevels = 1;
         srv_desc.Texture2D.MostDetailedMip = 0;
         srv_desc.Texture2D.PlaneSlice = 0;
         srv_desc.Texture2D.ResourceMinLODClamp = 0.f;
-        m_srv = core::srv_heap().allocate();
-        device->CreateShaderResourceView(m_resource, &srv_desc, m_srv.cpu);
 
-        // d3d12_depth_buffer
-        m_dsv = core::dsv_heap().allocate();
-
-        D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc{};
-        dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-        dsv_desc.Flags = D3D12_DSV_FLAG_NONE;
-        dsv_desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        dsv_desc.Texture2D.MipSlice = 0;
+        assert(!info.srv_desc);
+        info.srv_desc = &srv_desc;
+        m_texture = Texture_Buffer(info);
 
         D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
-        depth_stencil_desc.Format = DXGI_FORMAT_D32_FLOAT;                //   DXGI_FORMAT Format;
+        depth_stencil_desc.Format = dsv_format;                //   DXGI_FORMAT Format;
         depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D; //   D3D12_DSV_DIMENSION ViewDimension;
         depth_stencil_desc.Flags = D3D12_DSV_FLAG_NONE;                   //   D3D12_DSV_FLAGS Flags;
+        depth_stencil_desc.Texture2D.MipSlice = 0;
 
-        device->CreateDepthStencilView(resource(), &depth_stencil_desc, m_dsv.cpu);
+        m_dsv = core::dsv_heap().allocate();
+
+        core::device()->CreateDepthStencilView(resource(), &depth_stencil_desc, m_dsv.cpu);
     }
 
     void Depth_Buffer::release()
     {
-        core::srv_heap().free_handle(m_srv);
         core::dsv_heap().free_handle(m_dsv);
-        core::deferred_release(m_resource);
+        m_texture.release();
     }
 }

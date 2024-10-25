@@ -5,7 +5,7 @@ namespace barriers {
     class resource_barrier
     {
     public:
-        constexpr static UINT m_max_resource_barriers{ 32 };
+        constexpr static UINT m_max_resource_barriers{ 64 };
 
         // D3D12_RESOURCE_BARRIER_TYPE_TRANSITION
         constexpr void add(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after,

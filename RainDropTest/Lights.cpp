@@ -528,7 +528,11 @@ namespace lights
                     return;
                 }
 
-                m_buffers[type].buffer = resource::Buffer{ size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, D3D12_RESOURCE_FLAG_NONE, true };
+                resource::buffer_init_info info{};
+                info.size = size;
+                info.alignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+                info.cpu_accessible = true;
+                m_buffers[type].buffer = resource::Buffer{ info };
                 NAME_D3D12_OBJECT_INDEXED(m_buffers[type].buffer.buffer(), frame_index,
                     type == light_buffer::non_cullable_light ? L"Non-cullable Light Buffer" :
                     type == light_buffer::cullable_light ? L"Cullable Light Buffer" :
@@ -665,15 +669,22 @@ namespace lights
             const UINT light_index_list_buffer_size{ (UINT)math::align_size_up < sizeof(XMFLOAT4) >(sizeof(UINT) * max_lights_per_tile * frustum_count) };
             const UINT light_grid_and_index_list_buffer_size{ light_grid_buffer_size + light_index_list_buffer_size };
 
+            resource::buffer_init_info info{};
+            info.alignment = sizeof(XMFLOAT4);
+            info.flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            info.cpu_accessible = false;
+
             if (frustums_buffer_size > culler.frustums.size())
             {
-                culler.frustums = resource::Buffer(frustums_buffer_size, sizeof(XMFLOAT4), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, false);
+                info.size = frustums_buffer_size;
+                culler.frustums = resource::Buffer{ info };
                 NAME_D3D12_OBJECT_INDEXED(culler.frustums.buffer(), frustum_count, L"Light Grid Frustums Buffer - count");
             }
 
             if (light_grid_and_index_list_buffer_size > culler.light_grid_and_index_list.size())
             {
-                culler.light_grid_and_index_list = resource::Buffer(light_grid_and_index_list_buffer_size, sizeof(XMFLOAT4), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, false);
+                info.size = light_grid_and_index_list_buffer_size;
+                culler.light_grid_and_index_list = resource::Buffer(info);
 
                 const D3D12_GPU_VIRTUAL_ADDRESS light_grid_opaque_buffer{ culler.light_grid_and_index_list.gpu_address() };
                 culler.light_index_list_opaque_buffer = light_grid_opaque_buffer + light_grid_buffer_size;
@@ -681,7 +692,10 @@ namespace lights
 
                 if (!culler.light_index_counter.buffer())
                 {
-                    culler.light_index_counter = resource::uav_buffer{ 1, sizeof(XMFLOAT4), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS };
+                    info.size = 1;
+                    info.alignment = sizeof(XMFLOAT4);
+                    info.flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+                    culler.light_index_counter = resource::uav_buffer{ info };
                     NAME_D3D12_OBJECT_INDEXED(culler.light_index_counter.buffer(), core::current_frame_index(), L"Light Index Counter Buffer");
                 }
             }
@@ -776,6 +790,17 @@ namespace lights
         info.intensity = 1.f;
         info.color = rgb_to_color(20, 200, 174);
         lights.emplace_back(create_light(info));
+    }
+
+    UINT add_cull_light()
+    {
+        return light_cullers.add();
+    }
+
+    void remove_cull_light(UINT id)
+    {
+        assert(id != Invalid_Index);
+        light_cullers.remove(id);
     }
 
     void update_light_buffers(core::d3d12_frame_info d3d12_info)
