@@ -14,18 +14,27 @@
 namespace app {
 
     namespace {
+        struct material_type {
+            enum type : UINT {
+                default_material,
+                dirty_material,
+
+                count
+            };
+        };
+        
         UINT cube_model_id{ Invalid_Index };
         UINT cube_entity_id{ Invalid_Index };
         UINT cube_item_id{ Invalid_Index };
-        UINT material_id{ Invalid_Index };
+        UINT material_ids[material_type::count]{};
 
         struct texture_usage {
             enum usage : UINT {
-                fem_bot_ambient_occlusion = 0,
-                fem_bot_base_color,
-                fem_bot_emissive,
-                fem_bot_metal_rough,
-                fem_bot_normal,
+                //fem_bot_ambient_occlusion = 0,
+                //fem_bot_base_color,
+                //fem_bot_emissive,
+                //fem_bot_metal_rough,
+                //fem_bot_normal,
 
                 dirty_metal_ambient_occlusion,
                 dirty_metal_base_color,
@@ -38,6 +47,14 @@ namespace app {
         };
 
         UINT texture_ids[texture_usage::count];
+
+        void remove_model(UINT model_id)
+        {
+            if (model_id != Invalid_Index)
+            {
+                content::destroy_resource(model_id, content::asset_type::mesh);
+            }
+        }
 
     } // anonymous namespace
 
@@ -67,6 +84,11 @@ namespace app {
         return entity;
     }
 
+    void remove_game_entity(UINT id)
+    {
+        game_entity::remove(id);
+    }
+
     [[nodiscard]] UINT load_asset(const char* path, content::asset_type::type type)
     {
         std::unique_ptr<UINT8[]> buffer;
@@ -83,28 +105,50 @@ namespace app {
     {
         content::material_init_info info{};
         info.type = content::material_type::opaque;
-        info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::normal_texture_shader_vs;
+        info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::normal_shader_vs;
         info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::pixel_shader_ps;
-        material_id = content::create_resource(&info, content::asset_type::material);
+        material_ids[material_type::default_material] = content::create_resource(&info, content::asset_type::material);
+
+        info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::texture_shader_ps;
+        info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::normal_texture_shader_vs;
+        info.texture_count = texture_usage::dirty_metal_normal - texture_usage::dirty_metal_ambient_occlusion + 1;
+        info.texture_ids = &texture_ids[texture_usage::dirty_metal_ambient_occlusion];
+        material_ids[material_type::dirty_material] = content::create_resource(&info, content::asset_type::material);
     }
 
     void create_render_items()
     {
         memset(&texture_ids[0], 0xff, sizeof(UINT) * _countof(texture_ids));
+#define NO_THREAD
+#ifdef NO_THREAD
+        //texture_ids[texture_usage::fem_bot_ambient_occlusion] =     load_asset("../fem_bot_ambient_occlusion.texture", content::asset_type::texture); }},
+        //texture_ids[texture_usage::fem_bot_base_color] =            load_asset("../fem_bot_base_color.texture", content::asset_type::texture); }},
+        //texture_ids[texture_usage::fem_bot_emissive] =              load_asset("../fem_bot_emissive.texture", content::asset_type::texture); }},
+        //texture_ids[texture_usage::fem_bot_metal_rough] =           load_asset("../fem_bot_roughness.texture", content::asset_type::texture); }},
+        //texture_ids[texture_usage::fem_bot_normal] =                load_asset("../fem_bot_normal.texture", content::asset_type::texture); }},
 
+        texture_ids[texture_usage::dirty_metal_ambient_occlusion] = load_asset("../dirty_metal_ambient_occlusion.texture", content::asset_type::texture);
+        texture_ids[texture_usage::dirty_metal_base_color] = load_asset("../dirty_metal_base_color.texture", content::asset_type::texture);
+        texture_ids[texture_usage::dirty_metal_emissive] = load_asset("../dirty_metal_emissive.texture", content::asset_type::texture);
+        texture_ids[texture_usage::dirty_metal_metal_rough] = load_asset("../dirty_metal_roughness.texture", content::asset_type::texture);
+        texture_ids[texture_usage::dirty_metal_normal] = load_asset("../dirty_metal_normal.texture", content::asset_type::texture);
+
+        cube_model_id = load_asset("../cube.model", content::asset_type::mesh);
+
+#else
         std::thread threads[]
         {
-            std::thread{ [] { texture_ids[texture_usage::fem_bot_ambient_occlusion] =     load_asset("../fem_bot_ambient_occlusion.texture", content::asset_type::texture); }},
+            //std::thread{ [] { texture_ids[texture_usage::fem_bot_ambient_occlusion] =     load_asset("../fem_bot_ambient_occlusion.texture", content::asset_type::texture); }},
             //std::thread{ [] { texture_ids[texture_usage::fem_bot_base_color] =            load_asset("../fem_bot_base_color.texture", content::asset_type::texture); }},
             //std::thread{ [] { texture_ids[texture_usage::fem_bot_emissive] =              load_asset("../fem_bot_emissive.texture", content::asset_type::texture); }},
             //std::thread{ [] { texture_ids[texture_usage::fem_bot_metal_rough] =           load_asset("../fem_bot_roughness.texture", content::asset_type::texture); }},
             //std::thread{ [] { texture_ids[texture_usage::fem_bot_normal] =                load_asset("../fem_bot_normal.texture", content::asset_type::texture); }},
         
-            //std::thread{ [] { texture_ids[texture_usage::dirty_metal_ambient_occlusion] = load_asset("../dirty_metal_ambient_occlusion.texture", content::asset_type::texture); }},
-            //std::thread{ [] { texture_ids[texture_usage::dirty_metal_base_color] =        load_asset("../dirty_metal_base_color.texture", content::asset_type::texture); }},
-            //std::thread{ [] { texture_ids[texture_usage::dirty_metal_emissive] =          load_asset("../dirty_metal_emissive.texture", content::asset_type::texture); }},
-            //std::thread{ [] { texture_ids[texture_usage::dirty_metal_metal_rough] =       load_asset("../dirty_metal_roughness.texture", content::asset_type::texture); }},
-            //std::thread{ [] { texture_ids[texture_usage::dirty_metal_normal] =            load_asset("../dirty_metal_normal.texture", content::asset_type::texture); }},
+            std::thread{ [] { texture_ids[texture_usage::dirty_metal_ambient_occlusion] = load_asset("../dirty_metal_ambient_occlusion.texture", content::asset_type::texture); }},
+            std::thread{ [] { texture_ids[texture_usage::dirty_metal_base_color] =        load_asset("../dirty_metal_base_color.texture", content::asset_type::texture); }},
+            std::thread{ [] { texture_ids[texture_usage::dirty_metal_emissive] =          load_asset("../dirty_metal_emissive.texture", content::asset_type::texture); }},
+            std::thread{ [] { texture_ids[texture_usage::dirty_metal_metal_rough] =       load_asset("../dirty_metal_roughness.texture", content::asset_type::texture); }},
+            std::thread{ [] { texture_ids[texture_usage::dirty_metal_normal] =            load_asset("../dirty_metal_normal.texture", content::asset_type::texture); }},
 
             std::thread{ [] { cube_model_id =                                             load_asset("../cube.model", content::asset_type::mesh); }},
         };
@@ -113,17 +157,33 @@ namespace app {
         {
             t.join();
         }
-
+#endif
         create_material();
-        UINT materials[]{ material_id };
 
         geometry::init_info geometry_info{};
-        geometry_info.material_count = _countof(materials);
-        geometry_info.material_ids = &materials[0];
+        geometry_info.material_count = 1;
+        geometry_info.material_ids = &material_ids[material_type::dirty_material];
         geometry_info.geometry_content_id = cube_model_id;
-        cube_entity_id = create_entity_item({ 1.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, &geometry_info, nullptr).get_id();
+        cube_entity_id = create_entity_item({ 0.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 0.4f, 0.4f, 0.4f }, &geometry_info, nullptr).get_id();
 
-        cube_item_id =  content::render_item::add(cube_entity_id, cube_model_id, _countof(materials), &materials[0]);
+        cube_item_id =  content::render_item::add(cube_entity_id, cube_model_id, 1, &material_ids[0]);
+    }
+
+    void destroy_render_items()
+    {
+        remove_game_entity(cube_entity_id);
+
+        remove_model(cube_model_id);
+
+        for (UINT id : material_ids)
+        {
+            content::destroy_resource(id, content::asset_type::material);
+        }
+
+        for (UINT id : texture_ids)
+        {
+            content::destroy_resource(id, content::asset_type::texture);
+        }
     }
 
     //void get_render_item_ids(UINT* const item_ids, UINT count)

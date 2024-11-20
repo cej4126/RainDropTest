@@ -134,29 +134,14 @@ namespace resource {
 
     // --- constant buffer ------------------------------------------------------
 
-    constant_buffer::constant_buffer(UINT size, UINT alignment)
+    constant_buffer::constant_buffer(const buffer_init_info& info)
+        : m_buffer{ info }
     {
-        // d3d12 buffer
-        assert(!m_buffer && size && alignment);
-        m_size = (UINT)math::align_size_up(size, alignment);
-        m_buffer = buffers::create_buffer_default_without_upload(size);
-
-        m_gpu_address = m_buffer->GetGPUVirtualAddress();
-        NAME_D3D12_OBJECT_INDEXED(m_buffer, m_size, L"Constant Buffer - size");
+        NAME_D3D12_OBJECT_INDEXED(buffer(), size(), L"Constant Buffer - size");
 
         D3D12_RANGE range{};
-        ThrowIfFailed(m_buffer->Map(0, &range, (void**)(&m_cpu_address)));
+        ThrowIfFailed(buffer()->Map(0, &range, (void**)(&m_cpu_address)));
         assert(m_cpu_address);
-    }
-
-    void constant_buffer::release()
-    {
-        core::deferred_release(m_buffer);
-        m_gpu_address = 0;
-        m_size = 0;
-
-        m_cpu_address = nullptr;
-        m_cpu_offset = 0;
     }
 
     UINT8* const constant_buffer::allocate(UINT size)
@@ -164,8 +149,8 @@ namespace resource {
         std::lock_guard lock{ m_mutex };
 
         const UINT aligned_size{ (UINT)buffers::align_size_for_constant_buffer(size) };
-        assert(m_cpu_offset + aligned_size <= m_size);
-        if (m_cpu_offset + aligned_size <= m_size)
+        assert(m_cpu_offset + aligned_size <= m_buffer.size());
+        if (m_cpu_offset + aligned_size <= m_buffer.size())
         {
             UINT8* const address{ m_cpu_address + m_cpu_offset };
             m_cpu_offset += aligned_size;
@@ -256,41 +241,26 @@ namespace resource {
 
 
     // --- render texture ----------------------------------------------
-    Render_Target::Render_Target(D3D12_RESOURCE_DESC desc)
+    Render_Target::Render_Target(texture_init_info info)
+        : m_texture{ info }
     {
-
-        constexpr float default_clear_value[4]{ 0.5f, 0.5f, 0.5f, 1.f };
-
-        // d3d12_texture
-        id3d12_device* const device{ core::device() };
-        assert(device);
-
-        D3D12_CLEAR_VALUE clear_value{};
-        clear_value.Format = desc.Format;
-        memcpy(&clear_value.Color, &default_clear_value[0], sizeof(default_clear_value));
-
-        ThrowIfFailed(device->CreateCommittedResource(&d3dx::heap_properties.default_heap, D3D12_HEAP_FLAG_NONE, &desc,
-            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clear_value, IID_PPV_ARGS(&m_resource)));
-        assert(m_resource);
-
-        m_srv = core::srv_heap().allocate();
-        device->CreateShaderResourceView(m_resource, nullptr, m_srv.cpu);
-
-
-        // render texture
-        m_mip_count = m_resource->GetDesc().MipLevels;
-        assert(m_mip_count && m_mip_count <= max_mips);
+        assert(info.desc);
+        m_mip_count = resource()->GetDesc().MipLevels;
+        assert(m_mip_count && m_mip_count <= Texture_Buffer::max_mips);
 
         Descriptor_Heap& rtv_heap{ core::rtv_heap() };
         D3D12_RENDER_TARGET_VIEW_DESC render_desc{};
-        render_desc.Format = desc.Format;                          // DXGI_FORMAT Format;
+        render_desc.Format = info.desc->Format;                    // DXGI_FORMAT Format;
         render_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D; // D3D12_RTV_DIMENSION ViewDimension;
         render_desc.Texture2D.MipSlice = 0;                        // D3D12_TEX2D_RTV Texture2D;
+
+        auto* const device{ core::device() };
+        assert(device);
 
         for (UINT i{ 0 }; i < m_mip_count; ++i)
         {
             m_rtv[i] = rtv_heap.allocate();
-            device->CreateRenderTargetView(m_resource, &render_desc, m_rtv[i].cpu);
+            device->CreateRenderTargetView(resource(), &render_desc, m_rtv[i].cpu);
             ++render_desc.Texture2D.MipSlice;
         }
     }
@@ -301,9 +271,8 @@ namespace resource {
         {
             core::rtv_heap().free_handle(m_rtv[i]);
         }
-        core::srv_heap().free_handle(m_srv);
-        core::deferred_release(m_resource);
-
+        m_texture.release();
+        m_mip_count = 0;
     }
 
     // --- depth buffer ----------------------------------------

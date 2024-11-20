@@ -153,6 +153,12 @@ namespace windows {
         return {};
     }
 
+    void remove(UINT id)
+    {
+        DestroyWindow(windows[id].hwnd);
+        windows.remove(id);
+    }
+
     HWND get_window_handle(UINT id)
     {
         return windows[id].hwnd;

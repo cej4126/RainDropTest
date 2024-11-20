@@ -100,6 +100,8 @@ namespace upload {
         assert(aligned_size);
 
         // Create upload buffer
+        ID3D12Resource* resource{ nullptr };
+
         D3D12_RESOURCE_DESC desc{};
         desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;  //  D3D12_RESOURCE_DIMENSION Dimension;
         desc.Alignment = 0;                                //  UINT64 Alignment;
@@ -114,9 +116,9 @@ namespace upload {
 
         ThrowIfFailed(core::device()->CreateCommittedResource(&d3dx::heap_properties.upload_heap,
             D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr, IID_PPV_ARGS(&frame.upload_buffer)));
-        assert(frame.upload_buffer);
-
+            nullptr, IID_PPV_ARGS(&resource)));
+        assert(resource);
+        frame.upload_buffer = resource;
         NAME_D3D12_OBJECT_INDEXED(frame.upload_buffer, aligned_size, L"Upload Buffer - size");
 
         const D3D12_RANGE range{};

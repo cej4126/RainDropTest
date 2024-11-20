@@ -108,7 +108,7 @@ namespace buffers {
         desc.Flags = D3D12_RESOURCE_FLAG_NONE;             //  D3D12_RESOURCE_FLAGS Flags;
 
         ID3D12Resource* resource{ nullptr };
-        ThrowIfFailed(core::device()->CreateCommittedResource(&d3dx::heap_properties.upload_heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON,
+        ThrowIfFailed(core::device()->CreateCommittedResource(&d3dx::heap_properties.upload_heap, D3D12_HEAP_FLAG_CREATE_NOT_ZEROED, &desc, D3D12_RESOURCE_STATE_COMMON,
             nullptr, IID_PPV_ARGS(&resource)));
 
         assert(resource);

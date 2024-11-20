@@ -3,6 +3,7 @@
 #include "Vector.h"
 #include "Content.h"
 #include "Barriers.h"
+#include "Resources.h"
 
 namespace d3d12 {
     struct d3d12_frame_info;

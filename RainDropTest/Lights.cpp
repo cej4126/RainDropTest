@@ -8,6 +8,7 @@
 #include "AppItems.h"
 #include "Math.h"
 #include "Transform.h"
+#include "GraphicPass.h"
 
 namespace lights
 {
@@ -584,7 +585,7 @@ namespace lights
 
         const UINT max_lights_per_tile{ 256 };
 
-        std::unordered_map<UINT64, LightSet> light_set_keys;
+        std::unordered_map<UINT64, LightSet> m_light_set_keys;
         LightBuffer light_buffers[Frame_Count];
 
         ID3D12RootSignature* light_culling_root_signature{ nullptr };
@@ -594,9 +595,16 @@ namespace lights
 
         Light create_light(light_init_info info)
         {
-            assert(light_set_keys.count(info.set_key));
+            assert(m_light_set_keys.count(info.set_key));
             assert(info.entity_id != Invalid_Index);
-            return light_set_keys[info.set_key].add(info);
+            return m_light_set_keys[info.set_key].add(info);
+        }
+
+
+        void remove_light(UINT id, UINT64 light_set_key)
+        {
+            assert(m_light_set_keys.count(light_set_key));
+            m_light_set_keys[light_set_key].remove(id);
         }
 
         struct light_set_states {
@@ -625,15 +633,15 @@ namespace lights
 
             parameters[param::frustums_out_or_index_counter].as_uav(D3D12_SHADER_VISIBILITY_ALL, 0);
             parameters[param::light_grid_opaque].as_uav(D3D12_SHADER_VISIBILITY_ALL, 1);
-            parameters[param::light_index_list_opaque].as_cbv(D3D12_SHADER_VISIBILITY_ALL, 3);
+            parameters[param::light_index_list_opaque].as_uav(D3D12_SHADER_VISIBILITY_ALL, 3);
 
             parameters[param::frustums_in].as_srv(D3D12_SHADER_VISIBILITY_ALL, 0);
             parameters[param::culling_info].as_srv(D3D12_SHADER_VISIBILITY_ALL, 1);
             parameters[param::bounding_spheres].as_srv(D3D12_SHADER_VISIBILITY_ALL, 2);
 
             light_culling_root_signature = d3dx::d3d12_root_signature_desc{ &parameters[0], _countof(parameters) }.create();
-            NAME_D3D12_OBJECT(light_culling_root_signature, L"Light Culling Root Signature");
             assert(light_culling_root_signature);
+            NAME_D3D12_OBJECT(light_culling_root_signature, L"Light Culling Root Signature");
 
             // frustum grid pso
             {
@@ -743,12 +751,22 @@ namespace lights
         }
     } // anonymous namespace
 
+    UINT Light::entity_id() const
+    {
+        return m_id;
+    }
 
     void create_light_set(UINT64 set_key)
     {
         // key not used check
-        assert(!light_set_keys.count(set_key));
-        light_set_keys[set_key] = {};
+        assert(!m_light_set_keys.count(set_key));
+        m_light_set_keys[set_key] = {};
+    }
+
+    void remove_light_set(UINT64 light_set_key)
+    {
+        assert(!m_light_set_keys[light_set_key].has_lights());
+        m_light_set_keys.erase(light_set_key);
     }
 
     void generate_lights()
@@ -792,6 +810,30 @@ namespace lights
         lights.emplace_back(create_light(info));
     }
 
+    void remove_lights()
+    {
+        for (auto& light : lights)
+        {
+            const UINT id{ light.entity_id() };
+            remove_light(light.get_id(), light.get_set_key());
+            app::remove_game_entity(id);
+        }
+
+        for (auto& light : disabled_lights)
+        {
+            const UINT id{ light.entity_id() };
+            remove_light(light.get_id(), light.get_set_key());
+            app::remove_game_entity(id);
+        }
+
+        lights.clear();
+        disabled_lights.clear();
+
+        remove_light_set(light_set_states::left_set);
+        remove_light_set(light_set_states::right_set);
+
+    }
+
     UINT add_cull_light()
     {
         return light_cullers.add();
@@ -806,8 +848,8 @@ namespace lights
     void update_light_buffers(core::d3d12_frame_info d3d12_info)
     {
         const UINT64 light_set_key{ d3d12_info.info->light_set_key };
-        assert(light_set_keys.count(light_set_key));
-        LightSet& light_set{ light_set_keys[light_set_key] };
+        assert(m_light_set_keys.count(light_set_key));
+        LightSet& light_set{ m_light_set_keys[light_set_key] };
         if (!light_set.has_lights()) return;
 
         light_set.update_transforms();
@@ -816,7 +858,7 @@ namespace lights
         light_buffer.update_light_buffer(light_set, light_set_key, frame_index);
     }
 
-    void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier barriers)
+    void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier& barriers)
     {
         const UINT id{ d3d12_info.light_id };
         assert(id != Invalid_Index);
@@ -828,6 +870,49 @@ namespace lights
         {
             resize_and_calculate_grid_frustums(culler, cmd_list, d3d12_info, barriers);
         }
+
+
+        hlsl::LightCullingDispatchParameters& params{ culler.light_culling_dispatch_params };
+        params.NumLights = m_light_set_keys[d3d12_info.info->light_set_key].cullable_light_count();
+        params.DepthBufferSrvIndex = graphic_pass::get_depth_buffer().srv().index;
+
+        // NOTE: we update culler.has_lights after this statement, so the light culling shader
+        //       will run once to clear the buffers when there're no lights.
+        if (!params.NumLights && !culler.has_lights) return;
+
+        culler.has_lights = params.NumLights > 0;
+
+        resource::constant_buffer& cbuffer{ core::cbuffer() };
+        hlsl::LightCullingDispatchParameters* const buffer{ cbuffer.allocate<hlsl::LightCullingDispatchParameters>() };
+        memcpy(buffer, &params, sizeof(hlsl::LightCullingDispatchParameters));
+
+        // Make light grid and light index buffers writable
+        barriers.add(culler.light_grid_and_index_list.buffer(),
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        barriers.apply(cmd_list);
+
+        const XMUINT4 clear_value{ 0, 0, 0, 0 };
+        culler.light_index_counter.clear_uav(cmd_list, &clear_value.x);
+
+        cmd_list->SetComputeRootSignature(light_culling_root_signature);
+        cmd_list->SetPipelineState(light_culling_pso);
+        using param = light_culling_root_parameter;
+        cmd_list->SetComputeRootConstantBufferView(param::global_shader_data, d3d12_info.global_shader_data);
+        cmd_list->SetComputeRootConstantBufferView(param::constants, cbuffer.gpu_address(buffer));
+        cmd_list->SetComputeRootUnorderedAccessView(param::frustums_out_or_index_counter, culler.light_index_counter.gpu_address());
+        cmd_list->SetComputeRootShaderResourceView(param::frustums_in, culler.frustums.gpu_address());
+        cmd_list->SetComputeRootShaderResourceView(param::culling_info, light_buffers[d3d12_info.frame_index].culling_info());
+        cmd_list->SetComputeRootShaderResourceView(param::bounding_spheres, light_buffers[d3d12_info.frame_index].bounding_spheres());
+        cmd_list->SetComputeRootUnorderedAccessView(param::light_grid_opaque, culler.light_grid_and_index_list.gpu_address());
+        cmd_list->SetComputeRootUnorderedAccessView(param::light_index_list_opaque, culler.light_index_list_opaque_buffer);
+
+        cmd_list->Dispatch(params.NumThreadGroups.x, params.NumThreadGroups.y, 1);
+
+        // Make light grid and light index buffers readable
+        // NOTE: this transition barrier will be applied by the caller of this function.
+        barriers.add(culler.light_grid_and_index_list.buffer(),
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
     }
 
     D3D12_GPU_VIRTUAL_ADDRESS non_cullable_light_buffer(UINT frame_index)
@@ -863,6 +948,8 @@ namespace lights
     D3D12_GPU_VIRTUAL_ADDRESS light_grid_opaque(UINT light_culling_id, UINT frame_index)
     {
         assert(frame_index < Frame_Count && light_culling_id != Invalid_Index);
+
+        //D3D12_GPU_VIRTUAL_ADDRESS temp = light_cullers[light_culling_id].cullers[frame_index].light_grid_and_index_list.gpu_address();
         return light_cullers[light_culling_id].cullers[frame_index].light_grid_and_index_list.gpu_address();
     }
 
@@ -884,11 +971,16 @@ namespace lights
     void shutdown()
     {
         // D3D12Light.cpp
-        assert(light_set_keys.empty());
+        assert(m_light_set_keys.empty());
 
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
             light_buffers[i].release();
         }
+
+        assert(light_culling_root_signature && grid_frustum_pso && light_culling_pso);
+        core::deferred_release(light_culling_root_signature);
+        core::deferred_release(grid_frustum_pso);
+        core::deferred_release(light_culling_pso);
     }
 }

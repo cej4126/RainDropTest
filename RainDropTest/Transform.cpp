@@ -115,7 +115,7 @@ namespace transform
         assert(c.is_valid());
     }
 
-    void get_transform_matrices(UINT id, XMFLOAT4X4 world, XMFLOAT4X4 inverse_world)
+    void get_transform_matrices(UINT id, XMFLOAT4X4& world, XMFLOAT4X4& inverse_world)
     {
         assert(id != Invalid_Index);
 

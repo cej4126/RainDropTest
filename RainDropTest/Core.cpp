@@ -77,7 +77,6 @@ namespace core {
             XMStoreFloat3(&global_shader_data.CameraPosition, camera.position());
             XMStoreFloat3(&global_shader_data.CameraDirection, camera.direction());
 
-            cbuffer.clear();
             hlsl::GlobalShaderData* const shader_data{ cbuffer.allocate<hlsl::GlobalShaderData>() };
             // TODO: handle the case when cbuffer is full.
             memcpy(shader_data, &global_shader_data, sizeof(hlsl::GlobalShaderData));
@@ -205,247 +204,6 @@ namespace core {
 
     } // anonymous namespace
 
-    //Core::Core(UINT width, UINT height, std::wstring name) :
-    //    dx_app(width, height, name),
-    //    m_frame_index(0),
-    //    m_render_context_fence_value(0)
-    //{
-    //    srand(0);
-
-    //    m_srv_index = 0;
-    //    ZeroMemory(m_frame_fence_values, sizeof(m_frame_fence_values));
-
-    //    m_rain_drop.set_rain_state(true);
-
-    //    struct
-    //    {
-    //        input::input_code::code code;
-    //        float multipler;
-    //        input::axis::type axis;
-    //    } input_data[] =
-    //    {
-    //        { input::input_code::key_a,  1.f, input::axis::x },
-    //        { input::input_code::key_d, -1.f, input::axis::x },
-    //        { input::input_code::key_w,  1.f, input::axis::z },
-    //        { input::input_code::key_s, -1.f, input::axis::z },
-    //        { input::input_code::key_q, -1.f, input::axis::y },
-    //        { input::input_code::key_e,  1.f, input::axis::y }
-    //    };
-    //    input::input_source source{};
-    //    source.binding = std::hash<std::string>()("move");
-    //    source.source_type = input::input_source::keyboard;
-
-    //    for (int i{ 0 }; i < _countof(input_data); ++i)
-    //    {
-    //        source.code = input_data[i].code;
-    //        source.multiplier = input_data[i].multipler;
-    //        source.axis = input_data[i].axis;
-    //        input::bind(source);
-    //    }
-    //}
-
-    //void Core::OnInit(UINT width, UINT height)
-    //{
-
-    //    LoadPipeline();
-    //    LoadAssets(width, height);
-    //    m_rain_drop.CreateAsyncContexts();
-
-    //    create_render_items();
-
-    //    // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
-    //    camera_entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, nullptr, "camera_script");
-    //    m_camera_id = camera::create(camera::perspective_camera_init_info(camera_entity.get_id()));
-    //    camera::aspect_ratio(m_camera_id, (float)width / height);
-    //}
-
-    //// Load the rendering pipeline dependencies.
-    //void Core::LoadPipeline()
-    //{
-    //    //#if defined(_DEBUG)
-    //    //        // Enable the D3D12 debug layer.
-    //    //        {
-    //    //            ComPtr<ID3D12Debug> debug_controller;
-    //    //            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller))))
-    //    //            {
-    //    //                debug_controller->EnableDebugLayer();
-    //    //            }
-    //    //        }
-    //    //#endif
-
-    //    //ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&m_factory)));
-    //    //
-    //    //if (m_use_warp_device)
-    //    //{
-    //    //    // Wrap device
-    //    //    ComPtr<IDXGIAdapter> warp_adapter;
-    //    //    ThrowIfFailed(m_factory->EnumWarpAdapter(IID_PPV_ARGS(&warp_adapter)));
-    //    //    ThrowIfFailed(D3D12CreateDevice(warp_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
-    //    //}
-    //    //else
-    //    //{
-    //    //    ComPtr<IDXGIAdapter1> hardware_adapter;
-    //    //    GetHardwareAdapter(m_factory.Get(), &hardware_adapter);
-    //    //
-    //    //    ThrowIfFailed(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
-    //    //}
-    //}
-
-    //void Core::LoadAssets(UINT width, UINT height)
-    //{
-
-    //    m_rain_drop.initialize(width, height);
-
-    //    assert(width && height);
-    //    m_depth_buffer.release();
-    //    m_depth_buffer = Depth_Buffer{ width, height };
-
-    //    // Close the command list and execute it to begin the initial GPU setup and uploads.
-    //    ThrowIfFailed(m_command.command_list()->Close());
-    //    ID3D12CommandList* pp_command_lists[] = { m_command.command_list() };
-    //    m_command.command_queue()->ExecuteCommandLists(_countof(pp_command_lists), pp_command_lists);
-
-    //    // Create synchronization objects and wait until assets have been uploaded to the GPU.
-    //    {
-    //        ThrowIfFailed(core::device()->CreateFence(m_render_context_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_render_context_fence)));
-    //        ++m_render_context_fence_value;
-
-    //        m_render_context_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    //        if (m_render_context_fence_event == nullptr)
-    //        {
-    //            ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-    //        }
-    //    }
-    //    WaitForRenderContext();
-    //}
-
-    //void Core::run()
-    //{
-    //    timer.begin();
-    //    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    //    const float dt{ timer.dt_avg() };
-
-    //    OnUpdate(dt);
-    //    timer.end();
-    //}
-
-    //// Update frame-based values.
-    //void Core::OnUpdate(float dt)
-    //{
-    //    script::update(dt);
-
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-    //    // Wait for the previous Present to complete.
-    //    WaitForSingleObjectEx(surface.swap_chain_event(), 100, FALSE);
-
-    //    camera::Camera& camera{ camera::get(m_camera_id) };
-    //    camera.update();
-
-    //    m_rain_drop.update(m_camera_id, m_frame_index);
-
-    //    OnRender();
-    //}
-
-    //void Core::render()
-    //{
-
-    //    UINT render_items[1]{};
-    //    render_items[0] = cube_item_id;
-
-    //    frame_info info{};
-    //    info.render_item_ids = &render_items[0];
-    //    info.render_item_count = 1;
-    //    info.camera_id = m_camera_id;
-
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-
-    //    const d3d12_frame_info d3d12_info{ get_d3d12_frame_info(info, m_constant_buffers[m_frame_index], surface) };
-
-    //    graphic_pass::render(m_command.command_list(), d3d12_info);
-    //}
-
-    //// Render the scene.
-    //void Core::OnRender()
-    //{
-    //    m_rain_drop.sync_compute_tread(m_command.command_queue());
-
-    //    m_command.BeginFrame();
-
-    //    if (deferred_releases_flag[m_frame_index])
-    //    {
-    //        process_deferred_releases(m_frame_index);
-    //    }
-
-    //    // Record all the commands we need to render the scene into the command list.
-    //    PopulateCommandList();
-
-    //    MoveToNextFrame();
-    //}
-
-    //// Fill the command list with all the render commands and dependent state.
-    //void Core::PopulateCommandList()
-    //{
-    //    m_rain_drop.populate_command_list(m_command.command_list(), m_frame_index);
-
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-    //    m_command.command_list()->RSSetScissorRects(1, &surface.scissor_rect());
-
-    //    barriers::transition_resource(m_command.command_list(), surface.back_buffer(),
-    //        D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-    //    // Indicate that the back buffer will be used as a render target.
-    //    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ surface.rtv().ptr };
-    //    D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_depth_buffer.dsv();
-    //    m_command.command_list()->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
-
-    //    // Record commands.
-    //    const float clearColor[] = { 0.3f, 0.3f, 0.3f, 0.0f };
-    //    m_command.command_list()->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
-    //    m_command.command_list()->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
-
-    //    m_command.command_list()->RSSetViewports(1, &surface.viewport());
-
-    //    m_rain_drop.render(m_command.command_list());
-
-    //    render();
-
-    //    // Indicate that the back buffer will now be used to present.
-    //    barriers::transition_resource(m_command.command_list(), surface.back_buffer(),
-    //        D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-    //}
-
-    //void Core::deferred_release(IUnknown* resource)
-    //{
-    //    const UINT frame_idx{ current_frame_index() };
-    //    std::lock_guard lock{ deferred_releases_mutex };
-    //    deferred_releases[frame_idx].push_back(resource);
-    //    set_deferred_releases_flag();
-    //}
-
-    //void __declspec(noinline) Core::process_deferred_releases(UINT frame_index)
-    //{
-    //    std::lock_guard lock{ deferred_releases_mutex };
-    //    // NOTE: we clear this flag in the beginning. If we'd clear it at the end
-    //    //       then it might overwrite some other thread that was trying to set it.
-    //    //       It's fine if overwriting happens before processing the items.
-    //    deferred_releases_flag[m_frame_index] = false;
-
-    //    m_rtv_desc_heap.process_deferred_free(frame_index);
-    //    m_dsv_desc_heap.process_deferred_free(frame_index);
-    //    m_srv_desc_heap.process_deferred_free(frame_index);
-    //    m_uav_desc_heap.process_deferred_free(frame_index);
-
-    //    std::vector<IUnknown*>& resources{ deferred_releases[m_frame_index] };
-    //    if (!resources.empty())
-    //    {
-    //        for (auto& resource : resources)
-    //        {
-    //            core::release(resource);
-    //        }
-    //        resources.clear();
-    //    }
-    //}
-
     namespace detail {
         void deferred_release(IUnknown* resource)
         {
@@ -476,134 +234,6 @@ namespace core {
             model_id = Invalid_Index;
         }
     }
-
-    //void Core::OnDestroy()
-    //{
-    //    remove_item(cube_entity_id, cube_item_id, cube_model_id);
-
-    //    if (material_id != Invalid_Index)
-    //    {
-    //        content::destroy_resource(material_id, content::asset_type::material);
-    //    }
-
-    //    camera::remove(m_camera_id);
-
-    //    m_rain_drop.shutdown();
-
-    //    m_command.Release();
-
-    //    // NOTE: we don't call process_deferred_releases at the end because
-    //    //       some resources (such as swap chains) can't be released before
-    //    //       their depending resources are released.
-    //    for (UINT i{ 0 }; i < Frame_Count; ++i)
-    //    {
-    //        process_deferred_releases(i);
-    //    }
-
-    //    shaders::shutdown();
-    //    content::shutdown();
-    //    upload::shutdown();
-    //    graphic_pass::shutdown();
-
-    //    //m_render_target.release();
-
-    //    m_depth_buffer.release();
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-    //    surface.release();
-
-    //    for (UINT i{ 0 }; i < Frame_Count; ++i)
-    //    {
-    //        m_constant_buffers[i].release();
-    //    }
-
-    //    // NOTE: some modules free their descriptors when they shutdown.
-    //    //       We process those by calling process_deferred_free once more.
-    //    m_rtv_desc_heap.process_deferred_free(0);
-    //    m_dsv_desc_heap.process_deferred_free(0);
-    //    m_srv_desc_heap.process_deferred_free(0);
-    //    m_uav_desc_heap.process_deferred_free(0);
-
-    //    for (UINT i{ 0 }; i < Frame_Count; ++i)
-    //    {
-    //        process_deferred_releases(i);
-    //    }
-
-    //    m_rtv_desc_heap.release();
-    //    m_dsv_desc_heap.release();
-    //    m_srv_desc_heap.release();
-    //    m_uav_desc_heap.release();
-
-    //    for (UINT i{ 0 }; i < Frame_Count; ++i)
-    //    {
-    //        process_deferred_releases(i);
-    //    }
-
-    //    // Ensure that the GPU is no longer referencing resources that are about to be
-    //    // cleaned up by the destructor.
-    //    WaitForRenderContext();
-
-    //    remove_surface();
-
-    //    // Close handles to fence events and threads.
-    //    CloseHandle(m_render_context_fence_event);
-    //}
-
-    //void Core::create_surface(HWND hwnd, UINT width, UINT height)
-    //{
-    //    UINT id{ surface::surface_create(hwnd, width, height) };
-    //    surface_ids.emplace_back(id);
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-    //    surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
-    //}
-
-    //void Core::remove_surface()
-    //{
-    //    for (auto& id : surface_ids)
-    //    {
-    //        surface::surface_remove(id);
-    //    }
-    //    surface_ids.clear();
-    //}
-
-    //void Core::WaitForRenderContext()
-    //{
-    //    // Add a signal command to the queue.
-    //    ThrowIfFailed(m_command.command_queue()->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
-
-    //    // Instruct the fence to set the event object when the signal command completes.
-    //    ThrowIfFailed(m_render_context_fence->SetEventOnCompletion(m_render_context_fence_value, m_render_context_fence_event));
-
-    //    ++m_render_context_fence_value;
-
-    //    // Wait until the signal command has been processed.
-    //    WaitForSingleObject(m_render_context_fence_event, INFINITE);
-    //}
-
-    //// Cycle through the frame resources. This method blocks execution if the 
-    //// next frame resource in the queue has not yet had its previous contents 
-    //// processed by the GPU.
-    //void Core::MoveToNextFrame()
-    //{
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-    //    m_command.EndFrame(surface);
-
-    //    // Assign the current fence value to the current frame.
-    //    m_frame_fence_values[m_frame_index] = m_render_context_fence_value;
-
-    //    // Signal and increment the fence value.
-    //    ThrowIfFailed(m_command.command_queue()->Signal(m_render_context_fence.Get(), m_render_context_fence_value));
-    //    m_render_context_fence_value++;
-
-    //    // Update the frame index.
-    //    m_frame_index = surface.set_current_bb_index();
-
-    //    // If the next frame is not ready to be rendered yet, wait until it is ready.
-    //    if (m_render_context_fence->GetCompletedValue() < m_frame_fence_values[m_frame_index])
-    //    {
-    //        ThrowIfFailed(m_render_context_fence->SetEventOnCompletion(m_frame_fence_values[m_frame_index], m_render_context_fence_event));
-    //        WaitForSingleObject(m_render_context_fence_event, INFINITE);
-    //    }
-    //}
 
     bool initialize()
     {
@@ -683,19 +313,24 @@ namespace core {
         NAME_D3D12_OBJECT(m_srv_desc_heap.heap(), L"SRV Descriptor Heap");
         NAME_D3D12_OBJECT(m_uav_desc_heap.heap(), L"UAV Descriptor Heap");
 
+        resource::buffer_init_info info{};
+        info.size = 1024 * 1024;
+        info.alignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+        info.cpu_accessible = true;
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {
-            new (&m_constant_buffers[i]) resource::constant_buffer{ 1024 * 1024, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT };
+            new (&m_constant_buffers[i]) resource::constant_buffer{ info };
             NAME_D3D12_OBJECT_INDEXED(m_constant_buffers[i].buffer(), i, L"Global Constant Buffer");
         }
 
         m_rain_drop.create_descriptor_heap();
 
         if (!(shaders::initialize() &&
-            post_process::initialize() &&
             graphic_pass::initialize() &&
+            post_process::initialize() &&
             upload::initialize() &&
-            content::initialize()))
+            content::initialize() &&
+            lights::initialize()))
         {
             return failed_init();
         }
@@ -830,7 +465,7 @@ namespace core {
         return m_uav_desc_heap;
     }
 
-    resource::constant_buffer& cbuffers()
+    resource::constant_buffer& cbuffer()
     {
         return m_constant_buffers[current_frame_index()];
     }

@@ -118,6 +118,7 @@ namespace content
                     sizeof(UINT) +                          // root_signature_id
                     sizeof(UINT) +                          // texture_count
                     sizeof(material_surface) +              // pbr_material_properties
+                    sizeof(UINT) * shader_count +           // shader ids
                     sizeof(UINT) * info.texture_count +     // texture_ids[texture_count],
                     sizeof(UINT) * info.texture_count       // descriptor_indices[texture_count]
                 };
@@ -287,7 +288,7 @@ namespace content
                     &parameters[0],
                     _countof(parameters),
                     flags,
-                    nullptr, 0
+                    &samplers[0], _countof(samplers)
                 }.create();
             }
             break;
@@ -365,7 +366,8 @@ namespace content
                 const shaders::shader_flags::flags flags{ material.shader_flags() };
                 const UINT key{ shaders::element_type_to_shader_id(elements_type) };
                 stream.vs = shaders::get_engine_shader(key);
-                stream.ps = shaders::get_engine_shader(shaders::engine_shader::pixel_shader_ps);
+                //stream.ps = shaders::get_engine_shader(shaders::engine_shader::pixel_shader_ps);
+                stream.ps = shaders::get_engine_shader(shaders::engine_shader::texture_shader_ps);
             }
 
             UINT pso_id = create_pso_if_needed(stream_ptr, aligned_stream_size);
@@ -579,7 +581,7 @@ namespace content
             resource::texture_init_info info{};
             info.resource = resource;
 
-            if (flags * content::texture_flags::is_cube_map)
+            if (flags & content::texture_flags::is_cube_map)
             {
                 assert(array_size % 6 == 0);
                 srv_desc.Format = format;

@@ -32,6 +32,7 @@ namespace windows {
     };
 
     window create(const window_init_info* init_info);
+    void remove(UINT id);
 
     HWND get_window_handle(UINT id);
     DirectX::XMUINT4 get_window_size(UINT id);

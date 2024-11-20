@@ -139,7 +139,7 @@ namespace core {
     [[nodiscard]] resource::Descriptor_Heap& dsv_heap();
     [[nodiscard]] resource::Descriptor_Heap& srv_heap();
     [[nodiscard]] resource::Descriptor_Heap& uav_heap();
-    [[nodiscard]] resource::constant_buffer& cbuffers();
+    [[nodiscard]] resource::constant_buffer& cbuffer();
     [[nodiscard]] UINT current_frame_index();
     void set_deferred_releases_flag();
     void render(UINT id, frame_info info);

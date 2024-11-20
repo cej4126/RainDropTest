@@ -41,33 +41,6 @@ namespace rain_drop {
 
         utl::vector<UINT> surface_ids;
 
-        //core::d3d12_frame_info get_d3d12_frame_info(const core::frame_info& info, resource::constant_buffer& cbuffer, const surface::Surface& surface)
-        //{
-        //    camera::Camera& camera{ camera::get(info.camera_id) };
-        //    camera.update();
-        //    hlsl::GlobalShaderData global_shader_data{};
-
-        //    XMStoreFloat4x4A(&global_shader_data.View, camera.view());
-        //    XMStoreFloat4x4A(&global_shader_data.Projection, camera.projection());
-        //    XMStoreFloat4x4A(&global_shader_data.InverseProjection, camera.inverse_projection());
-        //    XMStoreFloat4x4A(&global_shader_data.ViewProjection, camera.view_projection());
-        //    XMStoreFloat4x4A(&global_shader_data.InverseViewProjection, camera.inverse_view_projection());
-        //    XMStoreFloat3(&global_shader_data.CameraPosition, camera.position());
-        //    XMStoreFloat3(&global_shader_data.CameraDirection, camera.direction());
-
-        //    cbuffer.clear();
-        //    hlsl::GlobalShaderData* const shader_data{ cbuffer.allocate<hlsl::GlobalShaderData>() };
-        //    // TODO: handle the case when cbuffer is full.
-        //    memcpy(shader_data, &global_shader_data, sizeof(hlsl::GlobalShaderData));
-
-        //    core::d3d12_frame_info d3d12_info
-        //    {
-        //        &info,
-        //        cbuffer.gpu_address(shader_data)
-        //    };
-
-        //    return d3d12_info;
-        //}
     } // anonymous namespace
 
 

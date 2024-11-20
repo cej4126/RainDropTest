@@ -124,36 +124,22 @@ namespace resource {
     {
     public:
         constant_buffer() = default;
-        explicit constant_buffer(UINT size, UINT alignment);
+        explicit constant_buffer(const buffer_init_info& info);
         DISABLE_COPY(constant_buffer);
-        constexpr constant_buffer(constant_buffer&& o) noexcept
-            : m_buffer{o.m_buffer }, m_gpu_address{ o.m_gpu_address }, m_size{ o.m_size },
-            m_cpu_address{ o.m_cpu_address }, m_cpu_offset{ o.m_cpu_offset }
-
-        {
-            o.reset();
-        }
-
-        constexpr constant_buffer& operator=(constant_buffer&& o) noexcept
-        {
-            assert(this != &o);
-            if (this != &o)
-            {
-                release();
-                move(o);
-            }
-
-            return *this;
-        }
-
         ~constant_buffer() { release(); }
 
-        void release();
+        void release()
+        {
+            m_buffer.release();
+            m_cpu_address = nullptr;
+            m_cpu_offset = 0;
+        }
 
         constexpr void clear()
         {
             m_cpu_offset = 0;
         }
+
         [[nodiscard]] UINT8* const allocate(UINT size);
 
         template<typename T>
@@ -162,9 +148,9 @@ namespace resource {
             return (T* const)allocate(sizeof(T));
         }
 
-        [[nodiscard]] constexpr ID3D12Resource* const buffer() const { return m_buffer; }
-        [[nodiscard]] constexpr D3D12_GPU_VIRTUAL_ADDRESS gpu_address() const { return m_gpu_address; }
-        [[nodiscard]] constexpr UINT size() const { return m_size; }
+        [[nodiscard]] constexpr ID3D12Resource* const buffer() const { return m_buffer.buffer(); }
+        [[nodiscard]] constexpr D3D12_GPU_VIRTUAL_ADDRESS gpu_address() const { return m_buffer.gpu_address(); }
+        [[nodiscard]] constexpr UINT size() const { return m_buffer.size(); }
         [[nodiscard]] constexpr UINT8* const cpu_address() const { return m_cpu_address; }
 
         template<typename T>
@@ -182,35 +168,10 @@ namespace resource {
             assert(address >= m_cpu_address);
 
             const UINT64 offset{ (UINT64)(address - m_cpu_address) };
-            return m_gpu_address + offset;
+            return m_buffer.gpu_address() + offset;
         }
     private:
-
-        constexpr void move(constant_buffer& o)
-        {
-            m_buffer = o.m_buffer;
-            m_gpu_address = o.m_gpu_address;
-            m_size = o.m_size;
-
-            m_cpu_address = o.m_cpu_address;
-            m_cpu_offset = o.m_cpu_offset;
-        }
-
-        constexpr void reset()
-        {
-            m_buffer = nullptr;
-            m_gpu_address = 0;
-            m_size = 0;
-
-            m_cpu_address = 0;
-            m_cpu_offset = 0;
-        }
-
-        // d3d12_buffer
-        ID3D12Resource* m_buffer{ nullptr };
-        D3D12_GPU_VIRTUAL_ADDRESS m_gpu_address{ 0 };
-        UINT m_size{ 0 };
-
+        Buffer m_buffer{};
         UINT8* m_cpu_address{ 0 };
         UINT m_cpu_offset{ 0 };
         std::mutex m_mutex{};
@@ -338,16 +299,12 @@ namespace resource {
     class Render_Target
     {
     public:
-        constexpr static UINT max_mips{ 14 }; // support up to 16k resolutions.
         Render_Target() = default;
-        explicit Render_Target(D3D12_RESOURCE_DESC desc);
-        // disable copy
-        explicit Render_Target(const Render_Target&) = delete;
-        Render_Target& operator=(const Render_Target&) = delete;
+        explicit Render_Target(texture_init_info info);
+        DISABLE_COPY(Render_Target);
 
-        // move
-        constexpr Render_Target(Render_Target&& o) noexcept
-            : m_resource{ std::move(o.m_resource) }, m_srv{ o.m_srv }, m_mip_count{ o.m_mip_count }
+        constexpr Render_Target(Render_Target&& o)
+            : m_texture{ std::move(o.m_texture) }, m_mip_count{ o.m_mip_count }
         {
             for (UINT i{ 0 }; i < m_mip_count; ++i)
             {
@@ -373,14 +330,13 @@ namespace resource {
 
         [[nodiscard]] constexpr UINT mip_count() const { return m_mip_count; }
         [[nodiscard]] constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv(UINT mip_index) const { assert(mip_index < m_mip_count); return m_rtv[mip_index].cpu; }
-        [[nodiscard]] constexpr Descriptor_Handle srv() const { return m_srv; }
-        [[nodiscard]] constexpr ID3D12Resource* const resource() const { return m_resource; }
+        [[nodiscard]] constexpr Descriptor_Handle srv() const { return m_texture.srv(); }
+        [[nodiscard]] constexpr ID3D12Resource* const resource() const { return m_texture.resource(); }
 
     private:
         constexpr void move(Render_Target& o)
         {
-            m_resource = std::move(o.m_resource);
-            m_srv = o.m_srv;
+            m_texture = std::move(o.m_texture);
             m_mip_count = o.m_mip_count;
             for (UINT i{ 0 }; i < m_mip_count; ++i)
             {
@@ -391,17 +347,15 @@ namespace resource {
 
         constexpr void reset()
         {
-            m_mip_count = 0;
-            m_srv = {};
             for (UINT i{ 0 }; i < m_mip_count; ++i)
             {
                 m_rtv[i] = {};
             }
+            m_mip_count = 0;
         }
 
-        ID3D12Resource* m_resource{ nullptr };
-        Descriptor_Handle m_srv{};
-        Descriptor_Handle m_rtv[max_mips]{};
+        Texture_Buffer m_texture{};
+        Descriptor_Handle m_rtv[Texture_Buffer::max_mips]{};
         UINT m_mip_count{ 0 };
     };
 

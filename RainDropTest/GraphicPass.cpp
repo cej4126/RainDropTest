@@ -28,17 +28,30 @@ namespace graphic_pass
             const graphic_cache& cache{ frame_cache };
             const UINT render_items_count{ (UINT)cache.size() };
             UINT current_entity_id{ Invalid_Index };
-
             hlsl::PerObjectData* current_data_pointer{ nullptr };
+
+            resource::constant_buffer& cbuffer{ core::cbuffer() };
 
             for (UINT i{ 0 }; i < render_items_count; ++i)
             {
-                current_entity_id = cache.entity_ids[i];
-                hlsl::PerObjectData data{};
-                transform::get_transform_matrices(current_entity_id, data.World, data.InvWorld);
-                XMMATRIX world{ XMLoadFloat4x4(&data.World) };
-            }
+                if (current_entity_id != cache.entity_ids[i])
+                {
+                    current_entity_id = cache.entity_ids[i];
+                    hlsl::PerObjectData data{};
+                    transform::get_transform_matrices(current_entity_id, data.World, data.InvWorld);
+                    XMMATRIX world{ XMLoadFloat4x4(&data.World) };
+                    XMMATRIX wvp{ XMMatrixMultiply(world, d3d12_info.camera->view_projection()) };
+                    XMStoreFloat4x4(&data.WorldViewProjection, wvp);
 
+                    const content::material_surface* const surface{ cache.material_surfaces[i] };
+                    memcpy(&data.BaseColor, surface, sizeof(content::material_surface));
+
+                    current_data_pointer = cbuffer.allocate<hlsl::PerObjectData>();
+                    memcpy(current_data_pointer, &data, sizeof(hlsl::PerObjectData));
+                }
+                assert(current_data_pointer);
+                cache.per_object_data[i] = cbuffer.gpu_address(current_data_pointer);
+            }
         }
 
         void prepare_render_frame(const core::d3d12_frame_info& d3d12_info)
@@ -62,7 +75,7 @@ namespace graphic_pass
 
             if (cache.descriptor_index_count)
             {
-                resource::constant_buffer& cbuffer{ core::cbuffers() };
+                resource::constant_buffer& cbuffer{ core::cbuffer() };
                 const UINT size{ cache.descriptor_index_count * sizeof(UINT) };
                 UINT* const srv_indices{ (UINT* const)cbuffer.allocate(size) };
                 UINT srv_index_offset{ 0 };
@@ -100,7 +113,12 @@ namespace graphic_pass
             desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;           // D3D12_TEXTURE_LAYOUT Layout;
             desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // D3D12_RESOURCE_FLAGS Flags;
 
-            graphic_buffer = resource::Render_Target{ desc };
+            resource::texture_init_info info{};
+            info.desc = &desc;
+            info.initial_state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+            info.clear_value.Format = desc.Format;
+            memcpy(&info.clear_value.Color, &clear_value[0], sizeof(clear_value));
+            graphic_buffer = resource::Render_Target{ info };
         }
 
         void create_depth_buffer(XMUINT2 size)
@@ -133,7 +151,7 @@ namespace graphic_pass
 
         void set_root_parameters(id3d12_graphics_command_list* const cmd_list, UINT cache_index)
         {
-            const graphic_cache& cache{ frame_cache };
+             const graphic_cache& cache{ frame_cache };
             assert(cache_index < cache.size());
 
             const content::material_type::type mtl_type{ cache.material_types[cache_index] };
@@ -294,7 +312,7 @@ namespace graphic_pass
 
         ID3D12RootSignature* current_root_signature{ nullptr };
         ID3D12PipelineState* current_pipeline_state{ nullptr };
-         
+
         for (UINT i{ 0 }; i < items_count; ++i)
         {
             if (current_root_signature != cache.root_signatures[i])

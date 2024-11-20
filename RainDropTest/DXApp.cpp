@@ -92,10 +92,25 @@ namespace app {
         scene.surface_id = surface::create(scene.window);
 
         // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
-        scene.entity = create_entity_item({ 10.f, 0.f, 0.f }, { math::dtor(0.f), math::dtor(-90.f), math::dtor(0.f) }, { 1.f, 1.f, 1.f }, nullptr, "camera_script");
+        scene.entity = create_entity_item({ 5.f, 0.f, 0.f }, { 0.f, 1.5f * math::pi, 0.f }, { 1.f, 1.f, 1.f }, nullptr, "camera_script");
         scene.camera = camera::create(camera::perspective_camera_init_info(scene.entity.get_id()));
         const surface::Surface& surface{ surface::get_surface(scene.surface_id) };
         scene.camera.aspect_ratio((float)(surface.width() / surface.height()));
+    }
+
+    void destroy_scene(Scene& scene)
+    {
+        Scene temp{ scene };
+        scene = {};
+
+        if (scene.surface_id != Invalid_Index)
+        {
+            surface::remove(scene.surface_id);
+        }
+        if (scene.window.is_valid())
+        {
+            windows::remove(scene.window.get_id());
+        }
     }
 
     bool app_initialize()
@@ -118,7 +133,7 @@ namespace app {
 
         windows::window_init_info info[]
         {
-            {&win_proc, nullptr, L"Main", 100, 100, 800, 400 },
+            {&win_proc, nullptr, L"Main", 100, 100, 400, 400 },
         };
         static_assert(_countof(info) == _countof(m_scenes));
 
@@ -151,7 +166,16 @@ namespace app {
 
     void app_shutdown()
     {
+        input::unbind(std::hash<std::string>()("move"));
+        lights::remove_lights();
+        app::destroy_render_items();
 
+        for (UINT i{ 0 }; i < _countof(m_scenes); ++i)
+        {
+            destroy_scene(m_scenes[i]);
+        }
+
+        core::shutdown();
     }
 
     bool dx_app::initialize()

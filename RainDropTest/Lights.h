@@ -60,12 +60,12 @@ namespace lights
         constexpr explicit Light(UINT id, UINT64 light_set_key) : m_light_set_key{ light_set_key }, m_id{ id } {}
         constexpr Light() = default;
         constexpr UINT get_id() const { return m_id; }
-        constexpr UINT64 get_sst_key() const { return m_light_set_key; }
+        constexpr UINT64 get_set_key() const { return m_light_set_key; }
         constexpr bool is_valid() const { return m_id != Invalid_Index; }
 
+        UINT entity_id() const;
+
     private:
-
-
         UINT64 m_light_set_key{ 0 };
         UINT m_id{ Invalid_Index };
     };
@@ -75,12 +75,13 @@ namespace lights
     void shutdown();
 
     void generate_lights();
+    void remove_lights();
 
     [[nodiscard]] UINT add_cull_light();
     void remove_cull_light();
 
     void update_light_buffers(core::d3d12_frame_info d3d12_info);
-    void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier barriers);
+    void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier& barriers);
 
     D3D12_GPU_VIRTUAL_ADDRESS non_cullable_light_buffer(UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS cullable_light_buffer(UINT frame_index);

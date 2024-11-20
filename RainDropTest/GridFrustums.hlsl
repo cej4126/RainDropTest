@@ -2,7 +2,7 @@
 
 ConstantBuffer<GlobalShaderData> GlobalData : register(b0, space0);
 ConstantBuffer<LightCullingDispatchParameters> ShaderParams : register(b1, space0);
-RWStructuredBuffer<Frustum> Frustums : register(u9, space0);
+RWStructuredBuffer<Frustum> Frustums : register(u0, space0);
 
 // bounding spheres
 

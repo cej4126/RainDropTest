@@ -1,5 +1,6 @@
- // Copyright (c) Arash Khatami
+// Copyright (c) Arash Khatami
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
+//test1
 #include "Common.hlsli"
 #include "BRDF.hlsli"
 
@@ -124,7 +125,7 @@ VertexOut ShaderVS(in uint VertexIdx : SV_VertexID)
     vsOut.UV = element.UV;
 #else
 #undef ELEMENTS_TYPE
-    vsOut.HomogeneousPosition = mul(PerObjectBuffer.WorldViewPorjection, position);
+    vsOut.HomogeneousPosition = mul(PerObjectBuffer.WorldViewProjection, position);
     vsOut.WorldPosition = worldPosition.xyz;
     vsOut.WorldNormal = 0.f;
     vsOut.WorldTangent = 0.f;
@@ -366,5 +367,8 @@ PixelOut ShaderPS(in VertexOut psIn)
     PixelOut psOut;
     psOut.Color = float4(color * S.AmbientOcclusion + S.EmissiveColor * S.EmissiveIntensity, 1.f);
 
+    
+    // test
+    //psOut.Color = float4(1.f, 0.f, 0.4f, 1.f);
     return psOut;
 }

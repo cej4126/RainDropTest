@@ -45,6 +45,7 @@ namespace shaders {
             particle_draw_gs,
             particle_draw_ps,
             pixel_shader_ps,
+            texture_shader_ps,
             normal_shader_vs,
             normal_texture_shader_vs,
 

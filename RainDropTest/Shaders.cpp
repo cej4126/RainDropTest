@@ -64,6 +64,7 @@ namespace shaders {
             { engine_shader::particle_draw_gs,           "ParticleDraw.hlsl",       "GSParticleDraw",        shader_type::geometry, L""},
             { engine_shader::particle_draw_ps,           "ParticleDraw.hlsl",       "PSParticleDraw",        shader_type::pixel,    L""},
             { engine_shader::pixel_shader_ps,            "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L""},
+            { engine_shader::texture_shader_ps,          "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L"TEXTURED_MTL=1"},
             { engine_shader::normal_shader_vs,           "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"ELEMENTS_TYPE=1"},
             { engine_shader::normal_texture_shader_vs,   "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"ELEMENTS_TYPE=3"},
         };
