@@ -119,7 +119,7 @@ namespace app {
     void create_render_items()
     {
         memset(&texture_ids[0], 0xff, sizeof(UINT) * _countof(texture_ids));
-#define NO_THREAD
+//#define NO_THREAD
 #ifdef NO_THREAD
         //texture_ids[texture_usage::fem_bot_ambient_occlusion] =     load_asset("../fem_bot_ambient_occlusion.texture", content::asset_type::texture); }},
         //texture_ids[texture_usage::fem_bot_base_color] =            load_asset("../fem_bot_base_color.texture", content::asset_type::texture); }},
@@ -164,7 +164,7 @@ namespace app {
         geometry_info.material_count = 1;
         geometry_info.material_ids = &material_ids[material_type::dirty_material];
         geometry_info.geometry_content_id = cube_model_id;
-        cube_entity_id = create_entity_item({ 0.0f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 0.4f, 0.4f, 0.4f }, &geometry_info, nullptr).get_id();
+        cube_entity_id = create_entity_item({ 0.f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 0.4f, 0.4f, 0.4f }, &geometry_info, nullptr).get_id();
 
         cube_item_id =  content::render_item::add(cube_entity_id, cube_model_id, 1, &material_ids[0]);
     }

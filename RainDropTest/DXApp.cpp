@@ -20,7 +20,7 @@ namespace app {
     namespace {
         struct Scene {
             game_entity::entity entity{};
-            camera::Camera camera{};
+            UINT camera_id{ Invalid_Index };
             UINT surface_id{ Invalid_Index };
             windows::window window{};
         };
@@ -48,15 +48,6 @@ namespace app {
             assert(model_id != Invalid_Index);
             return model_id;
         }
-
-        //UINT create_material()
-        //{
-        //    content::material_init_info info{};
-        //    info.type = content::material_type::opaque;
-        //    info.shader_ids[shaders::shader_type::vertex] = shaders::engine_shader::vertex_shader_vs;
-        //    info.shader_ids[shaders::shader_type::pixel] = shaders::engine_shader::pixel_shader_ps;
-        //    return content::create_resource(&info, content::asset_type::material);
-        //}
 
         UINT m_cube_model_id;
         UINT m_cube_entity_id{ Invalid_Index };
@@ -93,9 +84,11 @@ namespace app {
 
         // x in(-) / out(+), y up(+) / down(-), z left(-) / right(+)
         scene.entity = create_entity_item({ 5.f, 0.f, 0.f }, { 0.f, 1.5f * math::pi, 0.f }, { 1.f, 1.f, 1.f }, nullptr, "camera_script");
-        scene.camera = camera::create(camera::perspective_camera_init_info(scene.entity.get_id()));
+        scene.camera_id = camera::create(camera::perspective_camera_init_info(scene.entity.get_id()));
         const surface::Surface& surface{ surface::get_surface(scene.surface_id) };
-        scene.camera.aspect_ratio((float)(surface.width() / surface.height()));
+
+        camera::Camera& camera{ camera::get(scene.camera_id) };
+        camera.aspect_ratio((float)(surface.width() / surface.height()));
     }
 
     void destroy_scene(Scene& scene)
@@ -201,7 +194,7 @@ namespace app {
                 info.render_item_ids = render_item_id_cache.data();
                 info.render_item_count = 1;
                 info.thresholds = &thresholds[0];
-                info.camera_id = m_scenes[i].camera.get_id();
+                info.camera_id = m_scenes[i].camera_id;
 
                 assert(_countof(thresholds) >= info.render_item_count);
                 const surface::Surface& surface{ surface::get_surface(m_scenes[i].surface_id) };
@@ -209,16 +202,6 @@ namespace app {
             }
         }
 
-        //surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-        //// Wait for the previous Present to complete.
-        //WaitForSingleObjectEx(surface.swap_chain_event(), 100, FALSE);
-
-        //camera::Camera& camera{ camera::get(m_camera_id) };
-        //camera.update();
-
-        //m_rain_drop.update(m_camera_id, m_frame_index);
-
-        //OnRender();
         timer.end();
     }
 

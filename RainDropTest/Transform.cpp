@@ -39,7 +39,7 @@ namespace transform
             XMVECTOR rotation_quat{ XMLoadFloat4(&rotation) };
             XMVECTOR front{ XMVectorSet(0.f, 0.f, 1.f, 0.f) };
             XMFLOAT3 orientation;
-            XMStoreFloat3(&orientation, XMVector3Rotate(front, rotation_quat));
+            XMStoreFloat3(&orientation, XMVector3Normalize(XMVector3Rotate(front, rotation_quat)));
             return orientation;
         }
 

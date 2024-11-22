@@ -39,7 +39,7 @@ namespace camera {
             field_of_view = 0.25f;
             aspect_ratio = 16.f / 10.f;
             near_z = 0.01f;
-            far_z = 10000.f;
+            far_z = 1000.f;
         }
     };
 
@@ -122,7 +122,7 @@ namespace camera {
         input::input_system<Camera> m_input_system;
     };
 
-    Camera create(camera_init_info info);
+    UINT create(camera_init_info info);
     void remove(UINT id);
     [[nodiscard]] Camera& get(UINT id);
 

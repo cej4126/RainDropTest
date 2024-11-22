@@ -367,8 +367,5 @@ PixelOut ShaderPS(in VertexOut psIn)
     PixelOut psOut;
     psOut.Color = float4(color * S.AmbientOcclusion + S.EmissiveColor * S.EmissiveIntensity, 1.f);
 
-    
-    // test
-    //psOut.Color = float4(1.f, 0.f, 0.4f, 1.f);
     return psOut;
 }

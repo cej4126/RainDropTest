@@ -831,7 +831,6 @@ namespace lights
 
         remove_light_set(light_set_states::left_set);
         remove_light_set(light_set_states::right_set);
-
     }
 
     UINT add_cull_light()

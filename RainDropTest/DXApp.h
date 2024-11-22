@@ -36,7 +36,7 @@ namespace app
 
         UINT m_width;
         UINT m_height;
-        float m_aspect_ratio;
+        //float m_aspect_ratio;
 
         bool m_use_warp_device;
 

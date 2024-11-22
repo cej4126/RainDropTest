@@ -41,12 +41,10 @@ namespace camera {
         {
             if (m_projection_type == camera_type::perspective)
             {
-                // depth test - m_projection = XMMatrixPerspectiveFovRH(m_field_of_view * XM_PI, m_aspect_ratio, m_near_z, m_far_z);
                 m_projection = XMMatrixPerspectiveFovRH(m_field_of_view * XM_PI, m_aspect_ratio, m_far_z, m_near_z);
             }
             else
             {
-                // depth test - m_projection = XMMatrixOrthographicRH(m_view_width, m_view_height, m_near_z, m_far_z);
                 m_projection = XMMatrixOrthographicRH(m_view_width, m_view_height, m_near_z, m_far_z);
             }
             m_inverse_projection = XMMatrixInverse(nullptr, m_projection);
@@ -101,12 +99,11 @@ namespace camera {
         m_is_dirty = true;
     }
 
-    Camera create(camera_init_info info)
+    UINT create(camera_init_info info)
     {
         UINT id = cameras.add(info);
         cameras[id].set_id(id);
-        return cameras[id];
-        //return Camera{ { cameras.add(info) } };
+        return id;
     }
 
     void remove(UINT id)
