@@ -10,7 +10,7 @@ namespace surface {
     
     namespace {
 
-        utl::free_list<Surface> surfaces;
+        utl::free_list<Surface> surfaces{ 40 };
 
     } // anonymous namespace
 
@@ -118,6 +118,11 @@ namespace surface {
 
     void Surface::release()
     {
+        if (m_light_id != Invalid_Index)
+        {
+            lights::remove_cull_light(m_light_id);
+        }
+
         for (UINT i{ 0 }; i < buffer_count; ++i)
         {
             render_target& render_target_iterm{ m_render_targets[i] };
@@ -138,6 +143,7 @@ namespace surface {
 
     void remove(UINT id)
     {
+        core::flush();
         surfaces.remove(id);
     }
 

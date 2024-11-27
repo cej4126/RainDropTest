@@ -4,7 +4,7 @@
 #include "DXApp.h"
 
 
-std::filesystem::path set_current_directoyr_to_executable_path()
+std::filesystem::path set_current_directory_to_executable_path()
 {
     // set the working directory to the executable path
     wchar_t path[MAX_PATH];
@@ -20,7 +20,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 #if _DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-    set_current_directoyr_to_executable_path();
+    set_current_directory_to_executable_path();
 
     app::dx_app app{};
     if (app.initialize())
@@ -43,33 +43,3 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     app.shutdown();
     return 0;
 }
-
-//namespace core{
-//
-//    id3d12_device* const device() { return g_core.device(); }
-//
-//    ID3D12Fence* render_context_fence() { return g_core.render_context_fence(); }
-//
-//    UINT current_frame_index()
-//    {
-//        return g_core.current_frame_index();
-//    }
-//
-//    void set_deferred_release_flag()
-//    {
-//        g_core.set_deferred_releases_flag();
-//    }
-//
-//    void main_deferred_release(IUnknown* resource)
-//    {
-//        g_core.deferred_release(resource);
-//    }
-//
-//    Descriptor_Heap& rtv_heap() { return g_core.rtv_heap(); }
-//    Descriptor_Heap& dsv_heap() { return g_core.dsv_heap(); }
-//    Descriptor_Heap& srv_heap() { return g_core.srv_heap(); }
-//    Descriptor_Heap& uav_heap() { return g_core.uav_heap(); }
-//    constant_buffer& cbuffer() { return g_core.cbuffer(); }
-//    UINT64 get_render_context_fence_value() { return g_core.get_render_context_fence_value(); }
-//    void set_render_context_fence_value() { g_core.set_render_context_fence_value(); }
-//}

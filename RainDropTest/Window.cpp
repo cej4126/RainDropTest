@@ -16,7 +16,7 @@ namespace windows {
             bool    is_closed{ false };
         };
 
-        utl::free_list<window_info> windows;
+        utl::free_list<window_info> windows{ 50 };
         bool resized{ false };
 
         window_info& get_from_handle(HWND handle)
@@ -68,7 +68,12 @@ namespace windows {
             LONG_PTR long_ptr{ GetWindowLongPtr(hwnd, 0) };
             return long_ptr ? ((window_proc)long_ptr)(hwnd, msg, wparam, lparam) : DefWindowProc(hwnd, msg, wparam, lparam);
         }
-    }
+
+        bool is_window_closed(UINT id)
+        {
+            return windows[id].is_closed;
+        }
+    } // anonymous namespace
 
 
     void* window::handle() const
@@ -86,6 +91,11 @@ namespace windows {
     {
         DirectX::XMUINT4 s{ get_window_size(m_id) };
         return s.w - s.y;
+    }
+
+    bool window::is_closed() const
+    {
+        return is_window_closed(m_id);
     }
 
     window create(const window_init_info* init_info)

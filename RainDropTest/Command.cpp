@@ -37,7 +37,7 @@ namespace command {
 
     Command::~Command()
     {
-        assert(!m_command_queue && !m_command_list && m_fence);
+        assert(!m_command_queue && !m_command_list && !m_fence);
     }
 
     void Command::begin_frame()
@@ -77,6 +77,7 @@ namespace command {
     void Command::release()
     {
         flush();
+        core::release(m_fence);
         m_fence_value = 0;
 
         CloseHandle(m_fence_event);

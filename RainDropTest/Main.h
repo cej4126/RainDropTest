@@ -31,11 +31,4 @@ namespace resource {
             resource = nullptr;
         }
     }
-
-
-    [[nodiscard]] Descriptor_Heap& dsv_heap();
-    [[nodiscard]] Descriptor_Heap& rtv_heap();
-    [[nodiscard]] Descriptor_Heap& srv_heap();
-    [[nodiscard]] Descriptor_Heap& uav_heap();
-    [[nodiscard]] constant_buffer& cbuffer();
 }

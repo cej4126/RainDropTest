@@ -90,6 +90,13 @@ namespace game_entity {
     void remove(UINT id)
     {
         assert(id != Invalid_Index);
+
+        if (geometries[id].is_valid())
+        {
+            geometry::remove(geometries[id]);
+            geometries[id] = {};
+        }
+
         if (scripts[id].is_valid())
         {
             script::remove(scripts[id]);
@@ -98,6 +105,7 @@ namespace game_entity {
 
         transform::remove(transforms[id]);
         transforms[id] = {};
+
         ids[id] = Invalid_Index;
         free_ids.push_back(id);
     }

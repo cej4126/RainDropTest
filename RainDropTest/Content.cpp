@@ -46,18 +46,18 @@ namespace content
         std::mutex sub_mesh_mutex{};
 
         // textures
-        utl::free_list<resource::Texture_Buffer> textures;
-        utl::free_list<UINT> descriptor_indices;
+        utl::free_list<resource::Texture_Buffer> textures{ 3 };
+        utl::free_list<UINT> descriptor_indices{ 4 };
         std::mutex texture_mutex{};
 
         // material
         utl::vector<ID3D12RootSignature*> root_signatures;
         std::unordered_map<UINT64, UINT> material_root_signature_map;
-        utl::free_list<std::unique_ptr<UINT8[]>> materials{ 3 };
+        utl::free_list<std::unique_ptr<UINT8[]>> materials{ 5 };
         std::mutex material_mutex{};
 
-        utl::free_list<d3d12_render_item> render_items;
-        utl::free_list<std::unique_ptr<UINT[]>>render_item_ids;
+        utl::free_list<d3d12_render_item> render_items{ 6 };
+        utl::free_list<std::unique_ptr<UINT[]>>render_item_ids{ 7 };
         std::mutex render_item_mutex{};
 
         utl::vector<ID3D12PipelineState*> pipeline_states;
@@ -611,7 +611,7 @@ namespace content
         // ContentToEngine.cpp
 
         constexpr uintptr_t single_mesh_marker{ (uintptr_t)0x01 };
-        utl::free_list<UINT8*> geometry_hierarchies{ 4 };
+        utl::free_list<UINT8*> geometry_hierarchies{ 8 };
         std::mutex geometry_mutex;
 
         UINT get_geometry_hierarchy_buffer_size(const void* const data)
@@ -835,6 +835,7 @@ namespace content
 
         void destroy_texture_resource(UINT id)
         {
+            texture::remove(id);
         }
 
         UINT lod_from_threshold(float threshold, float* thresholds, UINT lod_count)

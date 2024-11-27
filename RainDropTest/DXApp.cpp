@@ -64,16 +64,97 @@ namespace app {
             { input::input_code::key_e,  1.f, input::axis::y }
         };
 
+        bool resized{ false };
+        bool is_restarting{ false };
+
     } // anonymous namespace
+
+    void destroy_scene(Scene& scene);
+    bool app_initialize();
+    void app_shutdown();
 
     LRESULT win_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
+        bool fullscreen{ false };
+
         switch (msg)
         {
         case WM_DESTROY:
-        {}
-        break;
+        {
+            bool all_close{ true };
+            for (UINT i{ 0 }; i < _countof(m_scenes); ++i)
+            {
+                if (m_scenes[i].window.is_valid())
+                {
+                    if (m_scenes[i].window.is_closed())
+                    {
+                        destroy_scene(m_scenes[i]);
+                    }
+                    else
+                    {
+                        all_close = false;
+                    }
+                }
+            }
+
+            if (all_close && !is_restarting)
+            {
+                PostQuitMessage(0);
+                return 0;
+            }
         }
+        break;
+        case WM_SIZE:
+            resized = (wparam != SIZE_MINIMIZED);
+            break;
+        case WM_SYSCHAR:
+            fullscreen = (wparam == VK_RETURN && (HIWORD(lparam) & KF_ALTDOWN));
+            break;
+        case WM_KEYDOWN:
+            if (wparam == VK_ESCAPE)
+            {
+                PostMessage(hwnd, WM_CLOSE, 0, 0);
+                return 0;
+            }
+            else if (wparam == VK_F11)
+            {
+                is_restarting = true;
+                app_shutdown();
+                app_initialize();
+            }
+        }
+
+        //if ((resized && GetKeyState(VK_LBUTTON) >= 0) || fullscreen)
+        //{
+        //    windows::window win{ platform::window_id{(id::id_type)GetWindowLongPtr(hwnd, GWLP_USERDATA)} };
+
+        //    const surface::Surface& surface{ surface::get_surface(m_scenes[i].surface_id) };
+
+        //    for (UINT i{ 0 }; i < _countof(m_scenes); ++i)
+        //    {
+        //        if (win.get_id() == m_scenes[i].window.get_id())
+        //        {
+        //            if (fullscreen)
+        //            {
+        //                win.set_fullscreen(!win.is_fullscreen());
+        //                // The default window procedure will play a system notification sound
+        //                // when pressing the Alt+Enter keyboard combination if WM_SYSCHAR is
+        //                // not handled. By returning 0 we can tell the system that we handled
+        //                // this message.
+        //                return 0;
+        //            }
+        //            else
+        //            {
+        //               surface.surface.resize(win.width(), win.height());
+        //               .camera.aspect_ratio((f32)win.width() / win.height());
+
+        //                resized = false;
+        //            }
+        //            break;
+        //        }
+        //    }
+        //}
+
         return DefWindowProc(hwnd, msg, wparam, lparam);
     }
 
@@ -96,14 +177,26 @@ namespace app {
         Scene temp{ scene };
         scene = {};
 
-        if (scene.surface_id != Invalid_Index)
+        if (temp.surface_id != Invalid_Index)
         {
-            surface::remove(scene.surface_id);
+            surface::remove(temp.surface_id);
         }
-        if (scene.window.is_valid())
+
+        if (temp.window.is_valid())
         {
-            windows::remove(scene.window.get_id());
+            windows::remove(temp.window.get_id());
         }
+
+        if (temp.camera_id != Invalid_Index)
+        {
+            camera::remove(temp.camera_id);
+        }
+
+        if (temp.entity.is_valid())
+        {
+            game_entity::remove(temp.entity.get_id());
+        }
+
     }
 
     bool app_initialize()

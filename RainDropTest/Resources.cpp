@@ -48,8 +48,7 @@ namespace resource {
     void Descriptor_Heap::release()
     {
         assert(!m_size);
-
-        //deferred_release(_heap.Get());
+        core::deferred_release(m_heap);
     }
 
     void Descriptor_Heap::process_deferred_free(UINT frame_idx)
@@ -236,6 +235,7 @@ namespace resource {
 
     void Texture_Buffer::release()
     {
+        core::srv_heap().free_handle(m_srv);
         core::deferred_release(m_resource);
     }
 

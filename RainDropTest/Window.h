@@ -26,6 +26,7 @@ namespace windows {
         void* handle() const;
         UINT width() const;
         UINT height() const;
+        bool is_closed() const;
 
     private:
         UINT m_id{ Invalid_Index };

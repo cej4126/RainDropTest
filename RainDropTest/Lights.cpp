@@ -74,7 +74,7 @@ namespace lights
                     UINT index{ Invalid_Index };
                     for (UINT i{ m_enabled_light_count }; i < m_cullable_owner_ids.size(); i++)
                     {
-                        if (m_cullable_owner_ids[i] != Invalid_Index)
+                        if (m_cullable_owner_ids[i] == Invalid_Index)
                         {
                             index = i;
                             break;
@@ -124,6 +124,7 @@ namespace lights
                     }
 
                     const UINT id{ m_owners.add(light_owner{info.entity_id, index, info.type, info.is_enabled }) };
+                    UINT oid = m_owners[id].entity_id;
                     m_cullable_entity_ids[index] = m_owners[id].entity_id;
                     m_cullable_owner_ids[index] = id;
                     make_dirty(index);
@@ -227,6 +228,10 @@ namespace lights
                 return m_enabled_light_count;
             }
 
+            constexpr UINT entity_id(UINT id) const
+            {
+                return m_owners[id].entity_id;
+            }
 
             void enable(UINT id, bool is_enabled)
             {
@@ -363,14 +368,18 @@ namespace lights
                     light_owner& owner2{ m_owners[m_cullable_owner_ids[index2]] };
                     assert(owner1.light_index == index1);
                     assert(owner2.light_index == index2);
-                    owner1.light_index = owner2.light_index;
-                    owner2.light_index = owner1.light_index;
+                    owner1.light_index = index2;
+                    owner2.light_index = index1;
 
                     std::swap(m_cullable_lights[index1], m_cullable_lights[index2]);
                     std::swap(m_culling_info[index1], m_culling_info[index2]);
                     std::swap(m_bounding_spheres[index1], m_bounding_spheres[index2]);
                     std::swap(m_cullable_entity_ids[index1], m_cullable_entity_ids[index2]);
-                    std::swap(m_owners[index1], m_owners[index2]);
+                    std::swap(m_cullable_owner_ids[index1], m_cullable_owner_ids[index2]);
+
+                    UINT cuoi = m_cullable_owner_ids[index1];
+                    UINT oi = m_owners[m_cullable_owner_ids[index1]].entity_id;
+                    UINT cei = m_cullable_entity_ids[index1];
 
                     assert(m_owners[m_cullable_owner_ids[index1]].entity_id == m_cullable_entity_ids[index1]);
                     assert(m_owners[m_cullable_owner_ids[index2]].entity_id == m_cullable_entity_ids[index2]);
@@ -388,7 +397,7 @@ namespace lights
                 m_dirty_bits[index] = dirty_bits_mask;
             }
 
-            utl::free_list<light_owner> m_owners;
+            utl::free_list<light_owner> m_owners{ 30 };
             utl::vector<hlsl::DirectionalLightParameters> m_non_cullable_lights;
             utl::vector<UINT> m_non_cullable_owners_ids;
 
@@ -591,7 +600,10 @@ namespace lights
         ID3D12RootSignature* light_culling_root_signature{ nullptr };
         ID3D12PipelineState* light_culling_pso{ nullptr };
         ID3D12PipelineState* grid_frustum_pso{ nullptr };
-        utl::free_list<light_culler> light_cullers;
+        utl::free_list<light_culler> light_cullers{ 31 };
+
+        utl::vector<Light> lights;
+        utl::vector<Light> disabled_lights;
 
         Light create_light(light_init_info info)
         {
@@ -600,6 +612,17 @@ namespace lights
             return m_light_set_keys[info.set_key].add(info);
         }
 
+        void create_light(XMFLOAT3 position, XMFLOAT3 rotation, lights::light_type::type type, UINT64 key)
+        {
+            UINT entity_id{ app::create_entity_item(position, rotation, { 1.f, 1.f, 1.f }, nullptr, nullptr).get_id() };
+
+            light_init_info info{};
+            info.entity_id = entity_id;
+            info.type = type;
+            info.set_key = key;
+            info.intensity = 1.f;
+            lights.emplace_back(create_light(info));
+        }
 
         void remove_light(UINT id, UINT64 light_set_key)
         {
@@ -613,9 +636,6 @@ namespace lights
                 right_set
             };
         };
-
-        utl::vector<Light> lights;
-        utl::vector<Light> disabled_lights;
 
         constexpr XMFLOAT3 rgb_to_color(UINT8 r, UINT8 g, UINT8 b)
         {
@@ -751,9 +771,11 @@ namespace lights
         }
     } // anonymous namespace
 
-    UINT Light::entity_id() const
+    UINT Light::get_entity_id() const
     {
-        return m_id;
+        UINT64 key = m_light_set_key;
+        UINT entity_id = m_light_set_keys[m_light_set_key].entity_id(m_id);
+        return entity_id;
     }
 
     void create_light_set(UINT64 set_key)
@@ -808,22 +830,27 @@ namespace lights
         info.intensity = 1.f;
         info.color = rgb_to_color(20, 200, 174);
         lights.emplace_back(create_light(info));
+
+        create_light({ 0.0f, -3.0f, 0.0f }, {}, lights::light_type::point, light_set_states::left_set);
+        create_light({ 0.0f,  0.2f, 1.0f }, {}, lights::light_type::point, light_set_states::left_set);
+        create_light({ 0.0f,  3.0f, 2.5f }, {}, lights::light_type::point, light_set_states::left_set);
+        create_light({ 0.0f,  0.1f, 7.0f }, { 0.0f, 3.14f, 0.f }, lights::light_type::spot, light_set_states::left_set);
     }
 
     void remove_lights()
     {
         for (auto& light : lights)
         {
-            const UINT id{ light.entity_id() };
+            const UINT entity_id{ light.get_entity_id() };
             remove_light(light.get_id(), light.get_set_key());
-            app::remove_game_entity(id);
+            app::remove_game_entity(entity_id);
         }
 
         for (auto& light : disabled_lights)
         {
-            const UINT id{ light.entity_id() };
+            const UINT entity_id{ light.get_entity_id() };
             remove_light(light.get_id(), light.get_set_key());
-            app::remove_game_entity(id);
+            app::remove_game_entity(entity_id);
         }
 
         lights.clear();
@@ -937,7 +964,7 @@ namespace lights
         const LightBuffer& light_buffer{ light_buffers[frame_index] };
         return light_buffer.bounding_spheres();
     }
-    
+
     D3D12_GPU_VIRTUAL_ADDRESS frustums(UINT light_culling_id, UINT frame_index)
     {
         assert(frame_index < Frame_Count && light_culling_id != Invalid_Index);

@@ -32,12 +32,12 @@ namespace resource {
 
         [[nodiscard]] constexpr D3D12_DESCRIPTOR_HEAP_TYPE type() const { return m_type; }
         [[nodiscard]] constexpr bool is_shader_visible() const { return m_gpu_start.ptr != 0; }
-        [[nodiscard]] ID3D12DescriptorHeap* const heap() const { return m_heap.Get(); }
+        [[nodiscard]] ID3D12DescriptorHeap* const heap() const { return m_heap; }
         [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE cpu_start() const { return m_cpu_start; }
         [[nodiscard]] constexpr UINT descriptor_size() const { return m_descriptor_size; }
 
     private:
-        ComPtr<ID3D12DescriptorHeap> m_heap;
+        ID3D12DescriptorHeap* m_heap{ nullptr };
         D3D12_CPU_DESCRIPTOR_HANDLE m_cpu_start{};
         D3D12_GPU_DESCRIPTOR_HANDLE m_gpu_start{};
         std::unique_ptr<UINT[]> m_free_handles{};

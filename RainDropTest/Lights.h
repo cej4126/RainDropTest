@@ -63,7 +63,7 @@ namespace lights
         constexpr UINT64 get_set_key() const { return m_light_set_key; }
         constexpr bool is_valid() const { return m_id != Invalid_Index; }
 
-        UINT entity_id() const;
+        UINT get_entity_id() const;
 
     private:
         UINT64 m_light_set_key{ 0 };
@@ -78,7 +78,7 @@ namespace lights
     void remove_lights();
 
     [[nodiscard]] UINT add_cull_light();
-    void remove_cull_light();
+    void remove_cull_light(UINT id);
 
     void update_light_buffers(core::d3d12_frame_info d3d12_info);
     void cull_lights(id3d12_graphics_command_list* cmd_list, core::d3d12_frame_info d3d12_info, barriers::resource_barrier& barriers);

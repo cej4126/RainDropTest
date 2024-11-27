@@ -8,7 +8,7 @@ namespace camera {
 
     namespace {
 
-        utl::free_list<Camera> cameras;
+        utl::free_list<Camera> cameras{ 10 };
 
     } // anonymous namespace
 

@@ -9,7 +9,7 @@
 //    namespace {
 //
 //        constexpr uintptr_t single_mesh_marker{ (uintptr_t)0x01 };
-//        utl::free_list<UINT8*> geometry_hierarchies{ 4 };
+//        utl::free_list<UINT8*> geometry_hierarchies{ 20 };
 //        std::mutex geometry_mutex;
 //
 //        UINT get_geometry_hierarchy_buffer_size(const void* const data)

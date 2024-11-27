@@ -55,7 +55,7 @@ namespace core {
         UINT m_deferred_releasees_flags[Frame_Count]{};
         utl::vector<IUnknown*> m_deferred_releases[Frame_Count]{};
 
-        rain_drop::RainDrop m_rain_drop;
+        // rain_drop::RainDrop m_rain_drop;
 
         ComPtr<ID3D12Fence> m_render_context_fence;
 
@@ -153,7 +153,7 @@ namespace core {
             m_uav_desc_heap.process_deferred_free(frame_index);
 
             utl::vector<IUnknown*>& resources{ m_deferred_releases[frame_index] };
-            if (resources.empty())
+            if (!resources.empty())
             {
                 for (auto& resource : resources)
                 {
@@ -180,7 +180,7 @@ namespace core {
         void LoadAssets()
         {
 
-            m_rain_drop.initialize();
+            // m_rain_drop.initialize();
 
             //// Close the command list and execute it to begin the initial GPU setup and uploads.
             //ThrowIfFailed(m_command.command_list()->Close());
@@ -323,7 +323,7 @@ namespace core {
             NAME_D3D12_OBJECT_INDEXED(m_constant_buffers[i].buffer(), i, L"Global Constant Buffer");
         }
 
-        m_rain_drop.create_descriptor_heap();
+        // m_rain_drop.create_descriptor_heap();
 
         if (!(shaders::initialize() &&
             graphic_pass::initialize() &&
@@ -351,7 +351,7 @@ namespace core {
 
         //camera::remove(m_camera_id);
 
-        m_rain_drop.shutdown();
+        //m_rain_drop.shutdown();
 
         m_command.release();
 
@@ -363,15 +363,17 @@ namespace core {
             process_deferred_releases(i);
         }
 
-        shaders::shutdown();
+        lights::shutdown();
         content::shutdown();
         upload::shutdown();
-        graphic_pass::shutdown();
         post_process::shutdown();
+        graphic_pass::shutdown();
+        shaders::shutdown();
 
+        release(m_dxgi_factory);
         //m_render_target.release();
 
-        m_depth_buffer.release();
+        //m_depth_buffer.release();
         //surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
         //surface.release();
 
@@ -387,10 +389,10 @@ namespace core {
         m_srv_desc_heap.process_deferred_free(0);
         m_uav_desc_heap.process_deferred_free(0);
 
-        for (UINT i{ 0 }; i < Frame_Count; ++i)
-        {
-            process_deferred_releases(i);
-        }
+        //for (UINT i{ 0 }; i < Frame_Count; ++i)
+        //{
+        //    process_deferred_releases(i);
+        //}
 
         m_rtv_desc_heap.release();
         m_dsv_desc_heap.release();
@@ -402,33 +404,25 @@ namespace core {
             process_deferred_releases(i);
         }
 
-        // Ensure that the GPU is no longer referencing resources that are about to be
-        // cleaned up by the destructor.
-        WaitForRenderContext();
+        if (m_device)
+        {
+            {
+                ComPtr<ID3D12InfoQueue> info_queue;
+                ThrowIfFailed(m_device->QueryInterface(IID_PPV_ARGS(&info_queue)));
+                info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, false);
+                info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, false);
+                info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, false);
+            }
 
-        //remove_surface();
+            ComPtr<ID3D12DebugDevice2> debug_device;
+            ThrowIfFailed(m_device->QueryInterface(IID_PPV_ARGS(&debug_device)));
+            release(m_device);
+            ThrowIfFailed(debug_device->ReportLiveDeviceObjects(
+                D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL));
+        }
 
-        // Close handles to fence events and threads.
-        CloseHandle(m_render_context_fence_event);
+        release(m_device);
     }
-
-    //void Core::create_surface(HWND hwnd, UINT width, UINT height)
-    //{
-    //    UINT id{ surface::surface_create(hwnd, width, height) };
-    //    surface_ids.emplace_back(id);
-    //    surface::Surface& surface{ surface::get_surface(surface_ids[0]) };
-    //    surface.create_swap_chain(m_factory.Get(), m_command.command_queue());
-    //}
-
-    //void Core::remove_surface()
-    //{
-    //    for (auto& id : surface_ids)
-    //    {
-    //        surface::surface_remove(id);
-    //    }
-    //    surface_ids.clear();
-
-    //}
 
     id3d12_device* const device()
     {
@@ -534,5 +528,10 @@ namespace core {
         barriers::transition_resource(cmd_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
         m_command.end_frame(surface);
+    }
+
+    void flush()
+    {
+        m_command.flush();
     }
 }

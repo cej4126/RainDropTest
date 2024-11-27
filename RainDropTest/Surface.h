@@ -52,7 +52,10 @@ namespace surface {
         }
 
         //DISABLE_COPY_AND_MOVE(Surface);
-        ~Surface() { release(); }
+        ~Surface()
+        {
+            release();
+        }
 
         void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* command_queue);
         void present() const;
