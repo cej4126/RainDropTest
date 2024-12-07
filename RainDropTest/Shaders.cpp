@@ -55,18 +55,18 @@ namespace shaders {
 
         shader_file_info shader_files[]
         {
-            { engine_shader::full_screen_triangle_vs,    "FullScreenTriangle.hlsl", "FullScreenTriangleVS",  shader_type::vertex,   L""},
-            { engine_shader::post_process_ps,            "PostProcess.hlsl",        "PostProcessPS",         shader_type::pixel,    L""},
-            { engine_shader::grid_frustums_cs,           "GridFrustums.hlsl",       "ComputeGridFrustumsCS", shader_type::compute,  L"-D TILE_SIZE=32"},
-            { engine_shader::light_culling_cs,           "CullLights.hlsl",         "CullLightsCS",          shader_type::compute,  L"-D TILE_SIZE=32"},
-            { engine_shader::n_body_gravity_cs,          "nBodyGravityCS.hlsl",     "CSMain",                shader_type::compute,  L""},
-            { engine_shader::particle_draw_vs,           "ParticleDraw.hlsl",       "VSParticleDraw",        shader_type::vertex,   L""},
-            { engine_shader::particle_draw_gs,           "ParticleDraw.hlsl",       "GSParticleDraw",        shader_type::geometry, L""},
-            { engine_shader::particle_draw_ps,           "ParticleDraw.hlsl",       "PSParticleDraw",        shader_type::pixel,    L""},
-            { engine_shader::pixel_shader_ps,            "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L""},
-            { engine_shader::texture_shader_ps,          "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L"TEXTURED_MTL=1"},
-            { engine_shader::normal_shader_vs,           "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"ELEMENTS_TYPE=1"},
-            { engine_shader::normal_texture_shader_vs,   "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"ELEMENTS_TYPE=3"},
+            { engine_shader::full_screen_triangle_vs,    "FullScreenTriangle.hlsl", "FullScreenTriangleVS",  shader_type::vertex,   L"", L""},
+            { engine_shader::post_process_ps,            "PostProcess.hlsl",        "PostProcessPS",         shader_type::pixel,    L"", L""},
+            { engine_shader::grid_frustums_cs,           "GridFrustums.hlsl",       "ComputeGridFrustumsCS", shader_type::compute,  L"-D", L"TILE_SIZE=32"},
+            { engine_shader::light_culling_cs,           "CullLights.hlsl",         "CullLightsCS",          shader_type::compute,  L"-D", L"TILE_SIZE=32"},
+            { engine_shader::n_body_gravity_cs,          "nBodyGravityCS.hlsl",     "CSMain",                shader_type::compute,  L"", L""},
+            { engine_shader::particle_draw_vs,           "ParticleDraw.hlsl",       "VSParticleDraw",        shader_type::vertex,   L"", L""},
+            { engine_shader::particle_draw_gs,           "ParticleDraw.hlsl",       "GSParticleDraw",        shader_type::geometry, L"", L""},
+            { engine_shader::particle_draw_ps,           "ParticleDraw.hlsl",       "PSParticleDraw",        shader_type::pixel,    L"", L""},
+            { engine_shader::pixel_shader_ps,            "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L"", L""},
+            { engine_shader::texture_shader_ps,          "AppShader.hlsl",          "ShaderPS",              shader_type::pixel,    L"-D", L"TEXTURED_MTL=1"},
+            { engine_shader::normal_shader_vs,           "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"-D", L"ELEMENTS_TYPE=1"},
+            { engine_shader::normal_texture_shader_vs,   "AppShader.hlsl",          "ShaderVS",              shader_type::vertex,   L"-D", L"ELEMENTS_TYPE=3"},
         };
 
         static_assert(_countof(shader_files) == engine_shader::count);
@@ -273,9 +273,13 @@ namespace shaders {
         args.emplace_back(DXC_ARG_WARNINGS_ARE_ERRORS);
         args.emplace_back(L"-Qstrip_reflect");                               // Strip reflections into a separate blob
         args.emplace_back(L"-Qstrip_debug");                                 // Strip debug information into a separate blob
-        if (info.arg.size())
+        if (info.arg1.size())
         {
-            args.emplace_back(info.arg);
+            args.emplace_back(info.arg1);
+        }
+        if (info.arg2.size())
+        {
+            args.emplace_back(info.arg2);
         }
 
         return args; 

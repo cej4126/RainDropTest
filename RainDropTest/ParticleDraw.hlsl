@@ -8,7 +8,7 @@
 // PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 //
 //*********************************************************
-#include "CommonTypes.hlsli"
+#include "Common.hlsli"
 
 struct VSParticleIn
 {
@@ -95,7 +95,7 @@ void GSParticleDraw(point VSParticleDrawOut input[1], inout TriangleStream<GSPar
     for (int i = 0; i < 4; i++)
     {
         float4 position = float4(g_positions[i] * g_fParticleRad, 1.f);
-        position = mul(GlobalData.InverseView, position) + float4(input[0].pos, 1.f);
+        //position = mul(GlobalData.InverseView, position) + float4(input[0].pos, 1.f);
         output.pos = mul(GlobalData.ViewProjection, position);
 
         output.color = input[0].color;

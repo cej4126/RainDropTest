@@ -1,6 +1,5 @@
 // Copyright (c) Arash Khatami
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
-//test1
 #include "Common.hlsli"
 #include "BRDF.hlsli"
 
@@ -139,7 +138,10 @@ VertexOut ShaderVS(in uint VertexIdx : SV_VertexID)
 
 float4 Sample(uint index, SamplerState sampler, float2 uv)
 {
-    return Texture2D( ResourceDescriptorHeap[index]).Sample(sampler, uv);
+    return 
+    Texture2D( ResourceDescriptorHeap[index]).
+    Sample(
+    sampler, uv);
 }
 
 float3 PhongBRDF(float3 N, float3 L, float3 V, float3 diffuseColor, float3 specularColor, float shininess)
@@ -182,6 +184,10 @@ float3 CalculateLighting(Surface S, float3 L, float3 lightColor)
     color = PhongBRDF(N, L, S.V, S.BaseColor, 1.f, (1 - S.PerceptualRoughness) * 100.f) * (NoL / PI) * lightColor;
 #else // PBR
     color = CookTorranceBRDF(S, L) * lightColor;
+
+
+    //test
+    //color = lightColor;
 #endif
     // We don't have light-units and therefore we don't know what intensity value of 1 corresponds to.
     // For now, let's multiply by PI to make a scene a bit lighter.
@@ -247,18 +253,21 @@ Surface GetSurface(VertexOut psIn, float3 V)
 {
     Surface S;
 
-    S.BaseColor = PerObjectBuffer.BaseColor.rgb;
-    S.Metallic = PerObjectBuffer.Metallic;
-    S.Normal = normalize(psIn.WorldNormal);
-    S.PerceptualRoughness = max(PerObjectBuffer.Roughness, 0.045f);
-    S.EmissiveColor = PerObjectBuffer.Emissive;
-    S.EmissiveIntensity = PerObjectBuffer.EmissiveIntensity;
     S.AmbientOcclusion = PerObjectBuffer.AmbientOcclusion;
+    S.BaseColor = PerObjectBuffer.BaseColor.rgb;
+    S.EmissiveColor = PerObjectBuffer.Emissive;
+    S.Metallic = PerObjectBuffer.Metallic;
+    S.PerceptualRoughness = max(PerObjectBuffer.Roughness, 0.045f);
+    S.EmissiveIntensity = PerObjectBuffer.EmissiveIntensity;
+    S.Normal = normalize(psIn.WorldNormal);
 
-#if TEXTURED_MTL
+//#if TEXTURED_MTL
     float2 uv = psIn.UV;
     S.AmbientOcclusion = Sample(SrvIndices[0], LinearSampler, uv).r;
+    
     S.BaseColor = Sample(SrvIndices[1], LinearSampler, uv).rgb;
+    //S.BaseColor = float3(0.5f, 0.f, 0.f);
+    
     S.EmissiveColor = Sample(SrvIndices[2], LinearSampler, uv).rgb;
     float2 metalRough = Sample(SrvIndices[3], LinearSampler, uv).rg;
     S.Metallic = metalRough.r;
@@ -275,7 +284,7 @@ Surface GetSurface(VertexOut psIn, float3 V)
     // Transform from tangent-space to world-space.
     S.Normal = normalize(mul(n, TBN));
 
-#endif
+//#endif
 
     S.V = V;
     const float roughness = S.PerceptualRoughness * S.PerceptualRoughness;
@@ -344,7 +353,7 @@ PixelOut ShaderPS(in VertexOut psIn)
 //    {
 //        const uint lightIndex = LightIndexList[lightStartIndex + i];
 //        LightParameters light = CullableLights[lightIndex];
-
+//
 //        if (light.Type == LIGHT_TYPE_POINT_LIGHT)
 //        {
 //            color += PointLight(S, psIn.WorldPosition, light);
@@ -366,6 +375,6 @@ PixelOut ShaderPS(in VertexOut psIn)
 
     PixelOut psOut;
     psOut.Color = float4(color * S.AmbientOcclusion + S.EmissiveColor * S.EmissiveIntensity, 1.f);
-
+    // psOut.Color = float4(color, 1.f);
     return psOut;
 }

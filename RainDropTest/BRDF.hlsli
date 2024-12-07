@@ -1,17 +1,17 @@
-#ifndef BRDF
-#define BRDF
-#include "CommonConstants.hlsli"
+// Copyright (c) Arash Khatami
+// Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 float Pow5(float x)
 {
-    return x * x * x * x * x;
+    float xx = x * x;
+    return xx * xx * x;
 }
 
 // GGX / Trowbridge-Reitz
 // [Walter et al. 2007, "Microfacet models for refraction through rough surfaces"]
 float D_GGX(float NoH, float a)
 {
-    float d = (NoH * a - NoH) * NoH + 1.f;
+    float d = (NoH * a - NoH) * NoH + 1;
     return a / (PI * d * d);
 }
 
@@ -62,5 +62,3 @@ float3 Diffuse_Burley(float NoV, float NoL, float VoH, float roughness)
     float FdL = 1.f + (v * FD90 - v);
     return (1.f / PI) * FdV * FdL;
 }
-
-#endif // BRDF

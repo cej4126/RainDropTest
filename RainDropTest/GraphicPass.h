@@ -14,21 +14,21 @@ namespace graphic_pass {
     constexpr DXGI_FORMAT main_buffer_format{ DXGI_FORMAT_R16G16B16A16_FLOAT };
     constexpr DXGI_FORMAT depth_buffer_format{ DXGI_FORMAT_D32_FLOAT };
 
-    struct opaque_root_parameter {
-        enum parameter : UINT {
-            global_shader_data,
-            per_object_data,
-            position_buffer,
-            element_buffer,
-            srv_indices,
-            directional_lights,
-            cullable_lights,
-            light_grid,
-            light_index_list,
+    //struct opaque_root_parameter {
+    //    enum parameter : UINT {
+    //        global_shader_data,
+    //        per_object_data,
+    //        position_buffer,
+    //        element_buffer,
+    //        srv_indices,
+    //        directional_lights,
+    //        cullable_lights,
+    //        light_grid,
+    //        light_index_list,
 
-            count
-        };
-    };
+    //        count
+    //    };
+    //};
 
     struct graphic_cache
     {

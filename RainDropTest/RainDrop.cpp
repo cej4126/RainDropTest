@@ -332,7 +332,7 @@ namespace rain_drop {
         hlsl::GlobalShaderData constant_buffer_gs = {};
 
         XMStoreFloat4x4(&constant_buffer_gs.ViewProjection, camera.view_projection());
-        XMStoreFloat4x4(&constant_buffer_gs.InverseView, XMMatrixInverse(nullptr, camera.view()));
+        //XMStoreFloat4x4(&constant_buffer_gs.InverseView, XMMatrixInverse(nullptr, camera.view()));
 
         UINT8* destination = m_p_constant_buffer_gs_data;
         memcpy(destination, &constant_buffer_gs, sizeof(hlsl::GlobalShaderData));

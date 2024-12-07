@@ -11,14 +11,6 @@ namespace lights
 {
     constexpr UINT light_culling_tile_size{ 32 };
 
-    struct spot_light_params
-    {
-        // Umbra angle in radians [0, pi)
-        float         umbra{};
-        // Penumbra angle in radians [umbra, pi)
-        float         penumbra{};
-    };
-
     struct light_type {
         enum type : UINT32
         {
@@ -30,6 +22,23 @@ namespace lights
         };
     };
 
+    struct directional_light_params {};
+    struct point_light_params
+    {
+        XMFLOAT3 attenuation;
+        float range;
+    };
+
+    struct spot_light_params
+    {
+        XMFLOAT3 attenuation;
+        float range;
+        // Umbra angle in radians [0, pi)
+        float umbra;
+        // Penumbra angle in radians [umbra, pi)
+        float penumbra;
+    };
+
     struct light_init_info
     {
         UINT64 set_key{ 0 };
@@ -37,11 +46,12 @@ namespace lights
         light_type::type type{};
         float intensity{ 1.f };
         XMFLOAT3 color{ 1.f, 1.f, 1.f };
-        // point and spot only
-        XMFLOAT3 attenuation;
-        float range;
-        // spot only
-        spot_light_params spot_params;
+        union
+        {
+            directional_light_params    directional_params;
+            point_light_params          point_params;
+            spot_light_params           spot_params;
+        };
         bool is_enabled{ true };
     };
 
@@ -87,6 +97,8 @@ namespace lights
     D3D12_GPU_VIRTUAL_ADDRESS cullable_light_buffer(UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS culling_info_buffer(UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS bounding_sphere_buffer(UINT frame_index);
+    UINT non_cullable_light_count(UINT64 key);
+    UINT cullable_light_count(UINT64 key);
 
     D3D12_GPU_VIRTUAL_ADDRESS frustums(UINT light_culling_id, UINT frame_index);
     D3D12_GPU_VIRTUAL_ADDRESS light_grid_opaque(UINT light_culling_id, UINT frame_index);

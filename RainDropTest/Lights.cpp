@@ -29,6 +29,13 @@ namespace lights
 
         constexpr UINT8 dirty_bits_mask{ (UINT8)u32_set_bits<Frame_Count>::bits };
 
+        constexpr float inv_rand_max{ 1.f / RAND_MAX };
+        float random(float min = 0.f)
+        {
+            float r = rand() * inv_rand_max;
+            return (r > min) ? r : min;
+        }
+
         // D#D12Light.cpp
         class LightSet
         {
@@ -106,11 +113,20 @@ namespace lights
                     params.Color = info.color;
                     params.Intensity = info.intensity;
 
-                    params.Attenuation = info.attenuation;
-                    params.Range = info.range;
-
-                    params.CosUmbra = XMScalarCos(info.spot_params.umbra * 0.5f);
-                    params.CosPenumbra = XMScalarCos(info.spot_params.penumbra * 0.5f);
+                    if (info.type == light_type::point)
+                    {
+                        const point_light_params& p{ info.point_params };
+                        params.Attenuation = p.attenuation;
+                        params.Range = p.range;
+                    }
+                    else
+                    {
+                        const spot_light_params& p{ info.spot_params };
+                        params.Attenuation = p.attenuation;
+                        params.Range = p.range;
+                        params.CosUmbra = DirectX::XMScalarCos(p.umbra * 0.5f);
+                        params.CosPenumbra = DirectX::XMScalarCos(p.penumbra * 0.5f);
+                    }
 
                     //add_light_culling_info(info, index);
                     hlsl::LightCullingLightInfo& culling_info{ m_culling_info[index] };
@@ -211,7 +227,7 @@ namespace lights
                 UINT index{ 0 };
                 for (UINT i{ 0 }; i < count; ++i)
                 {
-                    if (m_non_cullable_owners_ids[i] != Invalid_Index) continue;
+                    if (m_non_cullable_owners_ids[i] == Invalid_Index) continue;
 
                     const light_owner& owner{ m_owners[m_non_cullable_owners_ids[i]] };
                     if (owner.is_enabled)
@@ -236,6 +252,7 @@ namespace lights
             void enable(UINT id, bool is_enabled)
             {
                 // Set the owner enable state
+                m_owners[id].is_enabled = is_enabled;
 
                 // Directional light are not packed
                 if (m_owners[id].type == light_type::directional)
@@ -621,6 +638,22 @@ namespace lights
             info.type = type;
             info.set_key = key;
             info.intensity = 1.f;
+
+            info.color = { random(0.2f), random(0.2f), random(0.2f) };
+
+            if (type == light_type::point)
+            {
+                info.point_params.range = 1.f;
+                info.point_params.attenuation = { 1, 1, 1 };
+            }
+            else if (type == light_type::spot)
+            {
+                info.spot_params.range = 2.f;
+                info.spot_params.umbra = 0.1f * math::pi;
+                info.spot_params.penumbra = info.spot_params.umbra + (0.1f * math::pi);
+                info.spot_params.attenuation = { 1, 1, 1 };
+            }
+
             lights.emplace_back(create_light(info));
         }
 
@@ -729,16 +762,8 @@ namespace lights
             }
         }
 
-        void resize_and_calculate_grid_frustums(culling_parameters& culler,
-            id3d12_graphics_command_list* cmd_list,
-            const core::d3d12_frame_info d3d12_info,
-            barriers::resource_barrier& barriers)
+        void resize(culling_parameters& culler)
         {
-            culler.camera_fov = d3d12_info.camera->field_of_view();
-            culler.view_width = d3d12_info.surface_width;
-            culler.view_height = d3d12_info.surface_height;
-
-            //resize(culler);
             constexpr UINT tile_size{ light_culling_tile_size };
             assert(culler.view_width >= tile_size && culler.view_width >= tile_size);
             const XMUINT2 tile_count
@@ -766,8 +791,54 @@ namespace lights
             }
 
             resize_buffers(culler);
+        }
 
-            //calculate_grid_frustums(culler, cmd_list, d3d12_info, barriers);
+        void calculate_grid_frustums(const culling_parameters& culler,
+            id3d12_graphics_command_list* const cmd_list,
+            const core::d3d12_frame_info& d3d12_info,
+            barriers::resource_barrier& barriers)
+        {
+
+            resource::constant_buffer& cbuffer{ core::cbuffer() };
+            hlsl::LightCullingDispatchParameters* const buffer{ cbuffer.allocate<hlsl::LightCullingDispatchParameters>() };
+            const hlsl::LightCullingDispatchParameters& params{ culler.grid_frustums_dispatch_params };
+            memcpy(buffer, &params, sizeof(hlsl::LightCullingDispatchParameters));
+
+            // Make frustums buffer writable
+            // TODO: remove pixel_shader_resource flag (it's only there so we can visualize grid frustums).
+            barriers.add(culler.frustums.buffer(),
+                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            barriers.apply(cmd_list);
+
+            cmd_list->SetComputeRootSignature(light_culling_root_signature);
+            cmd_list->SetPipelineState(grid_frustum_pso);
+
+            using param = light_culling_root_parameter;
+            cmd_list->SetComputeRootConstantBufferView(param::global_shader_data, d3d12_info.global_shader_data);
+            cmd_list->SetComputeRootConstantBufferView(param::constants, cbuffer.gpu_address(buffer));
+            cmd_list->SetComputeRootUnorderedAccessView(param::frustums_out_or_index_counter, culler.light_index_counter.gpu_address());
+            cmd_list->Dispatch(params.NumThreadGroups.x, params.NumThreadGroups.y, 1);
+
+            // Make frustums buffer readable
+            // NOTE: cull_lights() will apply this transition.
+            // TODO: remove pixel_shader_resource flag (it's only there so we can visualize grid frustums).
+            barriers.add(culler.frustums.buffer(),
+                D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        }
+
+        void resize_and_calculate_grid_frustums(culling_parameters& culler,
+            id3d12_graphics_command_list* cmd_list,
+            const core::d3d12_frame_info d3d12_info,
+            barriers::resource_barrier& barriers)
+        {
+            culler.camera_fov = d3d12_info.camera->field_of_view();
+            culler.view_width = d3d12_info.surface_width;
+            culler.view_height = d3d12_info.surface_height;
+
+            resize(culler);
+            calculate_grid_frustums(culler, cmd_list, d3d12_info, barriers);
         }
     } // anonymous namespace
 
@@ -899,7 +970,7 @@ namespace lights
 
 
         hlsl::LightCullingDispatchParameters& params{ culler.light_culling_dispatch_params };
-        params.NumLights = m_light_set_keys[d3d12_info.info->light_set_key].cullable_light_count();
+        params.NumLights = cullable_light_count(d3d12_info.info->light_set_key);
         params.DepthBufferSrvIndex = graphic_pass::get_depth_buffer().srv().index;
 
         // NOTE: we update culler.has_lights after this statement, so the light culling shader
@@ -922,6 +993,7 @@ namespace lights
 
         cmd_list->SetComputeRootSignature(light_culling_root_signature);
         cmd_list->SetPipelineState(light_culling_pso);
+
         using param = light_culling_root_parameter;
         cmd_list->SetComputeRootConstantBufferView(param::global_shader_data, d3d12_info.global_shader_data);
         cmd_list->SetComputeRootConstantBufferView(param::constants, cbuffer.gpu_address(buffer));
@@ -938,7 +1010,6 @@ namespace lights
         // NOTE: this transition barrier will be applied by the caller of this function.
         barriers.add(culler.light_grid_and_index_list.buffer(),
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
     }
 
     D3D12_GPU_VIRTUAL_ADDRESS non_cullable_light_buffer(UINT frame_index)
@@ -963,6 +1034,19 @@ namespace lights
     {
         const LightBuffer& light_buffer{ light_buffers[frame_index] };
         return light_buffer.bounding_spheres();
+    }
+
+    
+    UINT non_cullable_light_count(UINT64 key)
+    {
+        assert(m_light_set_keys.count(key));
+        return m_light_set_keys[key].non_cullable_light_count();
+    }
+        
+    UINT cullable_light_count(UINT64 key)
+    {
+        assert(m_light_set_keys.count(key));
+        return m_light_set_keys[key].cullable_light_count();
     }
 
     D3D12_GPU_VIRTUAL_ADDRESS frustums(UINT light_culling_id, UINT frame_index)

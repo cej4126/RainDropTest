@@ -139,6 +139,12 @@ namespace content
 
                 initialize();
 
+                if (info.texture_count)
+                {
+                    memcpy(m_texture_ids, info.texture_ids, info.texture_count * sizeof(UINT));
+                    texture::get_descriptor_indices(m_texture_ids, info.texture_count, m_descriptor_indices);
+                }
+
                 UINT shader_index{ 0 };
                 for (UINT i{ 0 }; i < shaders::shader_type::count; ++i)
                 {

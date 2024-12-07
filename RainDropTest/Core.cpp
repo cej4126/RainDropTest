@@ -69,13 +69,17 @@ namespace core {
             hlsl::GlobalShaderData global_shader_data{};
 
             XMStoreFloat4x4A(&global_shader_data.View, camera.view());
-            XMStoreFloat4x4A(&global_shader_data.InverseView, camera.inverse_view());
+            //XMStoreFloat4x4A(&global_shader_data.InverseView, camera.inverse_view());
             XMStoreFloat4x4A(&global_shader_data.Projection, camera.projection());
-            XMStoreFloat4x4A(&global_shader_data.InverseProjection, camera.inverse_projection());
+            XMStoreFloat4x4A(&global_shader_data.InvProjection, camera.inverse_projection());
             XMStoreFloat4x4A(&global_shader_data.ViewProjection, camera.view_projection());
-            XMStoreFloat4x4A(&global_shader_data.InverseViewProjection, camera.inverse_view_projection());
+            XMStoreFloat4x4A(&global_shader_data.InvViewProjection, camera.inverse_view_projection());
             XMStoreFloat3(&global_shader_data.CameraPosition, camera.position());
             XMStoreFloat3(&global_shader_data.CameraDirection, camera.direction());
+            global_shader_data.ViewWidth = surface.viewport().Width;
+            global_shader_data.ViewHeight = surface.viewport().Height;
+            global_shader_data.NumDirectionalLights = lights::non_cullable_light_count(info.light_set_key);
+            global_shader_data.DeltaTime = delta_time;
 
             hlsl::GlobalShaderData* const shader_data{ cbuffer.allocate<hlsl::GlobalShaderData>() };
             // TODO: handle the case when cbuffer is full.
@@ -182,23 +186,23 @@ namespace core {
 
             // m_rain_drop.initialize();
 
-            //// Close the command list and execute it to begin the initial GPU setup and uploads.
-            //ThrowIfFailed(m_command.command_list()->Close());
-            //ID3D12CommandList* pp_command_lists[] = { m_command.command_list() };
-            //m_command.command_queue()->ExecuteCommandLists(_countof(pp_command_lists), pp_command_lists);
+            ////// Close the command list and execute it to begin the initial GPU setup and uploads.
+            ////ThrowIfFailed(m_command.command_list()->Close());
+            ////ID3D12CommandList* pp_command_lists[] = { m_command.command_list() };
+            ////m_command.command_queue()->ExecuteCommandLists(_countof(pp_command_lists), pp_command_lists);
 
             // Create synchronization objects and wait until assets have been uploaded to the GPU.
-            {
-                ThrowIfFailed(core::device()->CreateFence(m_render_context_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_render_context_fence)));
-                ++m_render_context_fence_value;
+            //{
+            //    ThrowIfFailed(core::device()->CreateFence(m_render_context_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_render_context_fence)));
+            //    ++m_render_context_fence_value;
 
-                m_render_context_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-                if (m_render_context_fence_event == nullptr)
-                {
-                    ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-                }
-            }
-            WaitForRenderContext();
+            //    m_render_context_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            //    if (m_render_context_fence_event == nullptr)
+            //    {
+            //        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+            //    }
+            //}
+            //WaitForRenderContext();
         }
 
 
@@ -280,6 +284,7 @@ namespace core {
         }
 
         ThrowIfFailed(D3D12CreateDevice(main_adapter.Get(), max_feature_level, IID_PPV_ARGS(&m_device)));
+        NAME_D3D12_OBJECT(m_device, L"Main D3D12 Device");
 
 #ifdef _DEBUG
         {
@@ -335,7 +340,7 @@ namespace core {
             return failed_init();
         }
 
-        LoadAssets();
+        //LoadAssets();
 
         return true;
     }

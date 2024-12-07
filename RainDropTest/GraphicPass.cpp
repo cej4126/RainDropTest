@@ -88,6 +88,13 @@ namespace graphic_pass
                     if (texture_count)
                     {
                         const UINT* const descriptor_indices{ cache.descriptor_indices[i] };
+
+                        UINT ind[20];
+                        for (UINT j{ 0 }; j < texture_count; ++j)
+                        {
+                            ind[j] = descriptor_indices[j];
+                        }
+
                         memcpy(&srv_indices[srv_index_offset], descriptor_indices, texture_count * sizeof(UINT));
                         cache.srv_indices[i] = cbuffer.gpu_address(srv_indices + srv_index_offset);
                         srv_index_offset += texture_count;
@@ -119,6 +126,7 @@ namespace graphic_pass
             info.clear_value.Format = desc.Format;
             memcpy(&info.clear_value.Color, &clear_value[0], sizeof(clear_value));
             graphic_buffer = resource::Render_Target{ info };
+            NAME_D3D12_OBJECT(graphic_buffer.resource(), L"Graphic Main Buffer");
         }
 
         void create_depth_buffer(XMUINT2 size)
@@ -151,7 +159,7 @@ namespace graphic_pass
 
         void set_root_parameters(id3d12_graphics_command_list* const cmd_list, UINT cache_index)
         {
-             const graphic_cache& cache{ frame_cache };
+            const graphic_cache& cache{ frame_cache };
             assert(cache_index < cache.size());
 
             const content::material_type::type mtl_type{ cache.material_types[cache_index] };
@@ -159,7 +167,7 @@ namespace graphic_pass
             {
             case content::material_type::opaque:
             {
-                using params = opaque_root_parameter;
+                using params = content::opaque_root_parameter;
                 cmd_list->SetGraphicsRootShaderResourceView(params::position_buffer, cache.position_buffers[cache_index]);
                 cmd_list->SetGraphicsRootShaderResourceView(params::element_buffer, cache.element_buffers[cache_index]);
                 cmd_list->SetGraphicsRootConstantBufferView(params::per_object_data, cache.per_object_data[cache_index]);
@@ -247,7 +255,6 @@ namespace graphic_pass
         // add_transitions_for_depth_pre-pass
         barriers.add(graphic_buffer.resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY);
         barriers.add(depth_buffer.resource(), D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
         barriers.apply(cmd_list);
 
         // set_render_targets_for_depth_pre-pass
@@ -270,7 +277,7 @@ namespace graphic_pass
             {
                 current_root_signature = cache.root_signatures[i];
                 cmd_list->SetGraphicsRootSignature(current_root_signature);
-                cmd_list->SetGraphicsRootConstantBufferView(opaque_root_parameter::global_shader_data, d3d12_info.global_shader_data);
+                cmd_list->SetGraphicsRootConstantBufferView(content::opaque_root_parameter::global_shader_data, d3d12_info.global_shader_data);
             }
 
             if (current_pipeline_state != cache.depth_pipeline_states[i])
@@ -317,7 +324,7 @@ namespace graphic_pass
         {
             if (current_root_signature != cache.root_signatures[i])
             {
-                using idx = opaque_root_parameter;
+                using idx = content::opaque_root_parameter;
 
                 current_root_signature = cache.root_signatures[i];
                 cmd_list->SetGraphicsRootSignature(current_root_signature);

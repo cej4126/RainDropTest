@@ -59,7 +59,8 @@ namespace shaders {
         const char* file_name;
         const char* function;
         shader_type::type type;
-        std::wstring arg;
+        std::wstring arg1;
+        std::wstring arg2;
     };
 
     struct dxc_compiled_shader
