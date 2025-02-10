@@ -181,7 +181,8 @@ void CullLightsCS(ComputeShaderInput csIn)
             numPointLights += (_lightFlagsOpaque[i] & 1);
             numSpotlights += (_lightFlagsOpaque[i] >> 1);
         }
-
+        
+                    // desc                  value                           original_value
         InterlockedAdd(LightIndexCounter[0], numPointLights + numSpotlights, _lightIndexStartOffset);
         _spotlightStartOffset = _lightIndexStartOffset + numPointLights;
         LightGrid_Opaque[gridIndex] = uint2(_lightIndexStartOffset, (numPointLights << 16) | numSpotlights);
@@ -208,6 +209,7 @@ void CullLightsCS(ComputeShaderInput csIn)
     }
 }
 #else
+zzz
 // NOTE: this constant is larger than max_lights_per_tile in light culling module (defined to be 256).
 //       This is because 256 is the maximum for the *average* number of lights per tile, whereas
 //       this constant is the maximum lights per tile.

@@ -38,7 +38,7 @@ namespace d3dx {
         const D3D12_RASTERIZER_DESC face_cull{
             D3D12_FILL_MODE_SOLID,                          //  D3D12_FILL_MODE FillMode;
             D3D12_CULL_MODE_BACK,                           //  D3D12_CULL_MODE CullMode;
-            FALSE,                                          //  BOOL FrontCounterClockwise;
+            TRUE,                                           //  BOOL FrontCounterClockwise;
             D3D12_DEFAULT_DEPTH_BIAS,                       //  INT DepthBias;
             D3D12_DEFAULT_DEPTH_BIAS_CLAMP,                 //  FLOAT DepthBiasClamp;
             D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,          //  FLOAT SlopeScaledDepthBias;

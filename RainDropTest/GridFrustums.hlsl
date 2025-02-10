@@ -28,6 +28,7 @@ void ComputeGridFrustumsCS(uint3 DispatchThreadID : SV_DispatchThreadID)
     Frustums[DispatchThreadID.x + (DispatchThreadID.y * ShaderParams.NumThreads.x)] = frustum;
 }
 #else
+zzz
 // Implementation of grid frustums shader is based on
 // "Forward vs Deferred vs Forward+ Rendering with DirectX 11" (2015) by Jeremiah van Oosten.
 // https://www.3dgep.com/forward-plus/#grid-frustums-compute-shader

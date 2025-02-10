@@ -112,15 +112,15 @@ struct LightCullingLightInfo
     float Range;
 
     float3 Direction;
-#if USE_BOUNDING_SPHERES
+//#if USE_BOUNDING_SPHERES
     // If this is set to -1 then the light is a point light.
     float CosPenumbra;
-#else
-    float   ConeRadius;
-
-    uint    Type;
-    float3  _pad;
-#endif
+//#else
+//    float   ConeRadius;
+//
+//    uint    Type;
+//    float3  _pad;
+//#endif
 };
 
 // Contains light data that's formatted and ready to be copied

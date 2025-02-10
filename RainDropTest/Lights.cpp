@@ -16,7 +16,7 @@ namespace lights
 
         template<UINT n>
         struct u32_set_bits {
-            static_assert(n > 0 && n < 32);
+            static_assert(n > 0 && n <= 32);
             constexpr static const UINT bits{ u32_set_bits<n - 1>::bits | (1 << (n - 1)) };
         };
 
@@ -40,17 +40,126 @@ namespace lights
         class LightSet
         {
         public:
+//            constexpr Light add(const light_init_info& info)
+//            {
+//                // directional light
+//                if (info.type == light_type::directional)
+//                {
+//                    // directional
+//                    UINT index{ Invalid_Index };
+//                    // Find an available slot in the array if any.
+//                    for (UINT i{ 0 }; i < _non_cullable_owners_ids.size(); ++i)
+//                    {
+//                        if (_non_cullable_owners_ids[i] == Invalid_Index)
+//                        {
+//                            index = i;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (index == Invalid_Index)
+//                    {
+//                        // not found, add to end of list
+//                        index = (UINT)_non_cullable_owners_ids.size();
+//                        _non_cullable_owners_ids.emplace_back();
+//                        _non_cullable_lights.emplace_back();
+//                    }
+//
+//                    hlsl::DirectionalLightParameters& params{ _non_cullable_lights[index] };
+//                    params.Color = info.color;
+//                    params.Intensity = info.intensity;
+//
+//                    light_owner owner{ info.entity_id, index, info.type, info.is_enabled };
+//                    const UINT id{ _owners.add(owner) };
+//                    _non_cullable_owners_ids[index] = id;
+//
+//                    return Light{ id, info.set_key };
+//                }
+//                else
+//                {
+//                    // cullable light
+//                    UINT index{ Invalid_Index };
+//                    for (UINT i{ _enabled_light_count }; i < _cullable_owner_ids.size(); ++i)
+//                    {
+//                        if (_cullable_owner_ids[i] == Invalid_Index)
+//                        {
+//                            index = i;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (index == Invalid_Index)
+//                    {
+//                        index = (UINT)_cullable_owner_ids.size();
+//                        _cullable_lights.emplace_back();
+//                        _culling_info.emplace_back();
+//                        _bounding_spheres.emplace_back();
+//                        _cullable_entity_ids.emplace_back();
+//                        _cullable_owner_ids.emplace_back();
+//                        _dirty_bits.emplace_back();
+//
+//#ifdef _DEBUG
+//                        assert(_cullable_owner_ids.size() == _cullable_lights.size());
+//                        assert(_cullable_owner_ids.size() == _culling_info.size());
+//                        assert(_cullable_owner_ids.size() == _bounding_spheres.size());
+//                        assert(_cullable_owner_ids.size() == _cullable_entity_ids.size());
+//                        assert(_cullable_owner_ids.size() == _dirty_bits.size());
+//#endif
+//                    }
+//
+//                    //add_cullable_light_parameters(info, index);
+//                    hlsl::LightParameters& params{ _cullable_lights[index] };
+//
+//                    params.Color = info.color;
+//                    params.Intensity = info.intensity;
+//
+//                    if (info.type == light_type::point)
+//                    {
+//                        const point_light_params& p{ info.point_params };
+//                        params.Attenuation = p.attenuation;
+//                        params.Range = p.range;
+//                    }
+//                    else
+//                    {
+//                        const spot_light_params& p{ info.spot_params };
+//                        params.Attenuation = p.attenuation;
+//                        params.Range = p.range;
+//                        params.CosUmbra = DirectX::XMScalarCos(p.umbra * 0.5f);
+//                        params.CosPenumbra = DirectX::XMScalarCos(p.penumbra * 0.5f);
+//                    }
+//
+//                    //add_light_culling_info(info, index);
+//                    hlsl::LightCullingLightInfo& culling_info{ _culling_info[index] };
+//                    _bounding_spheres[index].Radius = params.Range;
+//                    culling_info.Range = params.Range;
+//                    culling_info.CosPenumbra = -1.f;
+//
+//                    if (info.type == light_type::spot)
+//                    {
+//                        culling_info.CosPenumbra = params.CosPenumbra;
+//                    }
+//
+//                    const UINT id{ _owners.add(light_owner{info.entity_id, index, info.type, info.is_enabled }) };
+//                    UINT oid = _owners[id].entity_id;
+//                    _cullable_entity_ids[index] = _owners[id].entity_id;
+//                    _cullable_owner_ids[index] = id;
+//                    make_dirty(index);
+//                    enable(id, info.is_enabled);
+//                    update_transform(index);
+//
+//                    return Light{ id, info.set_key };
+//                }
+//            }
+
             constexpr Light add(const light_init_info& info)
             {
-                // directional light
                 if (info.type == light_type::directional)
                 {
-                    // directional
                     UINT index{ Invalid_Index };
                     // Find an available slot in the array if any.
-                    for (UINT i{ 0 }; i < m_non_cullable_owners_ids.size(); ++i)
+                    for (UINT i{ 0 }; i < _non_cullable_owners_ids.size(); ++i)
                     {
-                        if (m_non_cullable_owners_ids[i] != Invalid_Index)
+                        if (_non_cullable_owners_ids[i] == Invalid_Index)
                         {
                             index = i;
                             break;
@@ -59,90 +168,57 @@ namespace lights
 
                     if (index == Invalid_Index)
                     {
-                        // not found, add to end of list
-                        index = (UINT)m_non_cullable_owners_ids.size();
-                        m_non_cullable_owners_ids.emplace_back();
-                        m_non_cullable_lights.emplace_back();
+                        index = (UINT)_non_cullable_owners_ids.size();
+                        _non_cullable_owners_ids.emplace_back();
+                        _non_cullable_lights.emplace_back();
                     }
 
-                    hlsl::DirectionalLightParameters& params{ m_non_cullable_lights[index] };
+                    hlsl::DirectionalLightParameters& params{ _non_cullable_lights[index] };
                     params.Color = info.color;
                     params.Intensity = info.intensity;
 
                     light_owner owner{ info.entity_id, index, info.type, info.is_enabled };
-                    const UINT id{ m_owners.add(owner) };
-                    m_non_cullable_owners_ids[index] = id;
+                    const UINT id{ _owners.add(owner) };
+                    _non_cullable_owners_ids[index] = id;
 
                     return Light{ id, info.set_key };
                 }
                 else
                 {
-                    // cullable light
                     UINT index{ Invalid_Index };
-                    for (UINT i{ m_enabled_light_count }; i < m_cullable_owner_ids.size(); i++)
+
+                    // Try to find an empty slot
+                    for (UINT i{ _enabled_light_count }; i < _cullable_owner_ids.size(); ++i)
                     {
-                        if (m_cullable_owner_ids[i] == Invalid_Index)
+                        if (_cullable_owner_ids[i] == Invalid_Index)
                         {
                             index = i;
                             break;
                         }
                     }
 
+                    // If no empty slot was found then add a new item
                     if (index == Invalid_Index)
                     {
-                        index = (UINT)m_cullable_owner_ids.size();
-                        m_cullable_lights.emplace_back();
-                        m_culling_info.emplace_back();
-                        m_bounding_spheres.emplace_back();
-                        m_cullable_entity_ids.emplace_back();
-                        m_cullable_owner_ids.emplace_back();
-                        m_dirty_bits.emplace_back();
-
-#ifdef _DEBUG
-                        assert(m_cullable_owner_ids.size() == m_cullable_lights.size());
-                        assert(m_cullable_owner_ids.size() == m_culling_info.size());
-                        assert(m_cullable_owner_ids.size() == m_bounding_spheres.size());
-                        assert(m_cullable_owner_ids.size() == m_cullable_entity_ids.size());
-                        assert(m_cullable_owner_ids.size() == m_dirty_bits.size());
-#endif
+                        index = (UINT)_cullable_owner_ids.size();
+                        _cullable_lights.emplace_back();
+                        _culling_info.emplace_back();
+                        _bounding_spheres.emplace_back();
+                        _cullable_entity_ids.emplace_back();
+                        _cullable_owner_ids.emplace_back();
+                        _dirty_bits.emplace_back();
+                        assert(_cullable_owner_ids.size() == _cullable_lights.size());
+                        assert(_cullable_owner_ids.size() == _culling_info.size());
+                        assert(_cullable_owner_ids.size() == _bounding_spheres.size());
+                        assert(_cullable_owner_ids.size() == _cullable_entity_ids.size());
+                        assert(_cullable_owner_ids.size() == _dirty_bits.size());
                     }
 
-                    //add_cullable_light_parameters(info, index);
-                    hlsl::LightParameters& params{ m_cullable_lights[index] };
-
-                    params.Color = info.color;
-                    params.Intensity = info.intensity;
-
-                    if (info.type == light_type::point)
-                    {
-                        const point_light_params& p{ info.point_params };
-                        params.Attenuation = p.attenuation;
-                        params.Range = p.range;
-                    }
-                    else
-                    {
-                        const spot_light_params& p{ info.spot_params };
-                        params.Attenuation = p.attenuation;
-                        params.Range = p.range;
-                        params.CosUmbra = DirectX::XMScalarCos(p.umbra * 0.5f);
-                        params.CosPenumbra = DirectX::XMScalarCos(p.penumbra * 0.5f);
-                    }
-
-                    //add_light_culling_info(info, index);
-                    hlsl::LightCullingLightInfo& culling_info{ m_culling_info[index] };
-                    m_bounding_spheres[index].Radius = params.Range;
-                    culling_info.Range = params.Range;
-                    culling_info.CosPenumbra = -1.f;
-
-                    if (info.type == light_type::spot)
-                    {
-                        culling_info.CosPenumbra = params.CosPenumbra;
-                    }
-
-                    const UINT id{ m_owners.add(light_owner{info.entity_id, index, info.type, info.is_enabled }) };
-                    UINT oid = m_owners[id].entity_id;
-                    m_cullable_entity_ids[index] = m_owners[id].entity_id;
-                    m_cullable_owner_ids[index] = id;
+                    add_cullable_light_parameters(info, index);
+                    add_light_culling_info(info, index);
+                    const UINT id{ _owners.add(light_owner{info.entity_id, index, info.type, info.is_enabled }) };
+                    _cullable_entity_ids[index] = _owners[id].entity_id;
+                    _cullable_owner_ids[index] = id;
                     make_dirty(index);
                     enable(id, info.is_enabled);
                     update_transform(index);
@@ -154,51 +230,51 @@ namespace lights
             void remove(UINT id)
             {
                 enable(id, false);
-                const light_owner& owner{ m_owners[id] };
+                const light_owner& owner{ _owners[id] };
 
                 if (owner.type == light_type::directional)
                 {
-                    m_non_cullable_owners_ids[owner.light_index] = Invalid_Index;
+                    _non_cullable_owners_ids[owner.light_index] = Invalid_Index;
                 }
                 else
                 {
-                    assert(m_owners[m_cullable_owner_ids[owner.light_index]].light_index == owner.light_index);
-                    m_cullable_owner_ids[owner.light_index] = Invalid_Index;
+                    assert(_owners[_cullable_owner_ids[owner.light_index]].light_index == owner.light_index);
+                    _cullable_owner_ids[owner.light_index] = Invalid_Index;
                 }
 
-                m_owners.remove(id);
+                _owners.remove(id);
             }
 
             void update_transforms()
             {
                 // Update direction of directional light
-                for (const auto& id : m_non_cullable_owners_ids)
+                for (const auto& id : _non_cullable_owners_ids)
                 {
                     if (id == Invalid_Index)
                     {
                         continue;
                     }
 
-                    const light_owner& owner{ m_owners[id] };
+                    const light_owner& owner{ _owners[id] };
                     if (owner.is_enabled)
                     {
                         game_entity::entity entity{ owner.entity_id };
-                        hlsl::DirectionalLightParameters& params{ m_non_cullable_lights[owner.light_index] };
+                        hlsl::DirectionalLightParameters& params{ _non_cullable_lights[owner.light_index] };
                         params.Direction = entity.orientation();
                     }
                 }
 
                 // Update position and direction of cullable lights
-                const UINT count{ m_enabled_light_count };
-                if (count)
+                const UINT count{ _enabled_light_count };
+                if (count)  
                 {
-                    assert(m_cullable_entity_ids.size() >= count);
-                    m_transform_flags_cache.resize(count);
-                    transform::get_updated_components_flags(m_cullable_entity_ids.data(), count, m_transform_flags_cache.data());
+                    assert(_cullable_entity_ids.size() >= count);
+                    _transfor_flags_cache.resize(count);
+                    transform::get_updated_components_flags(_cullable_entity_ids.data(), count, _transfor_flags_cache.data());
 
                     for (UINT i{ 0 }; i < count; ++i)
                     {
-                        if (m_transform_flags_cache[i])
+                        if (_transfor_flags_cache[i])
                         {
                             update_transform(i);
                         }
@@ -209,9 +285,9 @@ namespace lights
             constexpr UINT non_cullable_light_count() const
             {
                 UINT count{ 0 };
-                for (const auto& id : m_non_cullable_owners_ids)
+                for (const auto& id : _non_cullable_owners_ids)
                 {
-                    if (id != Invalid_Index && m_owners[id].is_enabled)
+                    if (id != Invalid_Index && _owners[id].is_enabled)
                     {
                         ++count;
                     }
@@ -223,17 +299,17 @@ namespace lights
             constexpr void non_cullable_lights(hlsl::DirectionalLightParameters* const lights, UINT buffer_size) const
             {
                 assert(buffer_size >= math::align_size_up<D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT>(non_cullable_light_count() * sizeof(hlsl::DirectionalLightParameters)));
-                const UINT count{ (UINT)m_non_cullable_owners_ids.size() };
+                const UINT count{ (UINT)_non_cullable_owners_ids.size() };
                 UINT index{ 0 };
                 for (UINT i{ 0 }; i < count; ++i)
                 {
-                    if (m_non_cullable_owners_ids[i] == Invalid_Index) continue;
+                    if (_non_cullable_owners_ids[i] == Invalid_Index) continue;
 
-                    const light_owner& owner{ m_owners[m_non_cullable_owners_ids[i]] };
+                    const light_owner& owner{ _owners[_non_cullable_owners_ids[i]] };
                     if (owner.is_enabled)
                     {
-                        assert(m_owners[m_non_cullable_owners_ids[i]].light_index == i);
-                        lights[index] = m_non_cullable_lights[i];
+                        assert(_owners[_non_cullable_owners_ids[i]].light_index == i);
+                        lights[index] = _non_cullable_lights[i];
                         ++index;
                     }
                 }
@@ -241,59 +317,59 @@ namespace lights
 
             constexpr UINT cullable_light_count() const
             {
-                return m_enabled_light_count;
+                return _enabled_light_count;
             }
 
             constexpr UINT entity_id(UINT id) const
             {
-                return m_owners[id].entity_id;
+                return _owners[id].entity_id;
             }
 
             void enable(UINT id, bool is_enabled)
             {
                 // Set the owner enable state
-                m_owners[id].is_enabled = is_enabled;
+                _owners[id].is_enabled = is_enabled;
 
                 // Directional light are not packed
-                if (m_owners[id].type == light_type::directional)
+                if (_owners[id].type == light_type::directional)
                 {
                     return;
                 }
 
                 // Packed the cullable light, swap the disable lights after the enable lights
-                const UINT light_index{ m_owners[id].light_index };
+                const UINT light_index{ _owners[id].light_index };
 
                 if (is_enabled)
                 {
                     // enable light
-                    if (light_index > m_enabled_light_count)
+                    if (light_index > _enabled_light_count)
                     {
                         // light was disabled
-                        assert(m_enabled_light_count < m_cullable_lights.size());
-                        swap_cullable_lights(light_index, m_enabled_light_count);
-                        ++m_enabled_light_count;
+                        assert(_enabled_light_count < _cullable_lights.size());
+                        swap_cullable_lights(light_index, _enabled_light_count);
+                        ++_enabled_light_count;
                     }
-                    else if (light_index == m_enabled_light_count)
+                    else if (light_index == _enabled_light_count)
                     {
                         // light is the first item in the disable list. No swapping needed
-                        ++m_enabled_light_count;
+                        ++_enabled_light_count;
                     }
                     // else is already enable
                 }
                 else
                 {
                     // disable light
-                    const UINT last{ m_enabled_light_count - 1 };
+                    const UINT last{ _enabled_light_count - 1 };
                     if (light_index < last)
                     {
                         // light was enable
                         swap_cullable_lights(light_index, last);
-                        --m_enabled_light_count;
+                        --_enabled_light_count;
                     }
                     else if (light_index == last)
                     {
                         // light is the first item in the disable list. No swapping needed
-                        --m_enabled_light_count;
+                        --_enabled_light_count;
                     }
                     // else is already disenable
                 }
@@ -302,7 +378,7 @@ namespace lights
 
             constexpr bool has_lights() const
             {
-                return m_owners.size();
+                return _owners.size();
             }
 
         private:
@@ -329,77 +405,129 @@ namespace lights
 
             void update_transform(UINT index)
             {
-                game_entity::entity entity{ m_cullable_entity_ids[index] };
-                hlsl::LightParameters& light_params{ m_cullable_lights[index] };
+                game_entity::entity entity{ _cullable_entity_ids[index] };
+                hlsl::LightParameters& light_params{ _cullable_lights[index] };
                 light_params.Position = entity.position();
 
-                hlsl::LightCullingLightInfo& culling_info{ m_culling_info[index] };
+                hlsl::LightCullingLightInfo& culling_info{ _culling_info[index] };
                 culling_info.Position = entity.position();
-                m_bounding_spheres[index].Center = entity.position();
+                _bounding_spheres[index].Center = entity.position();
 
-                if (m_owners[m_cullable_owner_ids[index]].type == light_type::spot)
+                if (_owners[_cullable_owner_ids[index]].type == light_type::spot)
                 {
                     culling_info.Direction = entity.orientation();
                     light_params.Direction = entity.orientation();
-                    calculate_cone_bounding_sphere(light_params, m_bounding_spheres[index]);
+                    calculate_cone_bounding_sphere(light_params, _bounding_spheres[index]);
                 }
 
                 make_dirty(index);
             }
 
+            constexpr void add_cullable_light_parameters(const light_init_info& info, UINT index)
+            {
+                assert(info.type != light_type::directional && index < _cullable_lights.size());
+
+                hlsl::LightParameters& params{ _cullable_lights[index] };
+#if !USE_BOUNDING_SPHERES
+
+                params.Type = info.type;
+                assert(params.Type < light::count);
+#endif
+                params.Color = info.color;
+                params.Intensity = info.intensity;
+
+                if (info.type == light_type::point)
+                {
+                    const point_light_params& p{ info.point_params };
+                    params.Attenuation = p.attenuation;
+                    params.Range = p.range;
+                }
+                else if (info.type == light_type::spot)
+                {
+                    const spot_light_params& p{ info.spot_params };
+                    params.Attenuation = p.attenuation;
+                    params.Range = p.range;
+                    params.CosUmbra = DirectX::XMScalarCos(p.umbra * 0.5f);
+                    params.CosPenumbra = DirectX::XMScalarCos(p.penumbra * 0.5f);
+                }
+            }
+
+            constexpr void add_light_culling_info(const light_init_info& info, UINT index)
+            {
+                assert(info.type != light_type::directional && index < _culling_info.size());
+
+                const hlsl::LightParameters& params{ _cullable_lights[index] };
+                hlsl::LightCullingLightInfo& culling_info{ _culling_info[index] };
+                culling_info.Range = _bounding_spheres[index].Radius = params.Range;
+#if USE_BOUNDING_SPHERES
+                culling_info.CosPenumbra = -1.f;
+#else
+                culling_info.Type = params.Type;
+#endif
+
+                if (info.type == light_type::spot)
+                {
+#if USE_BOUNDING_SPHERES
+                    culling_info.CosPenumbra = params.CosPenumbra;
+#else
+                    culling_info.ConeRadius = calculate_cone_radius(params.Range, params.CosPenumbra);
+#endif
+                }
+            }
+
             void swap_cullable_lights(UINT index1, UINT index2)
             {
                 assert(index1 != index2);
-                assert(index1 < m_cullable_owner_ids.size());
-                assert(index2 < m_cullable_owner_ids.size());
+                assert(index1 < _cullable_owner_ids.size());
+                assert(index2 < _cullable_owner_ids.size());
                 // verify one light is valid
-                assert(m_cullable_owner_ids[index1] != Invalid_Index || m_cullable_owner_ids[index2] != Invalid_Index);
+                assert(_cullable_owner_ids[index1] != Invalid_Index || _cullable_owner_ids[index2] != Invalid_Index);
 
 
-                if (m_cullable_owner_ids[index2] == Invalid_Index)
+                if (_cullable_owner_ids[index2] == Invalid_Index)
                 {
                     // second light is not valid. This will reduce code checks
                     std::swap(index1, index2);
                 }
 
-                if (m_cullable_owner_ids[index1] == Invalid_Index)
+                if (_cullable_owner_ids[index1] == Invalid_Index)
                 {
                     // only index2 is valid
-                    light_owner& owner2{ m_owners[m_cullable_owner_ids[index2]] };
+                    light_owner& owner2{ _owners[_cullable_owner_ids[index2]] };
                     assert(owner2.light_index == index2);
                     owner2.light_index = index1;
 
-                    m_cullable_lights[index1] = m_cullable_lights[index2];
-                    m_culling_info[index1] = m_culling_info[index2];
-                    m_bounding_spheres[index1] = m_bounding_spheres[index2];
-                    m_cullable_entity_ids[index1] = m_cullable_entity_ids[index2];
-                    std::swap(m_cullable_owner_ids[index1], m_cullable_owner_ids[index2]);
+                    _cullable_lights[index1] = _cullable_lights[index2];
+                    _culling_info[index1] = _culling_info[index2];
+                    _bounding_spheres[index1] = _bounding_spheres[index2];
+                    _cullable_entity_ids[index1] = _cullable_entity_ids[index2];
+                    std::swap(_cullable_owner_ids[index1], _cullable_owner_ids[index2]);
                     make_dirty(index1);
-                    assert(m_owners[m_cullable_owner_ids[index1]].entity_id == m_cullable_entity_ids[index1]);
-                    assert(m_cullable_owner_ids[index2] == Invalid_Index);
+                    assert(_owners[_cullable_owner_ids[index1]].entity_id == _cullable_entity_ids[index1]);
+                    assert(_cullable_owner_ids[index2] == Invalid_Index);
                 }
                 else
                 {
                     // both index1 and index2 are valid
-                    light_owner& owner1{ m_owners[m_cullable_owner_ids[index1]] };
-                    light_owner& owner2{ m_owners[m_cullable_owner_ids[index2]] };
+                    light_owner& owner1{ _owners[_cullable_owner_ids[index1]] };
+                    light_owner& owner2{ _owners[_cullable_owner_ids[index2]] };
                     assert(owner1.light_index == index1);
                     assert(owner2.light_index == index2);
                     owner1.light_index = index2;
                     owner2.light_index = index1;
 
-                    std::swap(m_cullable_lights[index1], m_cullable_lights[index2]);
-                    std::swap(m_culling_info[index1], m_culling_info[index2]);
-                    std::swap(m_bounding_spheres[index1], m_bounding_spheres[index2]);
-                    std::swap(m_cullable_entity_ids[index1], m_cullable_entity_ids[index2]);
-                    std::swap(m_cullable_owner_ids[index1], m_cullable_owner_ids[index2]);
+                    std::swap(_cullable_lights[index1], _cullable_lights[index2]);
+                    std::swap(_culling_info[index1], _culling_info[index2]);
+                    std::swap(_bounding_spheres[index1], _bounding_spheres[index2]);
+                    std::swap(_cullable_entity_ids[index1], _cullable_entity_ids[index2]);
+                    std::swap(_cullable_owner_ids[index1], _cullable_owner_ids[index2]);
 
-                    UINT cuoi = m_cullable_owner_ids[index1];
-                    UINT oi = m_owners[m_cullable_owner_ids[index1]].entity_id;
-                    UINT cei = m_cullable_entity_ids[index1];
+                    UINT cuoi = _cullable_owner_ids[index1];
+                    UINT oi = _owners[_cullable_owner_ids[index1]].entity_id;
+                    UINT cei = _cullable_entity_ids[index1];
 
-                    assert(m_owners[m_cullable_owner_ids[index1]].entity_id == m_cullable_entity_ids[index1]);
-                    assert(m_owners[m_cullable_owner_ids[index2]].entity_id == m_cullable_entity_ids[index2]);
+                    assert(_owners[_cullable_owner_ids[index1]].entity_id == _cullable_entity_ids[index1]);
+                    assert(_owners[_cullable_owner_ids[index2]].entity_id == _cullable_entity_ids[index2]);
 
                     // set dirty bits
                     make_dirty(index1);
@@ -409,26 +537,26 @@ namespace lights
 
             constexpr void make_dirty(UINT index)
             {
-                assert(index < m_dirty_bits.size());
-                m_something_is_dirty = dirty_bits_mask;
-                m_dirty_bits[index] = dirty_bits_mask;
+                assert(index < _dirty_bits.size());
+                _something_is_dirty = dirty_bits_mask;
+                _dirty_bits[index] = dirty_bits_mask;
             }
 
-            utl::free_list<light_owner> m_owners{ 30 };
-            utl::vector<hlsl::DirectionalLightParameters> m_non_cullable_lights;
-            utl::vector<UINT> m_non_cullable_owners_ids;
+            utl::free_list<light_owner> _owners{ 30 };
+            utl::vector<hlsl::DirectionalLightParameters> _non_cullable_lights;
+            utl::vector<UINT> _non_cullable_owners_ids;
 
             // Packed
-            utl::vector<hlsl::LightParameters> m_cullable_lights;
-            utl::vector<hlsl::LightCullingLightInfo> m_culling_info;
-            utl::vector<hlsl::Sphere> m_bounding_spheres;
-            utl::vector<UINT> m_cullable_entity_ids;
-            utl::vector<UINT> m_cullable_owner_ids;
-            utl::vector<UINT8> m_dirty_bits;
+            utl::vector<hlsl::LightParameters> _cullable_lights;
+            utl::vector<hlsl::LightCullingLightInfo> _culling_info;
+            utl::vector<hlsl::Sphere> _bounding_spheres;
+            utl::vector<UINT> _cullable_entity_ids;
+            utl::vector<UINT> _cullable_owner_ids;
+            utl::vector<UINT8> _dirty_bits;
 
-            utl::vector<UINT8> m_transform_flags_cache;
-            UINT m_enabled_light_count{ 0 };
-            UINT8 m_something_is_dirty{ 0 };
+            utl::vector<UINT8> _transfor_flags_cache;
+            UINT _enabled_light_count{ 0 };
+            UINT8 _something_is_dirty{ 0 };
 
             friend class LightBuffer;
         };
@@ -447,15 +575,15 @@ namespace lights
                 if (non_cullable_light_count)
                 {
                     const UINT needed_size{ non_cullable_light_count * sizeof(hlsl::DirectionalLightParameters) };
-                    const UINT current_size{ m_buffers[light_buffer::non_cullable_light].buffer.size() };
+                    const UINT current_size{ _buffers[light_buffer::non_cullable_light].buffer.size() };
 
                     if (current_size < needed_size)
                     {
                         resize_buffer(light_buffer::non_cullable_light, needed_size, frame_index);
                     }
 
-                    light_set.non_cullable_lights((hlsl::DirectionalLightParameters* const)m_buffers[light_buffer::non_cullable_light].cpu_address,
-                        m_buffers[light_buffer::non_cullable_light].buffer.size());
+                    light_set.non_cullable_lights((hlsl::DirectionalLightParameters* const)_buffers[light_buffer::non_cullable_light].cpu_address,
+                        _buffers[light_buffer::non_cullable_light].buffer.size());
                 }
 
                 // Process the cullable lights
@@ -465,7 +593,7 @@ namespace lights
                     const UINT needed_light_buffer_size{ cullable_light_count * sizeof(hlsl::LightParameters) };
                     const UINT needed_culling_info_buffer_size{ cullable_light_count * sizeof(hlsl::LightCullingLightInfo) };
                     const UINT needed_spheres_buffer_size{ cullable_light_count * sizeof(hlsl::Sphere) };
-                    const UINT current_light_buffer_size{ m_buffers[light_buffer::cullable_light].buffer.size() };
+                    const UINT current_light_buffer_size{ _buffers[light_buffer::cullable_light].buffer.size() };
 
                     bool buffers_resized{ false };
                     if (current_light_buffer_size < needed_light_buffer_size)
@@ -480,39 +608,39 @@ namespace lights
 
                     const UINT index_mask{ 1UL << frame_index };
 
-                    if (buffers_resized || m_current_light_set_key != light_set_key)
+                    if (buffers_resized || _current_light_set_key != light_set_key)
                     {
-                        memcpy(m_buffers[light_buffer::cullable_light].cpu_address, light_set.m_cullable_lights.data(), needed_light_buffer_size);
-                        memcpy(m_buffers[light_buffer::culling_info].cpu_address, light_set.m_culling_info.data(), needed_culling_info_buffer_size);
-                        memcpy(m_buffers[light_buffer::bounding_spheres].cpu_address, light_set.m_bounding_spheres.data(), needed_spheres_buffer_size);
-                        m_current_light_set_key = light_set_key;
+                        memcpy(_buffers[light_buffer::cullable_light].cpu_address, light_set._cullable_lights.data(), needed_light_buffer_size);
+                        memcpy(_buffers[light_buffer::culling_info].cpu_address, light_set._culling_info.data(), needed_culling_info_buffer_size);
+                        memcpy(_buffers[light_buffer::bounding_spheres].cpu_address, light_set._bounding_spheres.data(), needed_spheres_buffer_size);
+                        _current_light_set_key = light_set_key;
 
                         for (UINT i{ 0 }; i < cullable_light_count; ++i)
                         {
-                            light_set.m_dirty_bits[i] &= ~index_mask;
+                            light_set._dirty_bits[i] &= ~index_mask;
                         }
                     }
-                    else if (light_set.m_something_is_dirty)
+                    else if (light_set._something_is_dirty)
                     {
                         for (UINT i{ 0 }; i < cullable_light_count; ++i)
                         {
-                            if (light_set.m_dirty_bits[i] & index_mask)
+                            if (light_set._dirty_bits[i] & index_mask)
                             {
                                 assert(i * sizeof(hlsl::LightParameters) < needed_light_buffer_size);
                                 assert(i * sizeof(hlsl::LightCullingLightInfo) < needed_culling_info_buffer_size);
-                                UINT8* const light_dst{ m_buffers[light_buffer::cullable_light].cpu_address + (i * sizeof(hlsl::LightParameters)) };
-                                UINT8* const culling_dst{ m_buffers[light_buffer::culling_info].cpu_address + (i * sizeof(hlsl::LightCullingLightInfo)) };
-                                UINT8* const bounding_dst{ m_buffers[light_buffer::bounding_spheres].cpu_address + (i * sizeof(hlsl::Sphere)) };
-                                memcpy(light_dst, &light_set.m_cullable_lights[i], sizeof(hlsl::LightParameters));
-                                memcpy(culling_dst, &light_set.m_culling_info[i], sizeof(hlsl::LightCullingLightInfo));
-                                memcpy(bounding_dst, &light_set.m_bounding_spheres[i], sizeof(hlsl::Sphere));
-                                light_set.m_dirty_bits[i] &= ~index_mask;
+                                UINT8* const light_dst{ _buffers[light_buffer::cullable_light].cpu_address + (i * sizeof(hlsl::LightParameters)) };
+                                UINT8* const culling_dst{ _buffers[light_buffer::culling_info].cpu_address + (i * sizeof(hlsl::LightCullingLightInfo)) };
+                                UINT8* const bounding_dst{ _buffers[light_buffer::bounding_spheres].cpu_address + (i * sizeof(hlsl::Sphere)) };
+                                memcpy(light_dst, &light_set._cullable_lights[i], sizeof(hlsl::LightParameters));
+                                memcpy(culling_dst, &light_set._culling_info[i], sizeof(hlsl::LightCullingLightInfo));
+                                memcpy(bounding_dst, &light_set._bounding_spheres[i], sizeof(hlsl::Sphere));
+                                light_set._dirty_bits[i] &= ~index_mask;
                             }
                         }
                     }
 
-                    light_set.m_something_is_dirty &= ~index_mask;
-                    assert(m_current_light_set_key == light_set_key);
+                    light_set._something_is_dirty &= ~index_mask;
+                    assert(_current_light_set_key == light_set_key);
                 }
             }
 
@@ -520,15 +648,15 @@ namespace lights
             {
                 for (UINT i{ 0 }; i < light_buffer::count; ++i)
                 {
-                    m_buffers[i].buffer.release();
-                    m_buffers[i].cpu_address = nullptr;
+                    _buffers[i].buffer.release();
+                    _buffers[i].cpu_address = nullptr;
                 }
             }
 
-            constexpr D3D12_GPU_VIRTUAL_ADDRESS non_cullable_lights() const { return m_buffers[light_buffer::non_cullable_light].buffer.gpu_address(); }
-            constexpr D3D12_GPU_VIRTUAL_ADDRESS cullable_lights() const { return m_buffers[light_buffer::cullable_light].buffer.gpu_address(); }
-            constexpr D3D12_GPU_VIRTUAL_ADDRESS culling_info() const { return m_buffers[light_buffer::culling_info].buffer.gpu_address(); }
-            constexpr D3D12_GPU_VIRTUAL_ADDRESS bounding_spheres() const { return m_buffers[light_buffer::bounding_spheres].buffer.gpu_address(); }
+            constexpr D3D12_GPU_VIRTUAL_ADDRESS non_cullable_lights() const { return _buffers[light_buffer::non_cullable_light].buffer.gpu_address(); }
+            constexpr D3D12_GPU_VIRTUAL_ADDRESS cullable_lights() const { return _buffers[light_buffer::cullable_light].buffer.gpu_address(); }
+            constexpr D3D12_GPU_VIRTUAL_ADDRESS culling_info() const { return _buffers[light_buffer::culling_info].buffer.gpu_address(); }
+            constexpr D3D12_GPU_VIRTUAL_ADDRESS bounding_spheres() const { return _buffers[light_buffer::bounding_spheres].buffer.gpu_address(); }
 
         private:
             struct light_buffer
@@ -549,7 +677,7 @@ namespace lights
             void resize_buffer(light_buffer::type type, UINT size, UINT frame_index)
             {
                 assert(type < light_buffer::count && size);
-                if (m_buffers[type].buffer.size() >= math::align_size_up<D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT>(size))
+                if (_buffers[type].buffer.size() >= math::align_size_up<D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT>(size))
                 {
                     // buffer size is good
                     return;
@@ -559,19 +687,19 @@ namespace lights
                 info.size = size;
                 info.alignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
                 info.cpu_accessible = true;
-                m_buffers[type].buffer = resource::Buffer{ info };
-                NAME_D3D12_OBJECT_INDEXED(m_buffers[type].buffer.buffer(), frame_index,
+                _buffers[type].buffer = resource::Buffer{ info };
+                NAME_D3D12_OBJECT_INDEXED(_buffers[type].buffer.buffer(), frame_index,
                     type == light_buffer::non_cullable_light ? L"Non-cullable Light Buffer" :
                     type == light_buffer::cullable_light ? L"Cullable Light Buffer" :
                     type == light_buffer::culling_info ? L"Light Culling Info Buffer" : L"Bounding Spheres Buffer");
 
                 D3D12_RANGE range{};
-                ThrowIfFailed(m_buffers[type].buffer.buffer()->Map(0, &range, (void**)(&m_buffers[type].cpu_address)));
-                assert(m_buffers[type].cpu_address);
+                ThrowIfFailed(_buffers[type].buffer.buffer()->Map(0, &range, (void**)(&_buffers[type].cpu_address)));
+                assert(_buffers[type].cpu_address);
             }
 
-            light_buffer m_buffers[light_buffer::count]{};
-            UINT64 m_current_light_set_key{ 0 };
+            light_buffer _buffers[light_buffer::count]{};
+            UINT64 _current_light_set_key{ 0 };
         };
 
         struct light_culling_root_parameter {
@@ -611,22 +739,22 @@ namespace lights
 
         const UINT max_lights_per_tile{ 256 };
 
-        std::unordered_map<UINT64, LightSet> m_light_set_keys;
-        LightBuffer light_buffers[Frame_Count];
-
         ID3D12RootSignature* light_culling_root_signature{ nullptr };
         ID3D12PipelineState* light_culling_pso{ nullptr };
         ID3D12PipelineState* grid_frustum_pso{ nullptr };
         utl::free_list<light_culler> light_cullers{ 31 };
+
+        std::unordered_map<UINT64, LightSet> _light_set_keys;
+        LightBuffer light_buffers[Frame_Count];
 
         utl::vector<Light> lights;
         utl::vector<Light> disabled_lights;
 
         Light create_light(light_init_info info)
         {
-            assert(m_light_set_keys.count(info.set_key));
+            assert(_light_set_keys.count(info.set_key));
             assert(info.entity_id != Invalid_Index);
-            return m_light_set_keys[info.set_key].add(info);
+            return _light_set_keys[info.set_key].add(info);
         }
 
         void create_light(XMFLOAT3 position, XMFLOAT3 rotation, lights::light_type::type type, UINT64 key)
@@ -659,8 +787,8 @@ namespace lights
 
         void remove_light(UINT id, UINT64 light_set_key)
         {
-            assert(m_light_set_keys.count(light_set_key));
-            m_light_set_keys[light_set_key].remove(id);
+            assert(_light_set_keys.count(light_set_key));
+            _light_set_keys[light_set_key].remove(id);
         }
 
         struct light_set_states {
@@ -817,7 +945,7 @@ namespace lights
             using param = light_culling_root_parameter;
             cmd_list->SetComputeRootConstantBufferView(param::global_shader_data, d3d12_info.global_shader_data);
             cmd_list->SetComputeRootConstantBufferView(param::constants, cbuffer.gpu_address(buffer));
-            cmd_list->SetComputeRootUnorderedAccessView(param::frustums_out_or_index_counter, culler.light_index_counter.gpu_address());
+            cmd_list->SetComputeRootUnorderedAccessView(param::frustums_out_or_index_counter, culler.frustums.gpu_address());
             cmd_list->Dispatch(params.NumThreadGroups.x, params.NumThreadGroups.y, 1);
 
             // Make frustums buffer readable
@@ -844,22 +972,22 @@ namespace lights
 
     UINT Light::get_entity_id() const
     {
-        UINT64 key = m_light_set_key;
-        UINT entity_id = m_light_set_keys[m_light_set_key].entity_id(m_id);
+        UINT64 key = _light_set_key;
+        UINT entity_id = _light_set_keys[_light_set_key].entity_id(_id);
         return entity_id;
     }
 
     void create_light_set(UINT64 set_key)
     {
         // key not used check
-        assert(!m_light_set_keys.count(set_key));
-        m_light_set_keys[set_key] = {};
+        assert(!_light_set_keys.count(set_key));
+        _light_set_keys[set_key] = {};
     }
 
     void remove_light_set(UINT64 light_set_key)
     {
-        assert(!m_light_set_keys[light_set_key].has_lights());
-        m_light_set_keys.erase(light_set_key);
+        assert(!_light_set_keys[light_set_key].has_lights());
+        _light_set_keys.erase(light_set_key);
     }
 
     void generate_lights()
@@ -883,6 +1011,7 @@ namespace lights
         info.set_key = light_set_states::left_set;
         info.intensity = 1.f;
         info.color = rgb_to_color(174, 174, 174);
+        info.spot_params.range = 1.0f;
         lights.emplace_back(create_light(info));
 
         // right
@@ -945,8 +1074,8 @@ namespace lights
     void update_light_buffers(core::d3d12_frame_info d3d12_info)
     {
         const UINT64 light_set_key{ d3d12_info.info->light_set_key };
-        assert(m_light_set_keys.count(light_set_key));
-        LightSet& light_set{ m_light_set_keys[light_set_key] };
+        assert(_light_set_keys.count(light_set_key));
+        LightSet& light_set{ _light_set_keys[light_set_key] };
         if (!light_set.has_lights()) return;
 
         light_set.update_transforms();
@@ -1039,14 +1168,14 @@ namespace lights
     
     UINT non_cullable_light_count(UINT64 key)
     {
-        assert(m_light_set_keys.count(key));
-        return m_light_set_keys[key].non_cullable_light_count();
+        assert(_light_set_keys.count(key));
+        return _light_set_keys[key].non_cullable_light_count();
     }
         
     UINT cullable_light_count(UINT64 key)
     {
-        assert(m_light_set_keys.count(key));
-        return m_light_set_keys[key].cullable_light_count();
+        assert(_light_set_keys.count(key));
+        return _light_set_keys[key].cullable_light_count();
     }
 
     D3D12_GPU_VIRTUAL_ADDRESS frustums(UINT light_culling_id, UINT frame_index)
@@ -1081,7 +1210,7 @@ namespace lights
     void shutdown()
     {
         // D3D12Light.cpp
-        assert(m_light_set_keys.empty());
+        assert(_light_set_keys.empty());
 
         for (UINT i{ 0 }; i < Frame_Count; ++i)
         {

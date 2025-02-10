@@ -67,17 +67,17 @@ namespace lights
     {
     public:
 
-        constexpr explicit Light(UINT id, UINT64 light_set_key) : m_light_set_key{ light_set_key }, m_id{ id } {}
+        constexpr explicit Light(UINT id, UINT64 light_set_key) : _light_set_key{ light_set_key }, _id{ id } {}
         constexpr Light() = default;
-        constexpr UINT get_id() const { return m_id; }
-        constexpr UINT64 get_set_key() const { return m_light_set_key; }
-        constexpr bool is_valid() const { return m_id != Invalid_Index; }
+        constexpr UINT get_id() const { return _id; }
+        constexpr UINT64 get_set_key() const { return _light_set_key; }
+        constexpr bool is_valid() const { return _id != Invalid_Index; }
 
         UINT get_entity_id() const;
 
     private:
-        UINT64 m_light_set_key{ 0 };
-        UINT m_id{ Invalid_Index };
+        UINT64 _light_set_key{ 0 };
+        UINT _id{ Invalid_Index };
     };
 
 
